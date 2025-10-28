@@ -9,30 +9,27 @@ const activityRoutes = require('./routes/activityRoutes.js');
 const qnaRoutes = require('./routes/qnaRoutes.js');
 const leaderboardRoutes = require('./routes/leaderboardRoutes.js');
 const verifyToken = require('./controllers/verifyLoginToken.js');
-// Load environment variables from .env file
+const adminRoutes = require('./routes/adminRoutes.js');
+
 dotenv.config();
 
 const app = express();
-
-// Middleware to enable CORS and parse JSON request bodies
 app.use(cors());
 app.use(express.json());
 
-// Mount the authentication routes under the /api/auth path
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/experiences', experienceRoutes);
-app.use('/api/profile',profileRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api/bookmarks', bookmarks);
 app.use('/api/activity', activityRoutes);
 app.use('/api/qna', qnaRoutes);
 app.use('/api/verifyToken', verifyToken);
 app.use('/api/leaderboard', leaderboardRoutes);
-// A simple welcome route to confirm the server is running
+
 app.get('/', (req, res) => {
-  res.send('Welcome to the XShare Backend API!');
+  res.send('✅ Welcome to the XShare Backend API!');
 });
 
-const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
