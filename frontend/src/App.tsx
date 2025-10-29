@@ -30,7 +30,6 @@ function App() {
             <Route path="/experiences" element={<Experiences />} />
             <Route path="/qa" element={<QAndA />} />
             <Route path="/resources" element={<Resources />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/jobs" element={<JobPortal />} />
@@ -42,6 +41,7 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/rewards" element={<Rewards/>} />
               <Route path="/resume-builder" element={<ResumeBuilder/>} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/admin" element={<Admin />} />
             </Route>
           </Routes>

@@ -1,17 +1,19 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   FileText, Download, Eye, CheckCircle, AlertCircle, User, Briefcase,
   GraduationCap, Award, Code, Plus, X, Lightbulb, Zap, GripVertical, Settings, Star
 } from 'lucide-react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import html2pdf from 'html2pdf.js';
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 
 // --- Import Templates ---
 import TemplateBasic from '../templatess/TemplateBasic';
 import TemplateModern from '../templatess/TemplateModern';
 import TemplateProfessional from '../templatess/TemplateProfessional'; // New Template Import
+import SherlockHolmesModified from '../templatess/SherlockHolmesModified';
 // ------------------------
-
+ 
 // ---- Types (Must be accurate for both builder and templates) ----
 interface PersonalInfo { name: string; title: string; email: string; phone: string; location: string; linkedin: string; github: string; portfolio: string; }
 interface ExperienceItem { id: string; title: string; company: string; startDate: string; endDate: string; description: string; }
@@ -36,7 +38,7 @@ interface ResumeData {
 // Interface for template component props (to pass section order/config)
 interface TemplateComponentProps {
     data: ResumeData;
-    sectionOrder: string[];
+    sectionOrder: string[]; // **CRUCIAL: Used to dictate the rendering order**
     allSections: SectionConfig[];
 }
 
@@ -62,6 +64,7 @@ const templates: TemplateConfig[] = [
   { id: 'basic', name: 'Basic Professional', component: TemplateBasic },
   { id: 'modern', name: 'Modern Professional', component: TemplateModern },
   { id: 'professional', name: 'Executive Professional', component: TemplateProfessional }, // New template
+  { id: 'sherlock', name: 'Sherlock Professional', component: SherlockHolmesModified }, // New template
 ];
 
 // ---- Sections ----
@@ -87,6 +90,33 @@ const customSectionsConfig: SectionConfig[] = [
     { id: 'interests', name: 'Interests', icon: Lightbulb, form: 'InterestsForm' },
 ];
 
+// --- Reusable Hook for Debounced State Updates ---
+const useDebouncedState = <T,>(initialValue: T, delay = 400, onUpdate: (newValue: T) => void) => {
+  const [localValue, setLocalValue] = useState(initialValue);
+
+  // Sync local state when external initialValue changes
+  useEffect(() => {
+    setLocalValue(initialValue);
+  }, [initialValue]);
+
+  // Debounced update logic
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      // Only call onUpdate if the local value is truly different from the current prop/initial value
+      // This prevents unnecessary updates right after initial mount/sync.
+      if (localValue !== initialValue) {
+        onUpdate(localValue);
+      }
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [localValue, delay, onUpdate, initialValue]);
+
+  return [localValue, setLocalValue] as const;
+};
+
 // ---- PDF Styles (simple demo) ----
 // (The PDF logic is kept simple to reflect the original component structure)
 const pdfStyles = StyleSheet.create({
@@ -98,55 +128,98 @@ const pdfStyles = StyleSheet.create({
 });
 
 // A very simple PDF mirroring key sections
-const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => (
+const ResumePDF: React.FC<{ data: ResumeData, sectionOrder: string[] }> = ({ data, sectionOrder }) => (
   <Document>
     <Page size="A4" style={pdfStyles.page}>
-      <Text style={pdfStyles.h1}>{data.personal.name} — {data.personal.title}</Text>
-      <Text style={pdfStyles.row}>{data.personal.email} • {data.personal.phone} • {data.personal.location}</Text>
-      <Text style={pdfStyles.row}>{data.personal.linkedin} • {data.personal.github} • {data.personal.portfolio}</Text>
-
-      <Text style={pdfStyles.h2}>Summary</Text>
-      <Text style={pdfStyles.row}>{data.summary}</Text>
-
-      <Text style={pdfStyles.h2}>Experience</Text>
-      {data.experience.map(exp => (
-        <View key={exp.id} style={{ marginBottom: 6 }}>
-          <Text>{exp.title} — {exp.company} ({exp.startDate} - {exp.endDate})</Text>
-          <Text style={pdfStyles.bullet}>{exp.description}</Text>
-        </View>
-      ))}
-
-      <Text style={pdfStyles.h2}>Education</Text>
-      {data.education.map(edu => (
-        <View key={edu.id} style={{ marginBottom: 6 }}>
-          <Text>{edu.degree} — {edu.institution}, {edu.city} ({edu.startDate} - {edu.endDate})</Text>
-          {edu.description ? <Text style={pdfStyles.bullet}>{edu.description}</Text> : null}
-        </View>
-      ))}
-
-      <Text style={pdfStyles.h2}>Skills</Text>
-      <Text style={pdfStyles.row}>{data.skills.map(s => s.name).join(', ')}</Text>
-      
-      {data.projects.length > 0 && <Text style={pdfStyles.h2}>Projects</Text>}
-      {data.projects.map(proj => (
-        <View key={proj.id} style={{ marginBottom: 6 }}>
-          <Text>{proj.name} ({proj.url})</Text>
-          <Text style={pdfStyles.bullet}>{proj.description}</Text>
-        </View>
-      ))}
-
-      {data.certifications.length > 0 && <Text style={pdfStyles.h2}>Certifications</Text>}
-      {data.certifications.map(cert => (
-        <Text key={cert.id} style={pdfStyles.row}>{cert.name}, {cert.authority} ({cert.date})</Text>
-      ))}
-
-      {data.achievements.length > 0 && <Text style={pdfStyles.h2}>Achievements</Text>}
-      {data.achievements.map(ach => (
-        <Text key={ach.id} style={pdfStyles.bullet}>{ach.description}</Text>
-      ))}
-
-      {data.interests.trim() && <Text style={pdfStyles.h2}>Interests</Text>}
-      {data.interests.trim() && <Text style={pdfStyles.row}>{data.interests}</Text>}
+      {sectionOrder.map(sectionId => {
+        switch (sectionId) {
+          case 'personal':
+            return (
+              <View key="personal">
+                <Text style={pdfStyles.h1}>{data.personal.name} — {data.personal.title}</Text>
+                <Text style={pdfStyles.row}>{data.personal.email} • {data.personal.phone} • {data.personal.location}</Text>
+                <Text style={pdfStyles.row}>{data.personal.linkedin} • {data.personal.github} • {data.personal.portfolio}</Text>
+              </View>
+            );
+          case 'summary':
+            return data.summary.trim() ? (
+              <View key="summary">
+                <Text style={pdfStyles.h2}>Summary</Text>
+                <Text style={pdfStyles.row}>{data.summary}</Text>
+              </View>
+            ) : null;
+          case 'experience':
+            return data.experience.length > 0 ? (
+              <View key="experience">
+                <Text style={pdfStyles.h2}>Experience</Text>
+                {data.experience.map(exp => (
+                  <View key={exp.id} style={{ marginBottom: 6 }}>
+                    <Text>{exp.title} — {exp.company} ({exp.startDate} - {exp.endDate})</Text>
+                    <Text style={pdfStyles.bullet}>{exp.description}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null;
+          case 'education':
+            return data.education.length > 0 ? (
+              <View key="education">
+                <Text style={pdfStyles.h2}>Education</Text>
+                {data.education.map(edu => (
+                  <View key={edu.id} style={{ marginBottom: 6 }}>
+                    <Text>{edu.degree} — {edu.institution}, {edu.city} ({edu.startDate} - {edu.endDate})</Text>
+                    {edu.description ? <Text style={pdfStyles.bullet}>{edu.description}</Text> : null}
+                  </View>
+                ))}
+              </View>
+            ) : null;
+          case 'skills':
+            return data.skills.length > 0 ? (
+              <View key="skills">
+                <Text style={pdfStyles.h2}>Skills</Text>
+                <Text style={pdfStyles.row}>{data.skills.map(s => s.name).join(', ')}</Text>
+              </View>
+            ) : null;
+          case 'projects':
+            return data.projects.length > 0 ? (
+              <View key="projects">
+                <Text style={pdfStyles.h2}>Projects</Text>
+                {data.projects.map(proj => (
+                  <View key={proj.id} style={{ marginBottom: 6 }}>
+                    <Text>{proj.name} ({proj.url})</Text>
+                    <Text style={pdfStyles.bullet}>{proj.description}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null;
+          case 'certifications':
+            return data.certifications.length > 0 ? (
+              <View key="certifications">
+                <Text style={pdfStyles.h2}>Certifications</Text>
+                {data.certifications.map(cert => (
+                  <Text key={cert.id} style={pdfStyles.row}>{cert.name}, {cert.authority} ({cert.date})</Text>
+                ))}
+              </View>
+            ) : null;
+          case 'achievements':
+            return data.achievements.length > 0 ? (
+              <View key="achievements">
+                <Text style={pdfStyles.h2}>Achievements</Text>
+                {data.achievements.map(ach => (
+                  <Text key={ach.id} style={pdfStyles.bullet}>{ach.description}</Text>
+                ))}
+              </View>
+            ) : null;
+          case 'interests':
+            return data.interests.trim() ? (
+              <View key="interests">
+                <Text style={pdfStyles.h2}>Interests</Text>
+                <Text style={pdfStyles.row}>{data.interests}</Text>
+              </View>
+            ) : null;
+          default:
+            return null;
+        }
+      })}
     </Page>
   </Document>
 );
@@ -173,7 +246,15 @@ const ResumeBuilder = () => {
     setSectionOrder(prev => {
       // update only if structure really changed
       const newOrder = initialSectionIds;
-      return JSON.stringify(prev) === JSON.stringify(newOrder) ? prev : newOrder;
+      // This is a simple deep comparison for array of strings
+      if (JSON.stringify(prev) === JSON.stringify(newOrder)) {
+        return prev;
+      }
+      
+      // Merge old order with new sections, placing new sections at the end
+      const existingSections = prev.filter(id => newOrder.includes(id));
+      const newSections = newOrder.filter(id => !prev.includes(id));
+      return [...existingSections, ...newSections];
     });
   }, [initialSectionIds]);
 
@@ -202,30 +283,50 @@ const ResumeBuilder = () => {
   });
 
   // ---- Helpers for controlled updates ----
+  // This is for simple object updates, no debouncing needed as it's a fixed set of inputs
   const updatePersonalInfo = (key: keyof PersonalInfo, value: string) => {
     setResumeData(prev => ({ ...prev, personal: { ...prev.personal, [key]: value } }));
   };
 
   const addItem = <K extends keyof ResumeData>(section: K, newItem: any) => {
-    setResumeData(prev => ({ ...prev, [section]: [ ...(prev[section] as any[]), { ...newItem, id: crypto.randomUUID?.() || Date.now().toString() } ] }));
+    setResumeData(prev => ({ 
+      ...prev, 
+      [section]: [ 
+        ...(prev[section] as any[]), 
+        { 
+          ...newItem, 
+          // Ensure ID is unique and stable. The original used randomUUID/Date.now(), which is good.
+          id: crypto.randomUUID?.() || Date.now().toString() 
+        } 
+      ] 
+    }));
   };
 
   const removeItem = <K extends keyof ResumeData>(section: K, id: string) => {
-    setResumeData(prev => ({ ...prev, [section]: (prev[section] as any[]).filter((item: any) => item.id !== id) }));
+    setResumeData(prev => ({ 
+      ...prev, 
+      [section]: (prev[section] as any[]).filter((item: any) => item.id !== id) 
+    }));
   };
 
-  const updateArrayItem = <K extends keyof ResumeData>(section: K, id: string, updater: (item: any) => any) => {
+  // This function is still used but now called *after* the debounce period
+  const updateArrayItem = useCallback(<K extends keyof ResumeData>(section: K, id: string, updater: (item: any) => any) => {
     setResumeData(prev => ({
       ...prev,
       [section]: (prev[section] as any[]).map((item: any) => item.id === id ? updater(item) : item)
     }));
-  };
+  }, []);
 
   const updateSkillsFromText = (text: string) => {
     const newSkills: SkillItem[] = text.split(',')
       .map(s => s.trim())
       .filter(Boolean)
-      .map(s => ({ id: crypto.randomUUID?.() || Math.random().toString(36).slice(2), name: s, level: 'Intermediate', type: 'Technical' }));
+      .map(s => ({ 
+        id: crypto.randomUUID?.() || Math.random().toString(36).slice(2), 
+        name: s, 
+        level: 'Intermediate', 
+        type: 'Technical' 
+      }));
     setResumeData(prev => ({ ...prev, skills: newSkills }));
   };
 
@@ -252,7 +353,223 @@ const ResumeBuilder = () => {
     { check: 'Formatting is clean (No tables/images)', status: true, key: 'clean_format' },
   ], [resumeData]);
 
-  // ---- Forms ----
+  // ---- Individual Array Item Components (Fixes Cursor/Typing Issue) ----
+
+  // --- Experience Item ---
+  const ExperienceItemInput: React.FC<{ item: ExperienceItem }> = React.memo(({ item }) => {
+    const [localItem, setLocalItem] = useDebouncedState<ExperienceItem>(
+      item,
+      400,
+      (newItem) => updateArrayItem('experience', newItem.id, () => newItem)
+    );
+
+    return (
+      <div className="border p-3 rounded-lg relative">
+        <input
+          type="text"
+          placeholder="Title"
+          value={localItem.title}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, title: e.target.value }))}
+          className="input-field mb-2 font-semibold"
+        />
+        <input
+          type="text"
+          placeholder="Company"
+          value={localItem.company}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, company: e.target.value }))}
+          className="input-field mb-2"
+        />
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <input
+            type="month"
+            placeholder="Start Date"
+            value={localItem.startDate}
+            onChange={(e) => setLocalItem(prev => ({ ...prev, startDate: e.target.value }))}
+            className="input-field"
+          />
+          <input
+            type="text"
+            placeholder="End Date"
+            value={localItem.endDate}
+            onChange={(e) => setLocalItem(prev => ({ ...prev, endDate: e.target.value }))}
+            className="input-field"
+          />
+        </div>
+        <textarea
+          rows={3}
+          placeholder="Key achievements (use bullets and quantify!)"
+          value={localItem.description}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
+          className="input-field"
+        />
+        <button onClick={() => removeItem('experience', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
+      </div>
+    );
+  });
+
+  // --- Education Item ---
+  const EducationItemInput: React.FC<{ item: EducationItem }> = React.memo(({ item }) => {
+    const [localItem, setLocalItem] = useDebouncedState<EducationItem>(
+      item,
+      400,
+      (newItem) => updateArrayItem('education', newItem.id, () => newItem)
+    );
+
+    return (
+      <div className="border p-3 rounded-lg relative">
+        <input
+          type="text"
+          placeholder="Degree"
+          value={localItem.degree}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, degree: e.target.value }))}
+          className="input-field mb-1 font-semibold"
+        />
+        <input
+          type="text"
+          placeholder="Institution"
+          value={localItem.institution}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, institution: e.target.value }))}
+          className="input-field text-sm mb-1"
+        />
+        <input
+          type="text"
+          placeholder="City"
+          value={localItem.city}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, city: e.target.value }))}
+          className="input-field text-sm mb-2"
+        />
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <input
+            type="month"
+            placeholder="Start Date"
+            value={localItem.startDate}
+            onChange={(e) => setLocalItem(prev => ({ ...prev, startDate: e.target.value }))}
+            className="input-field"
+          />
+          <input
+            type="month"
+            placeholder="End Date"
+            value={localItem.endDate}
+            onChange={(e) => setLocalItem(prev => ({ ...prev, endDate: e.target.value }))}
+            className="input-field"
+          />
+        </div>
+        <textarea
+          rows={2}
+          placeholder="Description (optional)"
+          value={localItem.description || ''}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
+          className="input-field"
+        />
+        <button onClick={() => removeItem('education', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
+      </div>
+    );
+  });
+
+  // --- Project Item ---
+  const ProjectItemInput: React.FC<{ item: ProjectItem }> = React.memo(({ item }) => {
+    const [localItem, setLocalItem] = useDebouncedState<ProjectItem>(
+      item,
+      400,
+      (newItem) => updateArrayItem('projects', newItem.id, () => newItem)
+    );
+
+    return (
+      <div className="border p-3 rounded-lg relative">
+        <input
+          type="text"
+          placeholder="Project Name"
+          value={localItem.name}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, name: e.target.value }))}
+          className="input-field mb-2 font-semibold"
+        />
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <input
+            type="text"
+            placeholder="Your Role (e.g., Lead Dev)"
+            value={localItem.role}
+            onChange={(e) => setLocalItem(prev => ({ ...prev, role: e.target.value }))}
+            className="input-field"
+          />
+          <input
+            type="url"
+            placeholder="Project URL/Link (Optional)"
+            value={localItem.url}
+            onChange={(e) => setLocalItem(prev => ({ ...prev, url: e.target.value }))}
+            className="input-field"
+          />
+        </div>
+        <textarea
+          rows={3}
+          placeholder="Key technologies and impact (use bullet points or hyphens)"
+          value={localItem.description}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
+          className="input-field"
+        />
+        <button onClick={() => removeItem('projects', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
+      </div>
+    );
+  });
+  
+  // --- Certification Item ---
+  const CertificationItemInput: React.FC<{ item: CertificationItem }> = React.memo(({ item }) => {
+    const [localItem, setLocalItem] = useDebouncedState<CertificationItem>(
+      item,
+      400,
+      (newItem) => updateArrayItem('certifications', newItem.id, () => newItem)
+    );
+
+    return (
+      <div key={item.id} className="border p-3 rounded-lg relative">
+        <input
+          type="text"
+          placeholder="Certification Name"
+          value={localItem.name}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, name: e.target.value }))}
+          className="input-field mb-2 font-semibold"
+        />
+        <input
+          type="text"
+          placeholder="Issuing Authority (e.g., AWS, Coursera)"
+          value={localItem.authority}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, authority: e.target.value }))}
+          className="input-field mb-2"
+        />
+        <input
+          type="month"
+          placeholder="Completion Date"
+          value={localItem.date}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, date: e.target.value }))}
+          className="input-field"
+        />
+        <button onClick={() => removeItem('certifications', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
+      </div>
+    );
+  });
+
+  // --- Achievement Item ---
+  const AchievementItemInput: React.FC<{ item: AchievementItem }> = React.memo(({ item }) => {
+    const [localItem, setLocalItem] = useDebouncedState<AchievementItem>(
+      item,
+      400,
+      (newItem) => updateArrayItem('achievements', newItem.id, () => newItem)
+    );
+
+    return (
+      <div key={item.id} className="border p-3 rounded-lg relative">
+        <textarea
+          rows={2}
+          placeholder="Describe a key achievement, award, or recognition."
+          value={localItem.description}
+          onChange={(e) => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
+          className="input-field"
+        />
+        <button onClick={() => removeItem('achievements', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
+      </div>
+    );
+  });
+
+  // ---- Forms (Now use the debounced components) ----
   const PersonalInfoForm = () => (
     <div className="grid grid-cols-2 gap-4">
       {(Object.keys(resumeData.personal) as (keyof PersonalInfo)[]).map((k) => {
@@ -264,6 +581,7 @@ const ResumeBuilder = () => {
             placeholder={label}
             className="input-field"
             value={resumeData.personal[k]}
+            // This is simple value mapping, safe to update directly
             onChange={(e) => updatePersonalInfo(k, e.target.value)}
           />
         );
@@ -272,28 +590,14 @@ const ResumeBuilder = () => {
   );
 
   const SummaryForm = () => {
-    const [localSummary, setLocalSummary] = useState(resumeData.summary);
-
-    // Only update local state if the summary actually changes externally
-    useEffect(() => {
-      setLocalSummary(resumeData.summary);
-    }, []); // only initialize once
-
-
-    // Debounce update to parent (prevents re-render on every keypress)
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setLocalSummary(e.target.value);
-    };
-
-    const debouncedUpdate = useCallback(() => {
-      setResumeData(prev => ({ ...prev, summary: localSummary }));
-    }, [localSummary]);
-
-    useEffect(() => {
-      const timeout = setTimeout(debouncedUpdate, 400);
-      return () => clearTimeout(timeout);
-    }, [debouncedUpdate]);
-
+    // The original implementation for SummaryForm was mostly correct as it used local state/debounce,
+    // but the useEffect dependency was missing `resumeData.summary`, causing it not to sync if an external action changed the summary.
+    // I'll replace it with the new useDebouncedState pattern for consistency and correctness.
+    const [localSummary, setLocalSummary] = useDebouncedState(
+        resumeData.summary, 
+        400, 
+        (newSummary) => setResumeData(prev => ({ ...prev, summary: newSummary }))
+    );
 
     return (
       <textarea
@@ -301,7 +605,7 @@ const ResumeBuilder = () => {
         className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         placeholder="Write your professional summary here..."
         value={localSummary}
-        onChange={handleChange}
+        onChange={(e) => setLocalSummary(e.target.value)}
       />
     );
   };
@@ -310,46 +614,7 @@ const ResumeBuilder = () => {
   const ExperienceForm = () => (
     <div className="space-y-4">
       {resumeData.experience.map(item => (
-        <div key={item.id} className="border p-3 rounded-lg relative">
-          <input
-            type="text"
-            placeholder="Title"
-            value={item.title}
-            onChange={(e) => updateArrayItem('experience', item.id, (it: ExperienceItem) => ({ ...it, title: e.target.value }))}
-            className="input-field mb-2 font-semibold"
-          />
-          <input
-            type="text"
-            placeholder="Company"
-            value={item.company}
-            onChange={(e) => updateArrayItem('experience', item.id, (it: ExperienceItem) => ({ ...it, company: e.target.value }))}
-            className="input-field mb-2"
-          />
-          <div className="grid grid-cols-2 gap-2 mb-2">
-            <input
-              type="month"
-              placeholder="Start Date"
-              value={item.startDate}
-              onChange={(e) => updateArrayItem('experience', item.id, (it: ExperienceItem) => ({ ...it, startDate: e.target.value }))}
-              className="input-field"
-            />
-            <input
-              type="text"
-              placeholder="End Date"
-              value={item.endDate}
-              onChange={(e) => updateArrayItem('experience', item.id, (it: ExperienceItem) => ({ ...it, endDate: e.target.value }))}
-              className="input-field"
-            />
-          </div>
-          <textarea
-            rows={3}
-            placeholder="Key achievements (use bullets and quantify!)"
-            value={item.description}
-            onChange={(e) => updateArrayItem('experience', item.id, (it: ExperienceItem) => ({ ...it, description: e.target.value }))}
-            className="input-field"
-          />
-          <button onClick={() => removeItem('experience', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
-        </div>
+        <ExperienceItemInput key={item.id} item={item} />
       ))}
       <button
         onClick={() => addItem('experience', { title: 'New Position', company: 'Company', startDate: '', endDate: 'Present', description: '' })}
@@ -363,53 +628,7 @@ const ResumeBuilder = () => {
   const EducationForm = () => (
     <div className="space-y-4">
       {resumeData.education.map(item => (
-        <div key={item.id} className="border p-3 rounded-lg relative">
-          <input
-            type="text"
-            placeholder="Degree"
-            value={item.degree}
-            onChange={(e) => updateArrayItem('education', item.id, (it: EducationItem) => ({ ...it, degree: e.target.value }))}
-            className="input-field mb-1 font-semibold"
-          />
-          <input
-            type="text"
-            placeholder="Institution"
-            value={item.institution}
-            onChange={(e) => updateArrayItem('education', item.id, (it: EducationItem) => ({ ...it, institution: e.target.value }))}
-            className="input-field text-sm mb-1"
-          />
-          <input
-            type="text"
-            placeholder="City"
-            value={item.city}
-            onChange={(e) => updateArrayItem('education', item.id, (it: EducationItem) => ({ ...it, city: e.target.value }))}
-            className="input-field text-sm mb-2"
-          />
-          <div className="grid grid-cols-2 gap-2 mb-2">
-            <input
-              type="month"
-              placeholder="Start Date"
-              value={item.startDate}
-              onChange={(e) => updateArrayItem('education', item.id, (it: EducationItem) => ({ ...it, startDate: e.target.value }))}
-              className="input-field"
-            />
-            <input
-              type="month"
-              placeholder="End Date"
-              value={item.endDate}
-              onChange={(e) => updateArrayItem('education', item.id, (it: EducationItem) => ({ ...it, endDate: e.target.value }))}
-              className="input-field"
-            />
-          </div>
-          <textarea
-            rows={2}
-            placeholder="Description (optional)"
-            value={item.description || ''}
-            onChange={(e) => updateArrayItem('education', item.id, (it: EducationItem) => ({ ...it, description: e.target.value }))}
-            className="input-field"
-          />
-          <button onClick={() => removeItem('education', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
-        </div>
+        <EducationItemInput key={item.id} item={item} />
       ))}
       <button
         onClick={() => addItem('education', { degree: 'New Degree', institution: 'University', city: '', startDate: '', endDate: '' })}
@@ -431,7 +650,8 @@ const ResumeBuilder = () => {
       />
       <div className="mt-2 flex flex-wrap gap-2">
         {resumeData.skills.map((skill) => (
-          <span key={skill.id} className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">
+          // Using skill.name as key is slightly risky, but skill.id is safer here
+          <span key={skill.id || skill.name} className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">
             {skill.name}
           </span>
         ))}
@@ -439,43 +659,11 @@ const ResumeBuilder = () => {
     </div>
   );
 
-  // New Form: ProjectsForm
+  // Corrected ProjectsForm
   const ProjectsForm = () => (
     <div className="space-y-4">
       {resumeData.projects.map(item => (
-        <div key={item.id} className="border p-3 rounded-lg relative">
-          <input
-            type="text"
-            placeholder="Project Name"
-            value={item.name}
-            onChange={(e) => updateArrayItem('projects', item.id, (it: ProjectItem) => ({ ...it, name: e.target.value }))}
-            className="input-field mb-2 font-semibold"
-          />
-          <div className="grid grid-cols-2 gap-2 mb-2">
-            <input
-              type="text"
-              placeholder="Your Role (e.g., Lead Dev)"
-              value={item.role}
-              onChange={(e) => updateArrayItem('projects', item.id, (it: ProjectItem) => ({ ...it, role: e.target.value }))}
-              className="input-field"
-            />
-            <input
-              type="url"
-              placeholder="Project URL/Link (Optional)"
-              value={item.url}
-              onChange={(e) => updateArrayItem('projects', item.id, (it: ProjectItem) => ({ ...it, url: e.target.value }))}
-              className="input-field"
-            />
-          </div>
-          <textarea
-            rows={3}
-            placeholder="Key technologies and impact (use bullet points or hyphens)"
-            value={item.description}
-            onChange={(e) => updateArrayItem('projects', item.id, (it: ProjectItem) => ({ ...it, description: e.target.value }))}
-            className="input-field"
-          />
-          <button onClick={() => removeItem('projects', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
-        </div>
+        <ProjectItemInput key={item.id} item={item} />
       ))}
       <button
         onClick={() => addItem('projects', { name: 'New Project', role: '', description: '', url: '' })}
@@ -486,34 +674,11 @@ const ResumeBuilder = () => {
     </div>
   );
 
-  // New Form: CertificationsForm
+  // Corrected CertificationsForm
   const CertificationsForm = () => (
     <div className="space-y-4">
       {resumeData.certifications.map(item => (
-        <div key={item.id} className="border p-3 rounded-lg relative">
-          <input
-            type="text"
-            placeholder="Certification Name"
-            value={item.name}
-            onChange={(e) => updateArrayItem('certifications', item.id, (it: CertificationItem) => ({ ...it, name: e.target.value }))}
-            className="input-field mb-2 font-semibold"
-          />
-          <input
-            type="text"
-            placeholder="Issuing Authority (e.g., AWS, Coursera)"
-            value={item.authority}
-            onChange={(e) => updateArrayItem('certifications', item.id, (it: CertificationItem) => ({ ...it, authority: e.target.value }))}
-            className="input-field mb-2"
-          />
-          <input
-            type="month"
-            placeholder="Completion Date"
-            value={item.date}
-            onChange={(e) => updateArrayItem('certifications', item.id, (it: CertificationItem) => ({ ...it, date: e.target.value }))}
-            className="input-field"
-          />
-          <button onClick={() => removeItem('certifications', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
-        </div>
+        <CertificationItemInput key={item.id} item={item} />
       ))}
       <button
         onClick={() => addItem('certifications', { name: 'New Certification', authority: '', date: '' })}
@@ -524,34 +689,33 @@ const ResumeBuilder = () => {
     </div>
   );
 
-  // New Form: InterestsForm
-  const InterestsForm = () => (
-    <div>
-      <p className='text-sm text-gray-600 mb-2'>List your personal interests or hobbies, separated by commas. (Optional, usually for junior roles)</p>
-      <textarea
-        rows={2}
-        className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        placeholder="e.g., Hiking, Chess, Photography, Open Source"
-        value={resumeData.interests || ''}
-        onChange={(e) => setResumeData(prev => ({ ...prev, interests: e.target.value }))}
-      />
-    </div>
-  );
+  // InterestsForm is simple value mapping, no complex debounce needed
+  const InterestsForm = () => {
+      const [localInterests, setLocalInterests] = useDebouncedState(
+          resumeData.interests, 
+          400, 
+          (newInterests) => setResumeData(prev => ({ ...prev, interests: newInterests }))
+      );
 
-  // New Form: AchievementsForm
+      return (
+          <div>
+            <p className='text-sm text-gray-600 mb-2'>List your personal interests or hobbies, separated by commas. (Optional, usually for junior roles)</p>
+            <textarea
+              rows={2}
+              className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., Hiking, Chess, Photography, Open Source"
+              value={localInterests}
+              onChange={(e) => setLocalInterests(e.target.value)}
+            />
+          </div>
+      );
+  }
+
+  // Corrected AchievementsForm
   const AchievementsForm = () => (
     <div className="space-y-4">
       {resumeData.achievements.map(item => (
-        <div key={item.id} className="border p-3 rounded-lg relative">
-          <textarea
-            rows={2}
-            placeholder="Describe a key achievement, award, or recognition."
-            value={item.description}
-            onChange={(e) => updateArrayItem('achievements', item.id, (it: AchievementItem) => ({ ...it, description: e.target.value }))}
-            className="input-field"
-          />
-          <button onClick={() => removeItem('achievements', item.id)} className="absolute top-2 right-2 text-red-500"><X size={14} /></button>
-        </div>
+        <AchievementItemInput key={item.id} item={item} />
       ))}
       <button
         onClick={() => addItem('achievements', { description: '' })}
@@ -572,7 +736,7 @@ const ResumeBuilder = () => {
     CertificationsForm,
     AchievementsForm,
     InterestsForm,
-  }), []);
+  }), [resumeData.summary, resumeData.interests, updateArrayItem]); // Add dependencies for simple forms
 
   const renderSectionContent = (sectionId: string) => {
     const config = allSections.find(s => s.id === sectionId);
@@ -594,15 +758,28 @@ const ResumeBuilder = () => {
   };
 
   // ---- PDF Download ----
-  const handleDownloadPDF = async () => {
-    const blob = await pdf(<ResumePDF data={resumeData} />).toBlob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'resume.pdf';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+
+
+const handleDownloadPDF = async () => {
+    // 1. Get the DOM element containing the resume content
+    const input = document.getElementById('resume-preview-container'); 
+    
+    if (!input) {
+        console.error("Resume preview container not found.");
+        return;
+    }
+
+    // 2. Use html2pdf to generate and download the file
+    const worker = html2pdf().set({
+        margin: 0.5,
+        filename: 'resume.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    });
+
+    await worker.from(input).save();
+};
 
   // ---- UI ----
   return (
@@ -617,14 +794,49 @@ const ResumeBuilder = () => {
             </h1>
             <p className="text-lg text-gray-600">Drag, Drop, AI Optimize, and Download.</p>
           </div>
-          <button onClick={() => setAtsReportVisible(!atsReportVisible)} className="flex items-center space-x-2 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">
-            <Settings className="w-4 h-4" />
-            <span>{atsReportVisible ? 'Hide' : 'Show'} ATS Analyzer</span>
-          </button>
+          {/* Action Buttons */}
+          <div className="flex space-x-4">
+            <div className="relative">
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                className="select-field bg-white border border-gray-300 rounded-lg py-2 pl-3 pr-10 text-gray-700 appearance-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <Settings className="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400" />
+            </div>
+            <button
+              onClick={() => setShowPreview(true)}
+              className="flex items-center space-x-2 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+            >
+              <Eye className="w-5 h-5" />
+              <span>Full Preview</span>
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center space-x-2 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors shadow-md"
+            >
+              <Download className="w-5 h-5" />
+              <span>Download PDF</span>
+            </button>
+            <button
+              onClick={() => setAtsReportVisible(!atsReportVisible)}
+              className={`flex items-center space-x-2 py-2 px-4 rounded-lg transition-colors shadow-md ${atsReportVisible ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
+            >
+              <AlertCircle className="w-5 h-5" />
+              <span>ATS Score: {atsScore}%</span>
+            </button>
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {/* Builder/Input */}
+        <div className="grid lg:grid-cols-3 xl:grid-cols-3 gap-8">
+          
+          {/* Builder/Input - Spanning 2/3 or 3/4 columns */}
           <div className={`lg:col-span-2 xl:col-span-2 space-y-4 ${atsReportVisible ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
             <div className='flex justify-between items-center bg-white p-4 rounded-xl shadow-lg border-b border-gray-200'>
               <h2 className='text-2xl font-bold'>Current Section: {allSections.find(s => s.id === activeSection)?.name}</h2>
@@ -651,7 +863,8 @@ const ResumeBuilder = () => {
                     value={sectionId}
                     as="div"
                     className="mb-4"
-                    dragListener={isEditingOrder && !isFixed}
+                    // Drag only allowed when editing order and section is not fixed
+                    dragListener={isEditingOrder && !isFixed} 
                     style={{ cursor: isEditingOrder && !isFixed ? 'grab' : 'pointer' }}
                   >
                     <AnimatePresence>
@@ -703,7 +916,7 @@ const ResumeBuilder = () => {
               })}
             </Reorder.Group>
 
-            {/* Custom Section Dropdown */}
+            {/* Custom Section Dropdown (Rest of your code) */}
             <div className="relative group">
               <button className="w-full flex items-center justify-center space-x-2 border border-dashed border-gray-400 text-gray-600 py-3 rounded-xl hover:bg-gray-100 transition-colors mt-4">
                 <Plus className="w-5 h-5" />
@@ -731,107 +944,16 @@ const ResumeBuilder = () => {
 
           </div>
 
-          {/* ATS/Settings/Preview */}
-          <div className={`lg:col-span-1 xl:col-span-2 space-y-8 ${atsReportVisible ? 'lg:col-span-2' : 'lg:col-span-1'}`}>
-            {/* ATS Analyzer Tool (Mock UI) */}
-            {atsReportVisible && (
-              <div className="lg:sticky lg:top-8">
-                {/* Simplified ATS Analyzer Tool for brevity */}
-                <div className="p-4 border border-gray-300 rounded-lg bg-white shadow-xl">
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">🎯 ATS Analyzer Tool</h3>
-                  <p className='text-xs text-gray-600 mb-3'>Upload your target Job Description (JD) to get a precise match score.</p>
-                  <textarea rows={5} placeholder="Paste the Job Description here..." className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 mb-3" />
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
-                    <h4 className="text-sm font-semibold text-red-800 flex items-center mb-2">
-                      <AlertCircle className="w-4 h-4 mr-1" /> AI Match Report (Mock)
-                    </h4>
-                    <ul className="text-xs text-red-700 space-y-1">
-                      <li><span className="font-bold">Match Score: 55%</span> (Low)</li>
-                      <li><span className="font-bold">Missing Keywords:</span> "SQL Server," "Azure," "Scrum Master"</li>
-                      <li><span className="font-bold">Suggestion:</span> Increase mention of "Azure" in experience section.</li>
-                    </ul>
-                  </div>
-                  <button className="w-full flex items-center justify-center space-x-2 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors duration-200">
-                    <Zap className="w-4 h-4" />
-                    <span>Analyze & Optimize Resume</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ATS Score and Checks */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 lg:sticky lg:top-8">
-              <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">ATS Score</h2>
-                <div className="relative">
-                  <div className="w-24 h-24 mx-auto">
-                    <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
-                      <path className="text-gray-300" stroke="currentColor" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      <path className={`transition-all duration-500 ${atsScore >= 80 ? 'text-green-600' : atsScore >= 60 ? 'text-orange-500' : 'text-red-500'}`}
-                        stroke="currentColor" strokeWidth="3" strokeDasharray={`${atsScore}, 100`} strokeLinecap="round" fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-gray-900">{atsScore}%</span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">ATS Compatibility</p>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">ATS Checks</h3>
-                {atsChecks.map((check, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    {check.status ? (
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                    )}
-                    <span className={`text-xs ${check.status ? 'text-gray-700' : 'text-orange-700 font-medium'}`}>
-                      {check.check}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Template and Export */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 lg:sticky lg:top-[300px]">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Template & Export</h2>
-              <select
-                value={selectedTemplate}
-                onChange={(e) => setSelectedTemplate(e.target.value)}
-                className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm mb-4"
-              >
-                {templates.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => setShowPreview(true)}
-                className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 mb-3"
-              >
-                <Eye className="w-4 h-4" />
-                <span>View Fullscreen Preview</span>
-              </button>
-              <button onClick={handleDownloadPDF} className="w-full flex items-center justify-center space-x-2 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                <Download className="w-4 h-4" />
-                <span>Download PDF</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Live Preview */}
         <div className="mt-12 w-full">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Live Resume Preview: <span className='text-blue-600'>{templates.find(t => t.id === selectedTemplate)?.name}</span></h2>
-          <div className="bg-white p-6 shadow-2xl border border-gray-300 mx-auto max-w-4xl min-h-[1000px] overflow-hidden">
+          <div id="resume-preview-container" className="bg-white p-6 shadow-2xl border border-gray-300 mx-auto max-w-4xl min-h-[1000px] overflow-hidden">
             {/* Dynamic Template Component Rendering */}
             <CurrentTemplate 
-                data={resumeData} 
-                sectionOrder={sectionOrder}
+                data={resumeData}
+                sectionOrder={sectionOrder} // **FIX: Ensures template uses this for order**
                 allSections={allSections}
             />
           </div>
@@ -852,12 +974,15 @@ const ResumeBuilder = () => {
               <button onClick={() => setShowPreview(false)} className="absolute top-3 right-3 text-gray-600 hover:text-gray-900">
                 <X />
               </button>
-              <div className="p-6">
-                <CurrentTemplate 
-                    data={resumeData} 
-                    sectionOrder={sectionOrder}
-                    allSections={allSections}
-                />
+              <div className="p-6" >
+                <div id="resume-preview-container" className="mx-auto max-w-4xl min-h-[1000px]">
+                  <CurrentTemplate
+                      data={resumeData} 
+                      sectionOrder={sectionOrder} // **FIX: Ensures modal preview uses this for order**
+                      allSections={allSections}
+                  />
+                </div>
+                
               </div>
             </motion.div>
           </motion.div>
