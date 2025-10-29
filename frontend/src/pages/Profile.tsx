@@ -16,7 +16,7 @@ const iconMap = {
   Mail,
   MapPin,
   Building,
-  Calendar,
+  Calendar, 
   Edit3,
   Star,
   Trophy,
