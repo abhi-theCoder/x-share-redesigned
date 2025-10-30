@@ -17,8 +17,44 @@ import ResumeBuilder from './pages/resume-builder';
 import Admin from './pages/admin';
 import JobPortal from './pages/JobPortal';
 import PrivateRoute from './components/privateRoute';
+import TemplateBasic from './templatess/TemplateBasic';
+import TemplateModern from './templatess/TemplateModern';
+import PostJobForm from './pages/admin/postJobForm';
+import ResourceUpload from './pages/admin/resourceUpload';
 
 function App() {
+  const dummyData = {
+    personal: {
+      name: "John Doe",
+      title: "Software Developer",
+      email: "john@gmail.com",
+      phone: "+91 99999 99999",
+      location: "Delhi",
+      linkedin: "https://linkedin.com/in/johndoe",
+      github: "",
+      portfolio: ""
+    },
+    summary: "A passionate developer with React experience.",
+    experience: [
+      { id: "1", title: "Frontend Dev", company: "ABC Tech", startDate: "2022-01-01", endDate: "2023-05-01", description: "Worked on React apps." }
+    ],
+    education: [
+      { id: "1", degree: "B.Tech CSE", institution: "NIT Delhi", city: "Delhi", startDate: "2018-01-01", endDate: "2022-01-01" }
+    ],
+    skills: [
+      { name: "React", level: "Expert", type: "Technical" },
+      { name: "React", level: "Expert", type: "Technical" },
+      { name: "React", level: "Expert", type: "Technical" }
+    ],
+    projects: [],
+    certifications: [],
+    achievements: [],
+    interests: "Coding, Travel"
+  };
+
+  const sectionOrder = ["summary", "experience", "education", "skills", "interests"];
+  const allSections: any[] = []; // Not required for testing
+
   return (
     <Router>
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50">
@@ -43,9 +79,18 @@ function App() {
               <Route path="/resume-builder" element={<ResumeBuilder/>} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/post-job" element={<PostJobForm open={true} onClose={() => {}} onAddJob={() => {}} />} />
+              <Route path="/admin/resource-upload" element={<ResourceUpload open={true} onClose={() => {}} onAddResource={() => {}} />} />
             </Route>
+
+
+             {/* Testing routes */}
+            {/* ✅ Testing Template Route */}
+            <Route path="/template-basic" element={<TemplateBasic data={dummyData} sectionOrder={sectionOrder} allSections={allSections}/>}/>
+            <Route path="/template-modern" element={<TemplateModern data={dummyData} sectionOrder={sectionOrder} allSections={allSections}/>}/>
           </Routes>
 
+           
         </main>
         <Footer/>
       </div>

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginRequired from '../components/LoginRequired';
-import axios from '../api';
+import axios from '../api'; // Assuming this is your configured axios instance
 
 import {
   ThumbsUp,
@@ -14,142 +14,157 @@ import {
   Users,
   Info,
   ChevronDown,
+  Clock, // Added icon for date/time
+  MapPin, // Added icon for location
+  User, // Added icon for user details
 } from 'lucide-react';
 
-// Define the shape of our data using a TypeScript interface
-interface Submission {
-  id: string;
-  type: 'interview' | 'hackathon';
+// --- Type Definitions ---
+// UPDATED: Extended the interface to include all fields from the backend data structure
+interface Experience {
+  id: string | number; // ID can be string or number
+  // FE Type: 'interview' covers 'job', 'internship', 'interview' from BE
+  type: 'interview' | 'hackathon'; 
   status: 'pending' | 'approved' | 'rejected';
-  title: string;
+  
+  // Mapped fields for UI display
+  title: string; // Maps to BE 'role'
   company: string;
-  author: string;
-  submittedAt: string;
-  details: string;
-  // Add new optional fields to store who reviewed the submission and when
+  details: string; // Maps to BE 'overall_experience'
+  
+  // Backend detailed fields (all 'detto' named fields)
+  date: string; // The date of the experience
+  location: string;
+  upvotes: number;
+  downvotes: number;
+  comments_count: number;
+  is_bookmarked: boolean;
+  user_voted: 'upvote' | 'downvote' | null;
+  
+  role: string; // Explicitly keep 'role' for a cleaner data structure
+  
+  // Array fields
+  hr_questions: string[];
+  technical_questions: string[];
+  selection_rounds: string[];
+  
+  preparation_tips: string;
+  work_culture: string;
+  
+  created_at: string;
+  updated_at: string;
+  
+  // Fields from the joined 'users' table
+  users: {
+    id: number;
+    username?: string | null; 
+    name: string | null;
+    bio: string | null;
+    role: string | null;
+    email: string | null;
+  };
+  
+  // Admin-related fields
   reviewedBy?: string;
   reviewedAt?: string;
 }
 
-// Dummy data with more details and variety
-const mockSubmissions: Submission[] = [
-  {
-    id: '1756057137289',
-    type: 'interview',
-    status: 'pending',
-    title: 'Software Engineer, L4',
-    company: 'Google',
-    author: 'Amit Sharma',
-    submittedAt: '2025-08-25T10:00:00Z',
-    details:
-      'Detailed interview experience for a Software Engineer position at Google. Covers technical rounds, behavioral questions, and tips for preparation. The candidate passed the phone screen but was ultimately rejected after the onsite rounds.',
-  },
-  {
-    id: '1756057137290',
-    type: 'hackathon',
-    status: 'pending',
-    title: 'CodeSphere 2025 Submission',
-    company: 'N/A',
-    author: 'Priya Singh',
-    submittedAt: '2025-08-24T18:30:00Z',
-    details:
-      'Project submission for the "Future of AI" track at CodeSphere. Includes a link to the GitHub repository and a project demo video. The team built a real-time sentiment analysis tool for social media streams.',
-  },
-  {
-    id: '1756057137291',
-    type: 'interview',
-    status: 'approved',
-    title: 'Product Manager Intern',
-    company: 'Microsoft',
-    author: 'Rohan Mehta',
-    submittedAt: '2025-08-23T12:45:00Z',
-    details:
-      'My summer internship experience as a Product Manager at Microsoft. The post covers the application process, product sense interviews, and the day-to-day responsibilities of a PM intern. This is a very helpful resource for aspiring PMs.',
-    reviewedBy: 'Admin User',
-    reviewedAt: '2025-08-23T13:00:00Z',
-  },
-  {
-    id: '1756057137292',
-    type: 'interview',
-    status: 'rejected',
-    title: 'Data Scientist, Senior',
-    company: 'Amazon',
-    author: 'Sneha Gupta',
-    submittedAt: '2025-08-22T09:15:00Z',
-    details:
-      'Rejected experience for a Senior Data Scientist role. The candidate shares feedback received from the recruiter about weaknesses in their machine learning system design skills. A good case study on what to avoid.',
-    reviewedBy: 'Admin User',
-    reviewedAt: '2025-08-22T09:30:00Z',
-  },
-  {
-    id: '1756057137293',
-    type: 'hackathon',
-    status: 'approved',
-    title: 'TechTogether Hackathon',
-    company: 'N/A',
-    author: 'Vikram Patel',
-    submittedAt: '2025-08-21T16:00:00Z',
-    details:
-      'A great post about participating in and winning the TechTogether Hackathon. The team developed an accessibility tool for web browsers. Includes details on their tech stack and team dynamics.',
-    reviewedBy: 'Admin User',
-    reviewedAt: '2025-08-21T16:20:00Z',
-  },
-  {
-    id: '1756057137294',
-    type: 'interview',
-    status: 'pending',
-    title: 'UX Designer',
-    company: 'Figma',
-    author: 'Anjali Desai',
-    submittedAt: '2025-08-20T11:20:00Z',
-    details:
-      'Detailed breakdown of the UX design interview process at Figma. Covers portfolio review, whiteboarding challenges, and a final presentation. The candidate is awaiting final feedback.',
-  },
-  {
-    id: '1756057137295',
-    type: 'interview',
-    status: 'pending',
-    title: 'Front-end Developer',
-    company: 'Stripe',
-    author: 'Rajiv Kumar',
-    submittedAt: '2025-08-19T14:50:00Z',
-    details:
-      'Interview experience for a front-end role at Stripe. Focuses on JavaScript fundamentals, React component design, and API integration questions. The candidate found the coding round to be particularly challenging.',
-  },
-  {
-    id: '1756057137296',
-    type: 'hackathon',
-    status: 'rejected',
-    title: 'GameDev Challenge 2025',
-    company: 'N/A',
-    author: 'Leena Roy',
-    submittedAt: '2025-08-18T22:00:00Z',
-    details:
-      'A game submission that was rejected from the final round. The post details the reasons for rejection (performance issues and lack of originality) and serves as a learning experience for future hackathons.',
-    reviewedBy: 'Admin User',
-    reviewedAt: '2025-08-18T22:30:00Z',
-  },
-];
-    
+type Submission = Experience;
+
+// --- API Endpoints ---
+const API_ROUTES = {
+  FETCH_EXPERIENCES: '/api/admin/experiences',
+  UPDATE_STATUS: (id: string | number) => `/api/admin/experience/${id}/status`, 
+  UPDATE_DATA: (id: string | number) => `/api/admin/experience/${id}`,
+  FETCH_PROFILE: '/api/profile',
+};
+
 const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasAccess, setHasAccess] = useState(false); // New state variable for access control
-  const [submissions, setSubmissions] = useState<Submission[]>(mockSubmissions);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [currentStatus, setCurrentStatus] = useState<Submission['status']>('pending');
   const [currentType, setCurrentType] = useState<Submission['type']>('interview');
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState<Submission | null>(null);
+  // UPDATED: Use partial type for editedData for flexibility, but Submission for state
+  const [editedData, setEditedData] = useState<Partial<Submission> | null>(null); 
+  const [isSaving, setIsSaving] = useState(false);
 
   // Filter submissions based on current state
   const filteredSubmissions = submissions.filter(
     (sub) => sub.status === currentStatus && sub.type === currentType
   );
 
+  // --- Data Fetching Logic ---
 
-    useEffect(() => {
-    const fetchProfile = async () => {
+  const fetchExperiences = useCallback(async () => {
+    try {
+      const response = await axios.get(API_ROUTES.FETCH_EXPERIENCES, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        }
+      });
+      console.log(response)
+      const fetchedExperiences: Submission[] = response.data.map((exp: any): Submission => {
+          // 1. Determine the FE type based on BE type
+          let feType: Submission['type'];
+          if (exp.type === 'hackathon') {
+              feType = 'hackathon';
+          } else {
+              // Group 'internship', 'job', and future 'interview' types under 'interview'
+              feType = 'interview';
+          }
+          
+          return {
+              // UPDATED: Spread all backend fields first
+              ...exp,
+              // Map backend fields to frontend props
+              id: String(exp.id), // Ensure ID is a string for stability
+              title: exp.role || 'N/A Role', // Using 'role' for title
+              details: exp.overall_experience || exp.description || 'No detailed experience provided.', // Using 'overall_experience'
+              
+              // Use the mapped type
+              type: feType, 
+
+              // Ensure array fields are handled (even if null/undefined from BE)
+              hr_questions: exp.hr_questions || [],
+              technical_questions: exp.technical_questions || [],
+              selection_rounds: exp.selection_rounds || [],
+
+              // User details mapping
+              users: {
+                ...exp.users,
+                name: exp.users?.name || 'Unknown Author',
+                // Keep the 'name' field correct as per your interface definition
+              },
+
+              // Ensure required fields have fallbacks
+              company: exp.company || 'N/A',
+              date: exp.date || 'N/A',
+              location: exp.location || 'N/A',
+              preparation_tips: exp.preparation_tips || 'None provided.',
+              work_culture: exp.work_culture || 'None provided.',
+
+              // Explicit status check
+              status: exp.status as Submission['status'],
+          };
+      });
+
+      setSubmissions(fetchedExperiences);
+    } catch (err) {
+      console.error('Failed to fetch experiences:', err);
+      if (!error) {
+        setError('Failed to load submissions data.');
+      }
+    }
+  }, [error]); // Removed fetchExperiences from dependencies to avoid potential infinite loops
+
+  // Combined fetch for profile and initial data
+  useEffect(() => {
+    const initAdminPage = async () => {
+      setLoading(true);
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -158,36 +173,188 @@ const Admin = () => {
           return;
         }
 
-        // Fetch user profile from the API
-        const response = await axios.get('/api/profile', {
+        // 1. Check Access
+        const profileResponse = await axios.get(API_ROUTES.FETCH_PROFILE, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        // Check the user's first name for access control
-        const { role } = response.data;
-        console.log(response)
+        const { role } = profileResponse.data;
         if (role === 'admin') {
           setHasAccess(true);
+          // 2. Fetch Data only if access is granted
+          await fetchExperiences();
         } else {
           setHasAccess(false);
           setError('Access Denied: You do not have permission to view this page.');
         }
-
       } catch (err) {
-        console.error('Failed to fetch profile:', err);
-        setError('Failed to load profile data.');
+        console.error('Admin page initialization failed:', err);
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+            setError('User not authenticated.');
+        } else {
+            setError('Failed to load data or check profile.');
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
-  }, []);
+    initAdminPage();
+  }, [fetchExperiences]);
+
+
+  // --- Status Update Handlers (API Calls) ---
+
+  const updateSubmissionStatus = async (id: string | number, newStatus: Submission['status']) => {
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      // CORRECTED: Use the API_ROUTES helper function to correctly embed the ID
+      await axios.put(
+        API_ROUTES.UPDATE_STATUS(id), 
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Optimistically update UI
+      const reviewedAt = new Date().toISOString();
+
+      setSubmissions((prev) =>
+        prev.map((sub) =>
+          sub.id === id
+            ? {
+                ...sub,
+                status: newStatus,
+                reviewedBy: 'Admin',
+                reviewedAt: newStatus === 'pending' ? undefined : reviewedAt,
+              }
+            : sub
+        )
+      );
+
+      setSelectedSubmission((prev) =>
+        prev?.id === id
+          ? {
+              ...prev,
+              status: newStatus,
+              reviewedBy: 'Admin',
+              reviewedAt: newStatus === 'pending' ? undefined : reviewedAt,
+            }
+          : null
+      );
+      
+    } catch (err) {
+      console.error(`Failed to update status to ${newStatus}:`, err);
+      alert(`Error updating status: ${axios.isAxiosError(err) ? err.response?.data?.message : 'Network error'}`);
+      await fetchExperiences();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleApprove = (id: string | number) => updateSubmissionStatus(id, 'approved');
+  const handleReject = (id: string | number) => updateSubmissionStatus(id, 'rejected');
+  const handleRevert = (id: string | number) => updateSubmissionStatus(id, 'pending');
+
+  // --- Data Edit Handlers (API Calls) ---
+
+  const handleEdit = (submission: Submission) => {
+    setIsEditing(true);
+    // Include all editable fields in the initial state
+    setEditedData({ 
+        ...submission,
+        // Map FE title/details back to BE role/overall_experience for the editor
+        role: submission.role, 
+        overall_experience: submission.details,
+    });
+  };
+
+  const handleSave = async () => {
+    if (!editedData || !editedData.id) return;
+    setIsSaving(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Prepare the payload: Send all relevant, potentially updated fields
+      const updatePayload = {
+        role: editedData.role || editedData.title, // Use role from editedData state
+        overall_experience: editedData.overall_experience || editedData.details, // Use overall_experience from editedData state
+        company: editedData.company,
+        location: editedData.location,
+        preparation_tips: editedData.preparation_tips,
+        work_culture: editedData.work_culture,
+        date: editedData.date,
+        hr_questions: editedData.hr_questions,
+        technical_questions: editedData.technical_questions,
+        selection_rounds: editedData.selection_rounds,
+      };
+
+      // CORRECTED: Use the API_ROUTES helper function to correctly embed the ID
+      const response = await axios.put(
+        API_ROUTES.UPDATE_DATA(editedData.id),
+        updatePayload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      const updatedBackendData = response.data.updatedExperience || response.data; // Handle potential different response structures
+
+      // Create the new submission object, merging with existing data and mapping back
+      const newSubmission: Submission = {
+        ...(selectedSubmission as Submission), // Start with the currently selected submission data
+        ...updatedBackendData, // Overwrite with all returned fields (includes status, user, etc.)
+        
+        // Map returned backend fields back to frontend props
+        id: String(updatedBackendData.id || editedData.id),
+        title: updatedBackendData.role || updatedBackendData.subject || updatedBackendData.title || 'N/A Role',
+        details: updatedBackendData.overall_experience || updatedBackendData.description || updatedBackendData.details || 'No detailed experience provided.',
+        company: updatedBackendData.company || 'N/A',
+        
+        // Re-ensure FE type mapping
+        type: (updatedBackendData.type === 'hackathon' ? 'hackathon' : 'interview') as Submission['type'],
+      };
+
+
+      setSubmissions((prev) =>
+        prev.map((sub) => (sub.id === newSubmission.id ? newSubmission : sub))
+      );
+      
+      setSelectedSubmission(newSubmission);
+      setIsEditing(false);
+      setEditedData(null);
+      
+    } catch (err) {
+      console.error('Failed to save changes:', err);
+      alert(`Error saving changes: ${axios.isAxiosError(err) ? err.response?.data?.message : 'Network error'}`);
+      await fetchExperiences();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedData(null);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditedData((prev) => (prev ? { ...prev, [name]: value } : null));
+  };
+  
+  // New handler for array fields (HR/Tech Questions, Rounds)
+  const handleArrayChange = (name: string, value: string) => {
+    const arrayValue = value.split('\n').filter(item => item.trim() !== '');
+    setEditedData((prev) => (prev ? { ...prev, [name]: arrayValue } : null));
+  };
+
+
+  // --- Render Functions ---
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen text-lg text-slate-500">
-        <p>Loading...</p>
+        <p>Loading Admin Dashboard...</p>
       </div>
     );
   }
@@ -210,66 +377,6 @@ const Admin = () => {
     );
   }
 
-  // Action handlers
-  const handleApprove = (id: string) => {
-    setSubmissions((prev) =>
-      prev.map((sub) =>
-        sub.id === id
-          ? { ...sub, status: 'approved', reviewedBy: 'Abhishek', reviewedAt: new Date().toISOString() }
-          : sub
-      )
-    );
-    setSelectedSubmission(null);
-  };
-
-  const handleReject = (id: string) => {
-    setSubmissions((prev) =>
-      prev.map((sub) =>
-        sub.id === id
-          ? { ...sub, status: 'rejected', reviewedBy: 'Abhishek', reviewedAt: new Date().toISOString() }
-          : sub
-      )
-    );
-    setSelectedSubmission(null);
-  };
-
-  const handleRevert = (id: string) => {
-    setSubmissions((prev) =>
-      prev.map((sub) =>
-        sub.id === id
-          ? { ...sub, status: 'pending', reviewedBy: undefined, reviewedAt: undefined }
-          : sub
-      )
-    );
-    setSelectedSubmission(null);
-  };
-
-  const handleEdit = (submission: Submission) => {
-    setIsEditing(true);
-    setEditedData(submission);
-  };
-
-  const handleSave = () => {
-    if (editedData) {
-      setSubmissions((prev) =>
-        prev.map((sub) => (sub.id === editedData.id ? editedData : sub))
-      );
-      setSelectedSubmission(editedData); // Update the selected submission to the new data
-      setIsEditing(false);
-      setEditedData(null);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditedData(null);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setEditedData((prev) => (prev ? { ...prev, [name]: value } : null));
-  };
-
   const renderDetailsPanel = () => {
     return (
       <AnimatePresence mode="wait">
@@ -286,46 +393,133 @@ const Admin = () => {
               // Edit Form
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-slate-800 mb-4">Edit Submission</h2>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Title</label>
-                  <input
-                    type="text"
-                    name="title"
-                    value={editedData.title}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
+                
+                {/* Editable Fields for Role, Company, Location, Date */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Role (Title)</label>
+                        <input
+                            type="text"
+                            name="role" // Now binding to 'role'
+                            value={editedData.role || ''}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Company</label>
+                        <input
+                            type="text"
+                            name="company"
+                            value={editedData.company || ''}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Location</label>
+                        <input
+                            type="text"
+                            name="location"
+                            value={editedData.location || ''}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Experience Date</label>
+                        <input
+                            type="date"
+                            name="date"
+                            value={editedData.date?.split('T')[0] || ''} // Format date for input
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                    </div>
                 </div>
+                
+                {/* Overall Experience / Details */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Company</label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={editedData.company}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Details</label>
+                  <label className="block text-sm font-medium text-gray-700">Overall Experience (Details)</label>
                   <textarea
-                    name="details"
-                    value={editedData.details}
+                    name="overall_experience" // Now binding to 'overall_experience'
+                    value={editedData.overall_experience || editedData.details || ''}
                     onChange={handleChange}
-                    rows={8}
+                    rows={6}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
+
+                {/* Preparation Tips */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Preparation Tips</label>
+                  <textarea
+                    name="preparation_tips"
+                    value={editedData.preparation_tips || ''}
+                    onChange={handleChange}
+                    rows={4}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Work Culture */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Work Culture</label>
+                  <textarea
+                    name="work_culture"
+                    value={editedData.work_culture || ''}
+                    onChange={handleChange}
+                    rows={4}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Array Fields (Questions/Rounds) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Selection Rounds (one per line)</label>
+                        <textarea
+                            name="selection_rounds"
+                            value={(editedData.selection_rounds || []).join('\n')}
+                            onChange={(e) => handleArrayChange('selection_rounds', e.target.value)}
+                            rows={4}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Technical Questions (one per line)</label>
+                        <textarea
+                            name="technical_questions"
+                            value={(editedData.technical_questions || []).join('\n')}
+                            onChange={(e) => handleArrayChange('technical_questions', e.target.value)}
+                            rows={4}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">HR Questions (one per line)</label>
+                        <textarea
+                            name="hr_questions"
+                            value={(editedData.hr_questions || []).join('\n')}
+                            onChange={(e) => handleArrayChange('hr_questions', e.target.value)}
+                            rows={4}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                    </div>
+                </div>
+
                 <div className="flex gap-4 mt-6">
                   <button
                     onClick={handleSave}
-                    className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors duration-200"
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors duration-200 disabled:bg-blue-300 disabled:cursor-not-allowed"
                   >
-                    Save Changes
+                    {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button
                     onClick={handleCancelEdit}
-                    className="flex-1 flex items-center justify-center px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-400 transition-colors duration-200"
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-400 transition-colors duration-200 disabled:bg-gray-200 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
@@ -351,58 +545,134 @@ const Admin = () => {
                       selectedSubmission.status.slice(1)}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600 mb-6">
-                  <p>
-                    <span className="font-semibold">Type:</span> {selectedSubmission.type}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Company:</span>{' '}
-                    {selectedSubmission.company === 'N/A'
-                      ? 'Not Applicable'
-                      : selectedSubmission.company}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Submitted By:</span>{' '}
-                    {selectedSubmission.author}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Submitted On:</span>{' '}
-                    {new Date(selectedSubmission.submittedAt).toLocaleDateString()}
-                  </p>
-                  {/* Display reviewedBy and reviewedAt fields if they exist */}
-                  {(selectedSubmission.status === 'approved' || selectedSubmission.status === 'rejected') && (
-                    <>
-                      <p>
-                        <span className="font-semibold">Reviewed By:</span>{' '}
-                        {selectedSubmission.reviewedBy}
-                      </p>
-                      <p>
-                        <span className="font-semibold">Reviewed On:</span>{' '}
-                        {selectedSubmission.reviewedAt ? new Date(selectedSubmission.reviewedAt).toLocaleDateString() : 'N/A'}
-                      </p>
-                    </>
-                  )}
+                
+                {/* Core Submission Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-slate-600 mb-6 border-b pb-4">
+                    <p className="flex items-center">
+                        <User className="w-4 h-4 mr-2 text-blue-500" />
+                        <span className="font-semibold">By:</span> {selectedSubmission.users.name || 'N/A'}
+                    </p>
+                    <p className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-2 text-blue-500" />
+                        <span className="font-semibold">Location:</span> {selectedSubmission.location}
+                    </p>
+                    <p className="flex items-center">
+                        <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                        <span className="font-semibold">Experience Date:</span> {new Date(selectedSubmission.date).toLocaleDateString()}
+                    </p>
+                    <p className="flex items-center">
+                        <span className="font-semibold">Type:</span> {selectedSubmission.type}
+                    </p>
+                    <p className="flex items-center">
+                        <span className="font-semibold">Company:</span>{' '}
+                        {selectedSubmission.company === 'N/A' ? 'Not Applicable' : selectedSubmission.company}
+                    </p>
                 </div>
-                <div className="border-t pt-4 border-gray-200">
-                  <h3 className="text-lg font-bold mb-2 text-slate-700">Full Details</h3>
-                  <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
-                    {selectedSubmission.details}
-                  </p>
+
+                {/* Engagement Metrics (New Fields) */}
+                <div className="flex gap-4 mb-6">
+                    <div className="flex items-center text-green-600 font-semibold">
+                        <ThumbsUp className="w-4 h-4 mr-1" /> {selectedSubmission.upvotes}
+                    </div>
+                    <div className="flex items-center text-red-600 font-semibold">
+                        <ThumbsDown className="w-4 h-4 mr-1" /> {selectedSubmission.downvotes}
+                    </div>
+                    <div className="flex items-center text-slate-600 font-semibold">
+                        <Users className="w-4 h-4 mr-1" /> {selectedSubmission.comments_count} Comments
+                    </div>
                 </div>
+
+                <div className="border-t pt-4 border-gray-200 space-y-6">
+                    {/* Overall Experience */}
+                    <section>
+                        <h3 className="text-lg font-bold mb-2 text-slate-700">Overall Experience</h3>
+                        <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                        {selectedSubmission.details}
+                        </p>
+                    </section>
+
+                    {/* Work Culture */}
+                    <section>
+                        <h3 className="text-lg font-bold mb-2 text-slate-700">Work Culture</h3>
+                        <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                        {selectedSubmission.work_culture}
+                        </p>
+                    </section>
+                    
+                    {/* Preparation Tips */}
+                    <section>
+                        <h3 className="text-lg font-bold mb-2 text-slate-700">Preparation Tips</h3>
+                        <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                        {selectedSubmission.preparation_tips}
+                        </p>
+                    </section>
+
+                    {/* Detailed Round/Question Data */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <section>
+                            <h4 className="font-semibold text-md mb-2 text-slate-700">Selection Rounds</h4>
+                            <ul className="list-disc list-inside space-y-1 text-sm text-slate-600">
+                                {selectedSubmission.selection_rounds.length > 0 ? (
+                                    selectedSubmission.selection_rounds.map((round, index) => <li key={index}>{round}</li>)
+                                ) : (
+                                    <li className="text-slate-400">None provided.</li>
+                                )}
+                            </ul>
+                        </section>
+                        <section>
+                            <h4 className="font-semibold text-md mb-2 text-slate-700">Technical Questions</h4>
+                            <ul className="list-disc list-inside space-y-1 text-sm text-slate-600">
+                                {selectedSubmission.technical_questions.length > 0 ? (
+                                    selectedSubmission.technical_questions.map((q, index) => <li key={index}>{q}</li>)
+                                ) : (
+                                    <li className="text-slate-400">None provided.</li>
+                                )}
+                            </ul>
+                        </section>
+                        <section>
+                            <h4 className="font-semibold text-md mb-2 text-slate-700">HR Questions</h4>
+                            <ul className="list-disc list-inside space-y-1 text-sm text-slate-600">
+                                {selectedSubmission.hr_questions.length > 0 ? (
+                                    selectedSubmission.hr_questions.map((q, index) => <li key={index}>{q}</li>)
+                                ) : (
+                                    <li className="text-slate-400">None provided.</li>
+                                )}
+                            </ul>
+                        </section>
+                    </div>
+
+                    {/* Admin Review Info */}
+                    {(selectedSubmission.status === 'approved' || selectedSubmission.status === 'rejected') && (
+                        <div className="mt-6 pt-4 border-t border-gray-100 text-xs text-slate-500">
+                            <p>
+                                <span className="font-semibold">Reviewed By:</span>{' '}
+                                {selectedSubmission.reviewedBy || 'Admin'}
+                            </p>
+                            <p>
+                                <span className="font-semibold">Reviewed On:</span>{' '}
+                                {selectedSubmission.reviewedAt ? new Date(selectedSubmission.reviewedAt).toLocaleDateString() : 'N/A'}
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Action Buttons */}
                 <div className="mt-8 flex flex-col sm:flex-row gap-4">
                   {selectedSubmission.status === 'pending' && (
                     <>
                       <button
                         onClick={() => handleApprove(selectedSubmission.id)}
-                        className="flex-1 flex items-center justify-center px-6 py-3 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-colors duration-200"
+                        disabled={isSaving}
+                        className="flex-1 flex items-center justify-center px-6 py-3 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-colors duration-200 disabled:bg-green-300 disabled:cursor-not-allowed"
                       >
-                        <ThumbsUp className="w-5 h-5 mr-2" /> Approve
+                        <CheckCircle className="w-5 h-5 mr-2" /> {isSaving ? 'Processing...' : 'Approve'}
                       </button>
                       <button
                         onClick={() => handleReject(selectedSubmission.id)}
-                        className="flex-1 flex items-center justify-center px-6 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors duration-200"
+                        disabled={isSaving}
+                        className="flex-1 flex items-center justify-center px-6 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors duration-200 disabled:bg-red-300 disabled:cursor-not-allowed"
                       >
-                        <ThumbsDown className="w-5 h-5 mr-2" /> Reject
+                        <XCircle className="w-5 h-5 mr-2" /> {isSaving ? 'Processing...' : 'Reject'}
                       </button>
                     </>
                   )}
@@ -410,14 +680,16 @@ const Admin = () => {
                   {(selectedSubmission.status === 'approved' || selectedSubmission.status === 'rejected') && (
                     <button
                       onClick={() => handleRevert(selectedSubmission.id)}
-                      className="flex-1 flex items-center justify-center px-6 py-3 bg-gray-500 text-white rounded-xl font-bold hover:bg-gray-600 transition-colors duration-200"
+                      disabled={isSaving}
+                      className="flex-1 flex items-center justify-center px-6 py-3 bg-gray-500 text-white rounded-xl font-bold hover:bg-gray-600 transition-colors duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
                     >
-                      <XCircle className="w-5 h-5 mr-2" /> Revert to Pending
+                      <Info className="w-5 h-5 mr-2" /> {isSaving ? 'Processing...' : 'Revert to Pending'}
                     </button>
                   )}
                   <button
                     onClick={() => handleEdit(selectedSubmission)}
-                    className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors duration-200"
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-colors duration-200 disabled:bg-blue-300 disabled:cursor-not-allowed"
                   >
                     <Edit2 className="w-5 h-5 mr-2" /> Edit
                   </button>
@@ -526,7 +798,7 @@ const Admin = () => {
               {/* Submission List */}
               <div className="space-y-4 pt-4 border-t border-gray-100">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center">
-                  <Users className="w-5 h-5 mr-2 text-slate-500" /> Submissions
+                  <Users className="w-5 h-5 mr-2 text-slate-500" /> Submissions ({filteredSubmissions.length})
                 </h2>
                 <AnimatePresence>
                   {filteredSubmissions.length > 0 ? (
@@ -549,10 +821,10 @@ const Admin = () => {
                       >
                         <h3 className="font-semibold text-slate-800">{sub.title}</h3>
                         <p className="text-sm text-slate-500 mt-1">
-                          By: <span className="font-medium">{sub.author}</span>
+                          By: <span className="font-medium">{sub.users.name}</span>
                         </p>
                         <p className="text-xs text-slate-400 mt-2">
-                          Submitted on: {new Date(sub.submittedAt).toLocaleDateString()}
+                          Submitted on: {new Date(sub.created_at).toLocaleDateString()}
                         </p>
                       </motion.div>
                     ))

@@ -771,7 +771,7 @@ const handleDownloadPDF = async () => {
 
     // 2. Use html2pdf to generate and download the file
     const worker = html2pdf().set({
-        margin: 0.5,
+        // margin: 0.5,
         filename: 'resume.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },

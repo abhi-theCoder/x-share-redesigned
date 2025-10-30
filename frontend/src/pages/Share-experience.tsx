@@ -557,7 +557,7 @@ export default function ShareExperiencePage(): JSX.Element {
             >
               <h3 className="text-3xl font-bold text-blue-600 mb-4">Experience Shared!</h3>
               <div className="text-4xl font-extrabold text-gray-800">
-                <span className="text-6xl font-extrabold text-yellow-500">+50</span> Coins
+                <span className="text-6xl font-extrabold text-yellow-500">+50</span> Coins are awaiting to come after approval
               </div>
               <p className="mt-2 text-gray-600">
                 Thank you for your valuable contribution.

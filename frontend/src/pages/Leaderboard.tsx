@@ -227,8 +227,8 @@ const Leaderboard: React.FC = () => {
         </div>
 
         <div className="text-right">
-          <p className="text-xl font-extrabold text-blue-600">
-            {user.points} <span className="text-base text-gray-500 font-medium">XP</span>
+          <p className="text-xl font-extrabold text-blue-600 flex items-center justify-end gap-1">
+            {user.points} <Star className="w-5 h-5 text-blue-500 fill-blue-100" />
           </p>
         </div>
       </motion.div>
@@ -313,8 +313,8 @@ const Leaderboard: React.FC = () => {
                   color="text-green-600"
                 />
                 <StatBox
-                  icon={<Zap className="text-yellow-500" />}
-                  label="XP"
+                  icon={<Star className="text-yellow-500" />}
+                  label="Points"
                   value={currentUser.points.toString()}
                   color="text-yellow-600"
                 />

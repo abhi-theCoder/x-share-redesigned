@@ -13,6 +13,11 @@ async function shareExperience(req, res) {
       .insert([{
         ...experienceData,
         user_id: userId,
+        status: 'pending', // New experiences are pending approval
+        upvotes: 0,
+        downvotes: 0,
+        comments_count: 0,
+        user_voted: null // No votes yet
       }])
       .select();
 
@@ -100,8 +105,9 @@ async function getExperiences(req, res) {
     // to get all of its fields (*) using the foreign key relationship.
     const { data: experiences, error } = await supabase
       .from('experiences')
-      .select('*, users(*)');
-
+      .select('*, users(*)')
+      .eq('status', 'approved'); // Only fetch approved experiences
+      
     if (error) {
       throw error;
     }
@@ -281,7 +287,6 @@ async function handleVote(req, res) {
     res.status(500).json({ message: 'Internal server error.' });
   }
 }
-
 
 // You must export all functions you want to use in your routes
 module.exports = { shareExperience, getExperiences, getSingleExperience, getComments, addComment, handleVote };
