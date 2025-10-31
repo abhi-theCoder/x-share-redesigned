@@ -4,14 +4,15 @@ import { Link } from 'react-router-dom';
 import {
   User, Mail, MapPin, Building, Calendar, Edit3, Star, Trophy, Clock,
   BookOpen, MessageCircle, Heart, Upload, Save, X, LogOut, HeartHandshake, Users, ThumbsUp, Bookmark, FileText,
+  Award, TrendingUp, Zap, Crown, Sparkles, Share2, Download, ChevronDown, ChevronUp
 } from 'lucide-react';
 import LoginRequired from '../components/LoginRequired';
 import verifyToken from '../components/verifyLogin';
 import ActivityHeatmap from '../components/ActivityHeatmap';
 import axios from '../api';
 
-// ✅ Icon map (unchanged)
-const iconMap = {
+// ✅ Icon map
+const iconMap: { [key: string]: React.ComponentType<any> } = {
   User,
   Mail,
   MapPin,
@@ -48,17 +49,51 @@ interface Experience {
   type: string;
 }
 
+// Profile data interface
+interface ProfileData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  company: string;
+  location: string;
+  bio: string;
+  avatar?: string;
+  joined_date: string;
+  stats: Array<{
+    label: string;
+    value: number;
+    icon: string;
+    color: string;
+  }>;
+  recentActivity: Array<{
+    id: number;
+    title: string;
+    timeAgo: string;
+    points: number;
+    icon: string;
+    type: string;
+  }>;
+  level: {
+    name: string;
+    icon: string;
+    percentage: number;
+    progressText: string;
+    remaining: string;
+  };
+}
+
 // Helper function to format date
 const formatDate = (dateString: string | undefined) => {
   if (!dateString) return 'Date not available';
   const date = new Date(dateString);
-  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
   return date.toLocaleDateString('en-US', options);
 };
 
 // Colors for dynamic avatars
 const colors = ['#FF5733', '#33FF57', '#3357FF', '#F0A500', '#25B7D9', '#E63946', '#2A9D8F'];
-const stringToColor = (str) => {
+const stringToColor = (str: string) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -66,7 +101,8 @@ const stringToColor = (str) => {
   const index = Math.abs(hash) % colors.length;
   return colors[index];
 };
-const getInitials = (name) => {
+
+const getInitials = (name: string) => {
   if (!name) return 'U';
   const parts = name.split(' ');
   if (parts.length > 1) {
@@ -75,7 +111,7 @@ const getInitials = (name) => {
   return parts[0][0].toUpperCase();
 };
 
-const calculateLevelAndProgress = (points) => {
+const calculateLevelAndProgress = (points: number) => {
   const levels = [
     { name: 'Beginner', icon: 'User', minPoints: 0, maxPoints: 199 },
     { name: 'Intermediate', icon: 'Edit3', minPoints: 200, maxPoints: 499 },
@@ -122,14 +158,288 @@ const calculateLevelAndProgress = (points) => {
   };
 };
 
+// Enhanced Engagement Chart with glass effect
+const EngagementChart = ({ contributions, likesReceived }: { contributions: number; likesReceived: number }) => {
+  const maxValue = Math.max(contributions, likesReceived, 10);
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-700">Contributions</span>
+        <span className="font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg text-xs">
+          {contributions}
+        </span>
+      </div>
+      <div className="w-full bg-white/60 backdrop-blur-sm rounded-full h-2.5 border border-white/30">
+        <div 
+          className="bg-gradient-to-r from-blue-400 to-blue-600 h-2.5 rounded-full transition-all duration-700 shadow-lg shadow-blue-500/25"
+          style={{ width: `${(contributions / maxValue) * 100}%` }}
+        ></div>
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-700">Likes Received</span>
+        <span className="font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg text-xs">
+          {likesReceived}
+        </span>
+      </div>
+      <div className="w-full bg-white/60 backdrop-blur-sm rounded-full h-2.5 border border-white/30">
+        <div 
+          className="bg-gradient-to-r from-green-400 to-green-600 h-2.5 rounded-full transition-all duration-700 shadow-lg shadow-green-500/25"
+          style={{ width: `${(likesReceived / maxValue) * 100}%` }}
+        ></div>
+      </div>
+    </div>
+  );
+};
+
+// Updated Achievement Badges Component with theme colors
+const AchievementBadges = () => {
+  const badges = [
+    { icon: Star, color: 'from-blue-400 to-indigo-500', label: 'First Post', earned: true },
+    { icon: Trophy, color: 'from-cyan-500 to-blue-500', label: 'Top Contributor', earned: true },
+    { icon: Heart, color: 'from-purple-400 to-indigo-500', label: 'Community Helper', earned: true },
+    { icon: Zap, color: 'from-blue-300 to-cyan-400', label: 'Fast Riser', earned: false },
+    { icon: Crown, color: 'from-indigo-400 to-purple-500', label: 'Expert', earned: false },
+    { icon: Sparkles, color: 'from-cyan-400 to-blue-400', label: 'Innovator', earned: false },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        {badges.map((badge, index) => {
+          const IconComponent = badge.icon;
+          return (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.1 }}
+              className={`relative group ${
+                badge.earned ? 'opacity-100' : 'opacity-40 grayscale'
+              }`}
+            >
+              <div className={`w-16 h-16 bg-gradient-to-br ${badge.color} rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-sm border border-white/30`}>
+                <IconComponent className="w-6 h-6 text-white" />
+              </div>
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg border border-white/20">
+                {badge.label}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+      <div className="text-center">
+        <p className="text-xs text-gray-500 bg-white/30 p-2 rounded-lg backdrop-blur-sm">
+          Complete challenges to unlock more achievements!
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// Expanded View Components
+const ExpandedRecentActivity = ({ activities, onClose }: { activities: any[], onClose: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30 col-span-2"
+  >
+    <div className="flex items-center justify-between mb-6">
+      <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+        <Zap className="w-6 h-6 mr-2 text-yellow-500" />
+        Recent Activity
+      </h3>
+      <button
+        onClick={onClose}
+        className="p-2 rounded-full text-gray-500 hover:bg-white/50 transition-colors backdrop-blur-sm"
+      >
+        <ChevronUp className="w-5 h-5" />
+      </button>
+    </div>
+    <div className="space-y-4 max-h-96 overflow-y-auto">
+      {activities?.map((activity: any) => {
+        const IconComponent = iconMap[activity?.icon] || User;
+        return (
+          <motion.div
+            key={activity.id}
+            whileHover={{ scale: 1.02 }}
+            className="flex items-center justify-between p-4 bg-white/50 backdrop-blur-sm rounded-xl hover:bg-white/70 transition-all duration-200 border border-white/30"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center shadow-md">
+                <IconComponent className="w-6 h-6 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-lg font-medium text-gray-800">{activity.title}</p>
+                <p className="text-sm text-gray-500">{activity.timeAgo}</p>
+              </div>
+            </div>
+            <div className="text-lg font-bold text-blue-600 whitespace-nowrap bg-blue-50 px-3 py-2 rounded-lg">
+              +{activity.points}
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  </motion.div>
+);
+
+const ExpandedAchievements = ({ onClose }: { onClose: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30 col-span-2"
+  >
+    <div className="flex items-center justify-between mb-6">
+      <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+        <Trophy className="w-6 h-6 mr-2 text-yellow-500" />
+        Achievements
+      </h3>
+      <button
+        onClick={onClose}
+        className="p-2 rounded-full text-gray-500 hover:bg-white/50 transition-colors backdrop-blur-sm"
+      >
+        <ChevronUp className="w-5 h-5" />
+      </button>
+    </div>
+    <AchievementBadges />
+  </motion.div>
+);
+
+const ExpandedLevelProgress = ({ levelData, onClose }: { levelData: any, onClose: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30 col-span-2"
+  >
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center space-x-4">
+        <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+          <Crown className="w-8 h-8 text-white" />
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900">Level Progress</h3>
+          <p className="text-lg text-gray-600 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-medium">
+            {levelData?.name}
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        className="p-2 rounded-full text-gray-500 hover:bg-white/50 transition-colors backdrop-blur-sm"
+      >
+        <ChevronUp className="w-5 h-5" />
+      </button>
+    </div>
+    
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <span className="text-lg font-medium text-gray-700">Progress</span>
+        <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          {levelData?.percentage}%
+        </span>
+      </div>
+      <div className="w-full bg-white/60 backdrop-blur-sm rounded-full h-4 border border-white/30">
+        <div
+          className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 h-4 rounded-full transition-all duration-700 shadow-lg shadow-blue-500/25"
+          style={{ width: `${levelData?.percentage}%` }}
+        ></div>
+      </div>
+      <div className="text-center p-4 bg-white/30 rounded-xl backdrop-blur-sm">
+        <p className="text-lg text-gray-600 font-medium">{levelData?.progressText}</p>
+        <p className="text-sm text-gray-500 mt-2">Current Progress: {levelData?.remaining}</p>
+      </div>
+    </div>
+  </motion.div>
+);
+
+const ExpandedBookmarks = ({ bookmarks, onClose, onRemoveBookmark }: { 
+  bookmarks: any[], 
+  onClose: () => void, 
+  onRemoveBookmark: (id: number, e: React.MouseEvent) => void 
+}) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30 col-span-2"
+  >
+    <div className="flex items-center justify-between mb-6">
+      <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+        <Bookmark className="w-6 h-6 mr-2 text-indigo-500" />
+        Bookmarks ({bookmarks.length})
+      </h3>
+      <button
+        onClick={onClose}
+        className="p-2 rounded-full text-gray-500 hover:bg-white/50 transition-colors backdrop-blur-sm"
+      >
+        <ChevronUp className="w-5 h-5" />
+      </button>
+    </div>
+    <div className="grid md:grid-cols-2 gap-6 max-h-96 overflow-y-auto">
+      {bookmarks.map((exp: any) => (
+        <Link key={exp.id} to={`/experiences/${exp.id}`}>
+          <motion.div
+            whileHover={{ scale: 1.02, y: -5 }}
+            className="p-5 bg-white/80 backdrop-blur-sm rounded-2xl border border-white/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+          >
+            <div className="flex items-center mb-4">
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg mr-4 shadow-lg"
+                style={{ backgroundColor: stringToColor(exp.users?.name || String(exp.id)) }}
+              >
+                {getInitials(exp.users?.name || `User ${exp.id}`)}
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-800">{exp.users?.name || `User ${exp.id}`}</h4>
+                <p className="text-sm text-gray-500">{exp.role || "Experience"}</p>
+              </div>
+            </div>
+            <h3 className="text-lg font-bold text-gray-800 mb-3 line-clamp-2">
+              {exp.role} at {exp.company}
+            </h3>
+            <p className="text-gray-600 text-sm line-clamp-3 bg-blue-50/30 p-4 rounded-xl backdrop-blur-sm mb-4">
+              {exp.overall_experience || 'No experience summary provided.'}
+            </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center text-xs text-gray-500 bg-white/50 px-3 py-1 rounded-lg backdrop-blur-sm">
+                <Clock className="w-3 h-3 mr-1" />
+                <span>{formatDate(exp.created_at)}</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-1 text-sm text-gray-500 bg-white/50 px-2 py-1 rounded-lg backdrop-blur-sm">
+                  <ThumbsUp className="w-4 h-4" />
+                  <span>{exp.upvotes}</span>
+                </div>
+                <div className="flex items-center space-x-1 text-sm text-gray-500 bg-white/50 px-2 py-1 rounded-lg backdrop-blur-sm">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{exp.comments_count}</span>
+                </div>
+                <button
+                  onClick={(e) => onRemoveBookmark(exp.id, e)}
+                  className="text-red-500 hover:text-red-700 transition-colors duration-200 text-sm font-medium flex items-center space-x-1 bg-white/50 px-2 py-1 rounded-lg backdrop-blur-sm"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Remove</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </Link>
+      ))}
+    </div>
+  </motion.div>
+);
+
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [bookmarks, setBookmarks] = useState([]);
+  const [error, setError] = useState<string | null>(null);
+  const [bookmarks, setBookmarks] = useState<Experience[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activityData, setActivityData] = useState([]);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     role: '',
@@ -137,6 +447,12 @@ const Profile = () => {
     location: '',
     bio: ''
   });
+
+  // Mock data for engagement metrics
+  const engagementData = {
+    contributions: 47,
+    likesReceived: 128
+  };
 
   useEffect(() => {
     const fetchProfileAndBookmarks = async () => {
@@ -157,21 +473,17 @@ const Profile = () => {
             setLoading(false);
             return;
           }
-          console.log(valid);
         };
     
         checkLogin();
-
-        
 
         // Fetch Profile
         const profileRes = await axios.get('api/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        // console.log(profileRes)
         const userId = profileRes.data.id;
 
-        const totalPoints = profileRes.data.stats.find((stat) => stat.label === 'Total Points')?.value || 0;
+        const totalPoints = profileRes.data.stats.find((stat: any) => stat.label === 'Total Points')?.value || 0;
         const levelData = calculateLevelAndProgress(totalPoints);
         
         setProfileData({
@@ -210,7 +522,7 @@ const Profile = () => {
       await axios.put('api/profile', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setProfileData((prev) => ({ ...prev, ...formData }));
+      setProfileData((prev) => prev ? { ...prev, ...formData } : null);
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to update profile:', err);
@@ -219,25 +531,27 @@ const Profile = () => {
   };
 
   const handleCancel = () => {
-    setFormData({
-      name: profileData.name,
-      role: profileData.role,
-      company: profileData.company,
-      location: profileData.location,
-      bio: profileData.bio
-    });
+    if (profileData) {
+      setFormData({
+        name: profileData.name,
+        role: profileData.role,
+        company: profileData.company,
+        location: profileData.location,
+        bio: profileData.bio
+      });
+    }
     setIsEditing(false);
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleRemoveBookmark = async (experienceId, event) => {
-    event.stopPropagation(); // Prevents the link from navigating
-    event.preventDefault(); // Prevents default link behavior
+  const handleRemoveBookmark = async (experienceId: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
 
-    const userId = profileData.id;
+    const userId = profileData?.id;
     if (!userId) {
       setError('User not authenticated.');
       return;
@@ -250,7 +564,6 @@ const Profile = () => {
         data: { userId, experienceId }
       });
 
-      // Update the state to remove the bookmark from the UI
       setBookmarks(prevBookmarks => prevBookmarks.filter(bookmark => bookmark.id !== experienceId));
       console.log(`Bookmark ${experienceId} removed successfully.`);
 
@@ -260,10 +573,21 @@ const Profile = () => {
     }
   };
 
+  const handleExpandSection = (section: string) => {
+    setExpandedSection(section);
+  };
+
+  const handleCloseExpanded = () => {
+    setExpandedSection(null);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen pt-20 flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin shadow-lg"></div>
+          <p className="text-blue-600 font-medium">Loading your profile...</p>
+        </div>
       </div>
     );
   }
@@ -274,418 +598,527 @@ const Profile = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center text-red-600">
-        <p>{error}</p>
+      <div className="min-h-screen pt-20 flex items-center justify-center text-red-600 bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50">
+        <div className="bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-white/20">
+          <p>{error}</p>
+        </div>
       </div>
     );
   }
 
   if (!profileData) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center text-gray-500">
-        <p>No profile data available.</p>
+      <div className="min-h-screen pt-20 flex items-center justify-center text-gray-500 bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50">
+        <div className="bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-white/20">
+          <p>No profile data available.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid lg:grid-cols-3 gap-8">
-
-          {/* Profile Info */}
-          <div className="lg:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-6"
-            >
-              <div className="text-center mb-6">
-                <div className="relative inline-block">
-                  <img
-                    src={profileData.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${profileData.name}&backgroundColor=000000,ffffff&fontFamily=Arial&radius=50`}
-                    alt={profileData.name}
-                    className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-orange-200"
-                  />
-                  <button className="absolute bottom-0 right-0 w-8 h-8 bg-gradient-to-r from-orange-500 to-green-600 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform duration-200">
-                    <Upload className="w-4 h-4" />
-                  </button>
+    <div className="min-h-screen pt-20 pb-16 bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-200/30 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-200/20 rounded-full translate-x-1/3 translate-y-1/3 blur-3xl"></div>
+      
+      {/* Header */}
+      <div className="relative bg-white/60 backdrop-blur-xl border-b border-white/30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex items-center space-x-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-3xl blur-md opacity-50"></div>
+                <img
+                  src={profileData.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${profileData.name}&backgroundColor=000000,ffffff&fontFamily=Arial&radius=50`}
+                  alt={profileData.name}
+                  className="relative w-20 h-20 rounded-2xl object-cover border-4 border-white/80 shadow-2xl"
+                />
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white">
+                  {profileData.level?.percentage}%
                 </div>
               </div>
-
-              {!isEditing ? (
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-800">{profileData.name}</h2>
-                    <p className="text-gray-600 mt-1">{profileData.role}</p>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3 text-gray-600">
-                      <Mail className="w-5 h-5" />
-                      <span>{profileData.email}</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-gray-600">
-                      <Building className="w-5 h-5" />
-                      <span>{profileData.company}</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-gray-600">
-                      <MapPin className="w-5 h-5" />
-                      <span>{profileData.location}</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-gray-600">
-                      <Calendar className="w-5 h-5" />
-                      <span>Joined {new Date(profileData.joined_date).toUTCString()}</span>
-                    </div>
-                  </div>
-                  <div className="pt-4 border-t border-gray-100">
-                    <p className="text-gray-700 leading-relaxed">{profileData.bio}</p>
-                  </div>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="w-full flex items-center justify-center px-4 py-2 bg-gradient-to-r from-orange-500 to-green-600 text-white rounded-xl font-medium hover:from-orange-600 hover:to-green-700 transform hover:scale-105 transition-all duration-200"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" /> Edit Profile
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3 text-gray-600">
-                    <User className="w-5 h-5" />
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="Your Name"
-                      className="w-full p-2 border rounded-md"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-600">
-                    <Building className="w-5 h-5" />
-                    <input
-                      type="text"
-                      name="company"
-                      value={formData.company}
-                      onChange={handleChange}
-                      placeholder="Your Company"
-                      className="w-full p-2 border rounded-md"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-600">
-                    <MapPin className="w-5 h-5" />
-                    <input
-                      type="text"
-                      name="location"
-                      value={formData.location}
-                      onChange={handleChange}
-                      placeholder="Your Location"
-                      className="w-full p-2 border rounded-md"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-600">
-                    <BookOpen className="w-5 h-5" />
-                    <textarea
-                      name="bio"
-                      value={formData.bio}
-                      onChange={handleChange}
-                      placeholder="Your Bio"
-                      rows={4}
-                      className="w-full p-2 border rounded-md"
-                    />
-                  </div>
-                  <div className="flex justify-between space-x-2">
-                    <button
-                      onClick={handleSave}
-                      className="w-full flex items-center justify-center px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl font-medium hover:from-green-600 hover:to-teal-700 transform hover:scale-105 transition-all duration-200"
-                    >
-                      <Save className="w-4 h-4 mr-2" /> Save Changes
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="w-full flex items-center justify-center px-4 py-2 bg-gray-300 text-gray-800 rounded-xl font-medium hover:bg-gray-400 transform hover:scale-105 transition-all duration-200"
-                    >
-                      <X className="w-4 h-4 mr-2" /> Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-
-            {/* Resume Builder Section */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
-            >
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <FileText className="w-6 h-6 mr-2 text-blue-500" />
-                Resume Builder
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Create and manage your professional resume with our easy-to-use builder.
-              </p>
-              <Link
-                to="/resume-builder"
-                className="w-full flex items-center justify-center px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
+              <div className="min-w-0 flex-1">
+                <h1 className="text-3xl font-bold text-gray-900 truncate bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  {profileData.name}
+                </h1>
+                <p className="text-gray-600 truncate text-lg">{profileData.role} • {profileData.company}</p>
+                <p className="text-sm text-gray-500 truncate flex items-center">
+                  <Mail className="w-4 h-4 mr-1" /> {profileData.email}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <button className="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-700 rounded-xl font-medium hover:bg-white transition-all duration-200 shadow-lg border border-white/30">
+                <Share2 className="w-4 h-4" />
+                <span>Share</span>
+              </button>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
-                <Edit3 className="w-4 h-4 mr-2" /> Build Your Resume
-              </Link>
-            </motion.div>
-
-            {/* Resume Builder Section */}
-            {/* <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mt-5"
-            >
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <FileText className="w-6 h-6 mr-2 text-blue-500" />
-                Job Finder
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Create and manage your professional resume with our easy-to-use builder.
-              </p>
-              <Link
-                to="/jobs"
-                className="w-full flex items-center justify-center px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
-              >
-                View Jobs
-              </Link>
-            </motion.div> */}
+                <Edit3 className="w-4 h-4" />
+                <span>Edit Profile</span>
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            {/* Stats */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
+          {/* Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Profile Info Card - Improved Styling */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+              className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30"
             >
-              {profileData.stats?.map((stat) => {
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <User className="w-5 h-5 mr-2 text-blue-500" />
+                Profile Information
+              </h3>
+              
+              <div className="space-y-3">
+                {/* Location */}
+                <div className="flex items-start space-x-3 p-3 bg-gradient-to-r from-blue-50/50 to-blue-100/30 rounded-xl backdrop-blur-sm border border-blue-200/30 hover:border-blue-300/50 transition-all duration-200">
+                  <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <MapPin className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-blue-700 uppercase tracking-wide">Location</p>
+                    <p className="text-sm text-gray-800 font-medium truncate">
+                      {profileData.location || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Company */}
+                <div className="flex items-start space-x-3 p-3 bg-gradient-to-r from-indigo-50/50 to-indigo-100/30 rounded-xl backdrop-blur-sm border border-indigo-200/30 hover:border-indigo-300/50 transition-all duration-200">
+                  <div className="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Building className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-indigo-700 uppercase tracking-wide">Company</p>
+                    <p className="text-sm text-gray-800 font-medium truncate">
+                      {profileData.company || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Joined Date */}
+                <div className="flex items-start space-x-3 p-3 bg-gradient-to-r from-cyan-50/50 to-cyan-100/30 rounded-xl backdrop-blur-sm border border-cyan-200/30 hover:border-cyan-300/50 transition-all duration-200">
+                  <div className="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Calendar className="w-4 h-4 text-cyan-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-cyan-700 uppercase tracking-wide">Joined</p>
+                    <p className="text-sm text-gray-800 font-medium">
+                      {formatDate(profileData.joined_date)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Bio Section */}
+              <div className="mt-6 pt-4 border-t border-white/30">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    About
+                  </span>
+                </h4>
+                <div className="bg-white/40 backdrop-blur-sm rounded-xl p-4 border border-white/30">
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {profileData.bio || 'No bio provided yet. Share something about yourself!'}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Engagement Metrics */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30"
+            >
+              <div className="flex items-center space-x-2 mb-6">
+                <TrendingUp className="w-5 h-5 text-green-500" />
+                <h3 className="text-lg font-semibold text-gray-900">Engagement Metrics</h3>
+              </div>
+              <EngagementChart 
+                contributions={engagementData.contributions}
+                likesReceived={engagementData.likesReceived}
+              />
+            </motion.div>
+
+            {/* Quick Actions */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">Quick Actions</h3>
+              <div className="space-y-3">
+                <Link
+                  to="/resume-builder"
+                  className="flex items-center space-x-3 p-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl hover:from-cyan-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm"
+                >
+                  <FileText className="w-5 h-5" />
+                  <span className="font-medium">Resume Builder</span>
+                </Link>
+                <button className="flex items-center space-x-3 p-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm w-full">
+                  <Award className="w-5 h-5" />
+                  <span className="font-medium">Achievements</span>
+                </button>
+                <button className="flex items-center space-x-3 p-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm w-full">
+                  <Download className="w-5 h-5" />
+                  <span className="font-medium">Export Data</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-8">
+            {/* Stats Grid */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-6"
+            >
+              {profileData.stats?.map((stat: any, index: number) => {
                 const IconComponent = iconMap[stat.icon] || User;
                 return (
-                  <div
+                  <motion.div
                     key={stat.label}
-                    className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30 hover:shadow-2xl transition-all duration-300 group hover:scale-105"
                   >
-                    <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center mb-3`}>
-                      <IconComponent className="w-6 h-6 text-white" />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-bold text-gray-900">{stat?.value || 0}</div>
+                        <div className="text-xs text-gray-600 mt-1">{stat?.label || 'Unknown'}</div>
+                      </div>
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200 backdrop-blur-sm">
+                        <IconComponent className="w-6 h-6 text-white" />
+                      </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-800">{stat?.value || 0}</div>
-                    <div className="text-sm text-gray-600">{stat?.label || 'Unknown'}</div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </motion.div>
 
-              {/* --- INSERT THE HEATMAP HERE --- */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.35 }}
-              className="mb-8"
-            >
-              <ActivityHeatmap activityData={activityData} />
-            </motion.div>
-
-            {/* Recent Activity */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-8"
-            >
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Recent Activity</h3>
-              <div className="space-y-4">
-                {profileData.recentActivity?.map((activity) => {
-                  const IconComponent = iconMap[activity?.icon] || User;
-                  return (
-                    <div
-                      key={activity.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-orange-50 transition-colors duration-200"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            activity.type === 'question'
-                              ? 'bg-blue-100 text-blue-600'
-                              : activity.type === 'resource'
-                              ? 'bg-green-100 text-green-600'
-                              : 'bg-orange-100 text-orange-600'
-                          }`}
-                        >
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800">{activity.title}</p>
-                          <p className="text-sm text-gray-500">{activity.timeAgo}</p>
-                        </div>
-                      </div>
-                      <div className="font-bold text-green-600">{activity.points}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.div>
-
-            {/* Bookmarks Section with Call to Action */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.25 }}
-              className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-8 flex flex-col items-start"
-            >
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <Bookmark className="w-6 h-6 mr-2 text-orange-500" />
-                Bookmarked Experiences
-              </h3>
-              <p className="text-gray-600 mb-4">
-                You have {bookmarks.length} saved experiences.
-              </p>
-              {bookmarks.length > 0 && (
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="px-6 py-2 bg-gradient-to-r from-orange-500 to-green-600 text-white rounded-xl font-medium hover:from-orange-600 hover:to-green-700 transition-all duration-200"
+            {/* Main Content Grid with Expandable Sections */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              {/* Recent Activity - Expandable */}
+              {expandedSection === 'recentActivity' ? (
+                <ExpandedRecentActivity 
+                  activities={profileData.recentActivity} 
+                  onClose={handleCloseExpanded}
+                />
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30 cursor-pointer hover:shadow-2xl transition-all duration-300"
+                  onClick={() => handleExpandSection('recentActivity')}
                 >
-                  View All Bookmarks
-                </button>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                    <div className="flex items-center space-x-2">
+                      <Zap className="w-5 h-5 text-yellow-500" />
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {profileData.recentActivity?.slice(0, 3).map((activity: any) => {
+                      const IconComponent = iconMap[activity?.icon] || User;
+                      return (
+                        <div
+                          key={activity.id}
+                          className="flex items-center justify-between p-3 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center shadow-md">
+                              <IconComponent className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-gray-800 truncate">{activity.title}</p>
+                              <p className="text-xs text-gray-500">{activity.timeAgo}</p>
+                            </div>
+                          </div>
+                          <div className="text-sm font-bold text-blue-600 whitespace-nowrap bg-blue-50 px-2 py-1 rounded-lg">
+                            +{activity.points}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
               )}
-              {bookmarks.length === 0 && (
-                <p className="text-gray-500">
-                  No bookmarks yet. Start saving experiences you find interesting!
-                </p>
-              )}
-            </motion.div>
 
-            {/* Level Progress */}
+              {/* Achievements - Expandable */}
+              {expandedSection === 'achievements' ? (
+                <ExpandedAchievements onClose={handleCloseExpanded} />
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30 cursor-pointer hover:shadow-2xl transition-all duration-300"
+                  onClick={() => handleExpandSection('achievements')}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Achievements</h3>
+                    <div className="flex items-center space-x-2">
+                      <Trophy className="w-5 h-5 text-yellow-500" />
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[1, 2, 3].map((index) => {
+                      const badges = [
+                        { icon: Star, color: 'from-blue-400 to-indigo-500' },
+                        { icon: Trophy, color: 'from-cyan-500 to-blue-500' },
+                        { icon: Heart, color: 'from-purple-400 to-indigo-500' },
+                      ];
+                      const badge = badges[index - 1];
+                      const IconComponent = badge.icon;
+                      return (
+                        <div key={index} className="flex flex-col items-center">
+                          <div className={`w-12 h-12 bg-gradient-to-br ${badge.color} rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-sm border border-white/30`}>
+                            <IconComponent className="w-5 h-5 text-white" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 text-center mt-3 bg-white/30 p-2 rounded-lg backdrop-blur-sm">
+                    Click to view all achievements
+                  </p>
+                </motion.div>
+              )}
+
+              {/* Level Progress - Expandable */}
+              {expandedSection === 'levelProgress' ? (
+                <ExpandedLevelProgress levelData={profileData.level} onClose={handleCloseExpanded} />
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30 cursor-pointer hover:shadow-2xl transition-all duration-300"
+                  onClick={() => handleExpandSection('levelProgress')}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <Crown className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Level Progress</h3>
+                        <p className="text-sm text-gray-600 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-medium">
+                          {profileData.level?.name}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Progress</span>
+                      <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        {profileData.level?.percentage}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/60 backdrop-blur-sm rounded-full h-2 border border-white/30">
+                      <div
+                        className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-700 shadow-lg shadow-blue-500/25"
+                        style={{ width: `${profileData.level?.percentage}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500 text-center bg-white/30 p-2 rounded-lg backdrop-blur-sm">
+                      {profileData.level?.progressText}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Bookmarks - Expandable */}
+              {expandedSection === 'bookmarks' ? (
+                <ExpandedBookmarks 
+                  bookmarks={bookmarks} 
+                  onClose={handleCloseExpanded}
+                  onRemoveBookmark={handleRemoveBookmark}
+                />
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl p-6 border border-white/30 cursor-pointer hover:shadow-2xl transition-all duration-300"
+                  onClick={() => handleExpandSection('bookmarks')}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Bookmarks</h3>
+                    <div className="flex items-center space-x-2">
+                      <Bookmark className="w-5 h-5 text-indigo-500" />
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {bookmarks.slice(0, 2).map((exp: any) => (
+                      <div
+                        key={exp.id}
+                        className="p-3 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30"
+                      >
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg"
+                            style={{ backgroundColor: stringToColor(exp.users?.name || String(exp.id)) }}
+                          >
+                            {getInitials(exp.users?.name || `User ${exp.id}`)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {exp.role} at {exp.company}
+                            </p>
+                            <p className="text-xs text-gray-500">{formatDate(exp.created_at)}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-600 line-clamp-1 bg-white/30 p-2 rounded-lg backdrop-blur-sm">
+                          {exp.overall_experience || 'No experience summary provided.'}
+                        </p>
+                      </div>
+                    ))}
+                    {bookmarks.length > 2 && (
+                      <div className="text-center py-2 text-sm text-indigo-600 font-medium bg-white/50 rounded-xl backdrop-blur-sm border border-white/30">
+                        View all {bookmarks.length} bookmarks
+                      </div>
+                    )}
+                    {bookmarks.length === 0 && (
+                      <div className="text-center text-gray-500 py-4 bg-white/30 rounded-xl backdrop-blur-sm">
+                        <Bookmark className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-xs">No bookmarks yet.</p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Activity Heatmap */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+              transition={{ delay: 0.6 }}
             >
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Level Progress</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
-                        {(() => {
-                          const IconComponent = iconMap[profileData.level?.icon] || Star;
-                          return <IconComponent className="w-4 h-4 text-white" />;
-                        })()}
-                      </div>
-                      <span className="font-bold text-gray-800">{profileData.level?.name}</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">{profileData.level?.progressText}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-green-600 bg-clip-text text-transparent">
-                      {profileData.level?.percentage}%
-                    </div>
-                    <div className="text-sm text-gray-500">Complete</div>
-                  </div>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className="bg-gradient-to-r from-orange-500 to-green-600 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${profileData.level?.percentage}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-600">{profileData.level?.remaining}</p>
-              </div>
+              <ActivityHeatmap />
             </motion.div>
           </div>
         </div>
       </div>
 
-      {/* Bookmarks Modal */}
+      {/* Edit Profile Modal */}
       <AnimatePresence>
-        {isModalOpen && (
+        {isEditing && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm p-4 overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
           >
             <motion.div
               initial={{ scale: 0.9, y: 50 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 50 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative border border-gray-100"
+              className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 w-full max-w-md border border-white/30"
             >
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="absolute top-4 right-4 p-2 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center">
-                <Bookmark className="w-8 h-8 mr-3 text-orange-500" />
-                Your Bookmarks
-              </h2>
-              {bookmarks.length > 0 ? (
-                <div className="grid md:grid-cols-2 gap-6">
-                  {bookmarks.map(exp => (
-                    <Link key={exp.id} to={`/experiences/${exp.id}`}>
-                      <motion.div
-                        whileHover={{ scale: 1.02, y: -5 }}
-                        className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
-                      >
-                        <div className="flex items-center mb-3">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3"
-                            style={{ backgroundColor: stringToColor(exp.users?.name || String(exp.id)) }}
-                          >
-                            {getInitials(exp.users?.name || `User ${exp.id}`)}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-800">{exp.users?.name || `User ${exp.id}`}</h4>
-                            <p className="text-sm text-gray-500">{exp.role || "Experience"}</p>
-                          </div>
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-2">
-                          {exp.role} at {exp.company}
-                        </h3>
-                        <p className="text-gray-600 text-sm line-clamp-3">
-                          {exp.overall_experience || 'No experience summary provided.'}
-                        </p>
-                        <div className="flex items-center justify-between mt-4">
-                          <div className="flex items-center text-xs text-gray-500">
-                            <Clock className="w-3 h-3 mr-1" />
-                            <span>{formatDate(exp.created_at)}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <div className="flex items-center space-x-1 text-sm text-gray-500">
-                              <ThumbsUp className="w-4 h-4" />
-                              <span>{exp.upvotes}</span>
-                            </div>
-                            <div className="flex items-center space-x-1 text-sm text-gray-500">
-                              <MessageCircle className="w-4 h-4" />
-                              <span>{exp.comments_count}</span>
-                            </div>
-                            <button
-                              onClick={(e) => handleRemoveBookmark(exp.id, e)}
-                              className="text-red-500 hover:text-red-700 transition-colors duration-200 text-sm font-medium flex items-center space-x-1"
-                            >
-                              <X className="w-4 h-4" />
-                              <span>Remove</span>
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </Link>
-                  ))}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Edit Profile</h2>
+                <button
+                  onClick={handleCancel}
+                  className="p-2 rounded-full text-gray-500 hover:bg-white/50 transition-colors backdrop-blur-sm"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition bg-white/80 backdrop-blur-sm"
+                  />
                 </div>
-              ) : (
-                <p className="text-center text-gray-500 py-4">You have no bookmarked experiences.</p>
-              )}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Role</label>
+                  <input
+                    type="text"
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition bg-white/80 backdrop-blur-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Company</label>
+                  <input
+                    type="text"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none transition bg-white/80 backdrop-blur-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Location</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition bg-white/80 backdrop-blur-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Bio</label>
+                  <textarea
+                    name="bio"
+                    value={formData.bio}
+                    onChange={handleChange}
+                    rows={4}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition bg-white/80 backdrop-blur-sm"
+                  />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={handleSave}
+                    className="flex-1 flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg"
+                  >
+                    <Save className="w-4 h-4 mr-2" /> Save Changes
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="flex-1 flex items-center justify-center px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all duration-200 backdrop-blur-sm"
+                  >
+                    <X className="w-4 h-4 mr-2" /> Cancel
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
