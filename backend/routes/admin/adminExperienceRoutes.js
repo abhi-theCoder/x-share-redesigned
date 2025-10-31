@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {authenticateAdminToken} = require('../../middleware/authAdminMiddleWare');
+const isAdmin = require('../../middleware/isAdmin'); // ✅ add this import
 const {
   updateExperienceStatus,
   updateExperienceData,
@@ -15,5 +16,11 @@ router.put('/experience/:id/status', authenticateAdminToken, updateExperienceSta
 
 // Route to update experience data
 router.put('/experience/:id', authenticateAdminToken, updateExperienceData);
+
+
+// ✅ Route to check admin status (your old route)
+router.get('/check', isAdmin, (req, res) => {
+  res.json({ isAdmin: req.isAdmin, user: req.user });
+});
 
 module.exports = router;
