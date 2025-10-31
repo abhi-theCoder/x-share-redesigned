@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "../../api";
 import { Pencil, Trash2 } from "lucide-react";
 import UpdateJobForm from "./UpdateJobForm";
-import { JobListing } from "./PostJobForm";
+import { JobListing } from "./JobUpload";
 
-const ViewJobs: React.FC = () => {
+const ManageJobs: React.FC = () => {
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
   const [openEdit, setOpenEdit] = useState(false);
@@ -89,4 +89,4 @@ const ViewJobs: React.FC = () => {
   );
 };
 
-export default ViewJobs;
+export default ManageJobs;

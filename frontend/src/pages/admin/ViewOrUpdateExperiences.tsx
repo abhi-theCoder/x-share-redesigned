@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import LoginRequired from '../components/LoginRequired';
-import axios from '../api'; // Assuming this is your configured axios instance
+import LoginRequired from '../../components/LoginRequired';
+import axios from '../../api'; // Assuming this is your configured axios instance
 
 import {
   ThumbsUp,
@@ -79,7 +79,7 @@ const API_ROUTES = {
   FETCH_PROFILE: '/api/profile',
 };
 
-const Admin = () => {
+const ViewOrUpdateExperiences = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasAccess, setHasAccess] = useState(false);
@@ -859,4 +859,4 @@ const Admin = () => {
   );
 };
 
-export default Admin;
+export default ViewOrUpdateExperiences;

@@ -8,10 +8,13 @@ const bookmarks = require('./routes/bookmark.js');
 const activityRoutes = require('./routes/activityRoutes.js');
 const qnaRoutes = require('./routes/qnaRoutes.js');
 const leaderboardRoutes = require('./routes/leaderboardRoutes.js');
+const jobRoutes = require('./routes/jobs.js');
+const resourceRoutes = require('./routes/resourcesRoutes.js');
 const verifyToken = require('./controllers/verifyLoginToken.js');
 const adminExperienceRoutes = require('./routes/admin/adminExperienceRoutes.js');
 const adminJobRoutes = require('./routes/admin/adminJobRoutes.js');
-const jobRoutes = require('./routes/jobs.js');
+const adminResourceRoutes = require("./routes/admin/adminResourceRoutes.js");
+
 // Load environment variables from .env file
 dotenv.config();
 
@@ -30,9 +33,12 @@ app.use('/api/activity', activityRoutes);
 app.use('/api/qna', qnaRoutes);
 app.use('/api/verifyToken', verifyToken);
 app.use('/api/leaderboard', leaderboardRoutes);
-app.use('/api/admin/jobs', adminJobRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/resources', resourceRoutes);
+app.use('/api/admin/jobs', adminJobRoutes);
+app.use("/api/admin/resources", adminResourceRoutes);
 app.use('/api/admin', adminExperienceRoutes);
+
 // A simple welcome route to confirm the server is running
 app.get('/', (req, res) => {
   res.send('Welcome to the XShare Backend API!');

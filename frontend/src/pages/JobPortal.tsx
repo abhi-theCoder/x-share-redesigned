@@ -91,8 +91,8 @@ interface JobListing {
   location: string;
   type: JobType;
   mode: JobMode;
-  experienceyears: number;
-  salarylpa: number;
+  experienceYears: number;
+  salaryLPA: number;
   rating: number;
   description: string;
 }
@@ -289,10 +289,10 @@ const JobCard = ({ job }: { job: JobListing }) => (
       </span>
       <span className="flex items-center gap-2">
         {ICONS.Briefcase}{" "}
-        {job.experienceyears === 0 ? "Fresher" : `${job.experienceyears}+ years`}
+        {job.experienceYears === 0 ? "Fresher" : `${job.experienceYears}+ years`}
       </span>
       <span className="flex items-center gap-2">
-        {ICONS.DollarSign} {job.salarylpa} LPA
+        {ICONS.DollarSign} {job.salaryLPA} LPA
       </span>
     </div>
 
@@ -348,8 +348,8 @@ const JobPortal = () => {
         (job) =>
           (filters.type === "All" || job.type === filters.type) &&
           (filters.modes.length === 0 || filters.modes.includes(job.mode)) &&
-          job.experienceyears >= filters.experience &&
-          job.salarylpa >= filters.minSalary &&
+          job.experienceYears >= filters.experience &&
+          job.salaryLPA >= filters.minSalary &&
           (searchTerm === "" ||
             job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||

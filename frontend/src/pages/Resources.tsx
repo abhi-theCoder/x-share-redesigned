@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Download, Star, Calendar, User, FileText, Video } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import axios from "../api";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  Download,
+  Star,
+  Calendar,
+  User,
+  FileText,
+  Video,
+} from "lucide-react";
+import toast from "react-hot-toast";
 
-// Define the Resource interface for strong typing of the resource objects
+// Types
 interface Resource {
   id: number;
   title: string;
@@ -13,151 +23,195 @@ interface Resource {
   format: string;
   downloads: number;
   rating: number;
-  uploadedAt: string;
-  icon: React.ElementType;
+  total_ratings: number;
+  uploaded_at: string;
+  file_url?: string;
 }
 
-// Define the props interface for RatingStars
 interface RatingStarsProps {
   rating: number;
-  onRate: (rating: number) => void;
+  tempRating: number;
+  setTempRating: (val: number) => void;
 }
 
-// Star Rating Component for the popup
-const RatingStars: React.FC<RatingStarsProps> = ({ rating, onRate }) => {
-  const [hoveredRating, setHoveredRating] = useState(0);
-
+// --- ⭐ Reusable RatingStars Component ---
+const RatingStars: React.FC<RatingStarsProps> = ({
+  rating,
+  tempRating,
+  setTempRating,
+}) => {
+  const [hovered, setHovered] = useState(0);
   return (
-    <div className="flex space-x-1">
-      {[1, 2, 3, 4, 5].map(starValue => (
+    <div className="flex justify-center space-x-1">
+      {[1, 2, 3, 4, 5].map((star) => (
         <Star
-          key={starValue}
-          className={`w-6 h-6 cursor-pointer transition-colors duration-200 ${
-            (hoveredRating || rating) >= starValue ? 'text-yellow-500 fill-current' : 'text-gray-300'
+          key={star}
+          className={`w-8 h-8 cursor-pointer transition-all duration-200 ${
+            star <= (hovered || tempRating || rating)
+              ? "text-yellow-400 fill-current"
+              : "text-gray-300"
           }`}
-          onMouseEnter={() => setHoveredRating(starValue)}
-          onMouseLeave={() => setHoveredRating(0)}
-          onClick={() => onRate(starValue)}
+          onMouseEnter={() => setHovered(star)}
+          onMouseLeave={() => setHovered(0)}
+          onClick={() => setTempRating(star)}
         />
       ))}
     </div>
   );
 };
 
-// Main Resources Component
 const Resources: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState('All');
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedType, setSelectedType] = useState("All");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  const [selectedResource, setSelectedResource] = useState<Resource | null>(
+    null
+  );
+  const [tempRating, setTempRating] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
-  const resourceTypes = ['All', 'Interview Questions', 'Coding Challenges', 'Resume Templates', 'Video Tutorials'];
+  const resourceTypes = [
+    "All",
+    "Interview Questions",
+    "Coding Challenges",
+    "Resume Templates",
+    "Video Tutorials",
+  ];
 
-  const [resources, setResources] = useState<Resource[]>([
-    {
-      id: 1,
-      title: 'System Design Interview Questions - FAANG Companies',
-      description: 'Comprehensive collection of system design questions asked in Google, Amazon, Facebook, Apple, and Netflix interviews.',
-      author: 'Ravi Gupta',
-      company: 'Ex-Google',
-      type: 'Interview Questions',
-      format: 'PDF',
-      downloads: 1240,
-      rating: 4.8,
-      uploadedAt: '1 week ago',
-      icon: FileText,
-    },
-    {
-      id: 2,
-      title: 'DSA Problem Set - Top 100 Coding Questions',
-      description: 'Curated list of the most important data structures and algorithms problems for technical interviews.',
-      author: 'Pooja Sharma',
-      company: 'Ex-Microsoft',
-      type: 'Coding Challenges',
-      format: 'Document',
-      downloads: 890,
-      rating: 4.9,
-      uploadedAt: '3 days ago',
-      icon: FileText,
-    },
-    {
-      id: 3,
-      title: 'Software Engineer Resume Template 2025',
-      description: 'Professional ATS-friendly resume template specifically designed for software engineering roles.',
-      author: 'Arjun Patel',
-      company: 'Ex-Amazon',
-      type: 'Resume Templates',
-      format: 'DOCX',
-      downloads: 2100,
-      rating: 4.7,
-      uploadedAt: '5 days ago',
-      icon: FileText,
-    },
-    {
-      id: 4,
-      title: 'Mock Interview Series - Backend Engineering',
-      description: 'Complete video series covering backend engineering interview scenarios with real-time feedback.',
-      author: 'Deepak Kumar',
-      company: 'Ex-Uber',
-      type: 'Video Tutorials',
-      format: 'Video',
-      downloads: 650,
-      rating: 4.9,
-      uploadedAt: '1 week ago',
-      icon: Video,
-    },
-  ]);
+  // --- Fetch all resources ---
+  const fetchResources = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("/api/resources", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setResources(res.data.resources || []);
+    } catch (err) {
+      console.error("Fetch Error:", err);
+      toast.error("Failed to load resources.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredResources = resources.filter(resource => {
-    const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          resource.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === 'All' || resource.type === selectedType;
+  useEffect(() => {
+    fetchResources();
+  }, []);
+
+  const filteredResources = resources.filter((r) => {
+    const matchesSearch =
+      r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = selectedType === "All" || r.type === selectedType;
     return matchesSearch && matchesType;
   });
-  
+
   const openRatingModal = (resource: Resource) => {
     setSelectedResource(resource);
+    setTempRating(resource.rating || 0);
     setIsModalOpen(true);
   };
-  
-  const closeRatingModal = (): void => {
+
+  const closeRatingModal = () => {
     setIsModalOpen(false);
     setSelectedResource(null);
+    setTempRating(0);
   };
 
-  const handleRate = (newRating: number): void => {
-    if (selectedResource) {
-      const updatedResources = resources.map(resource => 
-        resource.id === selectedResource.id ? { ...resource, rating: newRating } : resource
-      );
-      setResources(updatedResources);
+  // --- ⭐ Submit rating ---
+  const handleSubmitRating = async () => {
+    if (!selectedResource || !tempRating) {
+      toast.error("Please select a rating before submitting.");
+      return;
     }
-    closeRatingModal();
-  };
-  
-  // --- DEFINITIVE COLOR THEME DEFINITIONS (Bright Cyan/Blue) ---
-  const primaryAccentColor = '#45B5DA'; // Primary Accent (User requested #34A19D -> #45B5DA, applying to primary)
-  const secondaryAccentColor = '#0F9BC0'; // Darker Cyan for contrast (Adjusted from old Teal)
-  const mainBackgroundColor = '#EEF2F7'; // Main Background (User requested #E6FFFA -> #EEF2F7)
-  const cardBackgroundColor = '#FFFFFF'; // Pure white for cards
-  const lightElementColor = '#D4EEF9'; // Very light cyan for secondary backgrounds (Adjusted from old light Teal)
 
-  // The custom focus style now uses the primary accent color.
-  const customFocusStyle = { 
-      '--tw-ring-color': primaryAccentColor,
-  } as React.CSSProperties;
-  
-  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setSelectedType(e.target.value);
+    const token = localStorage.getItem("token");
+    setSubmitting(true);
+
+    try {
+      const res = await axios.put(
+        `/api/resources/${selectedResource.id}/rate`,
+        { rating: tempRating },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const updated = res.data.resource;
+      setResources((prev) =>
+        prev.map((r) => (r.id === selectedResource.id ? updated : r))
+      );
+
+      toast.success("Thanks for rating!");
+      closeRatingModal();
+    } catch (err) {
+      console.error("Rating Error:", err);
+      toast.error("Failed to submit rating.");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // --- 📦 Handle download ---
+  const handleDownload = async (resource: Resource) => {
+    const token = localStorage.getItem("token");
+    try {
+      // Update download count in backend
+      await axios.put(
+        `/api/resources/${resource.id}/download`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Update count locally
+      setResources((prev) =>
+        prev.map((r) =>
+          r.id === resource.id
+            ? { ...r, downloads: (r.downloads || 0) + 1 }
+            : r
+        )
+      );
+
+      // Fetch file as Blob to force download
+      if (resource.file_url) {
+        const response = await fetch(resource.file_url);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = resource.title || "resource"; // default filename
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Release memory
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error("Download Error:", err);
+      toast.error("Failed to download resource.");
+    }
+  };
+
+  // --- COLORS ---
+  const primaryAccentColor = "#45B5DA";
+  const secondaryAccentColor = "#0F9BC0";
+  const mainBackgroundColor = "#EEF2F7";
+  const cardBackgroundColor = "#FFFFFF";
+  const lightElementColor = "#D4EEF9";
+  const customFocusStyle = { "--tw-ring-color": primaryAccentColor } as React.CSSProperties;
+
+  if (loading)
+    return <div className="text-center mt-20">Loading resources...</div>;
 
   return (
-    // Applying new background color #EEF2F7
-    <div 
-      className="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8" 
+    <div
+      className="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8"
       style={{ backgroundColor: mainBackgroundColor }}
-    > 
+    >
       <div className="max-w-7xl mx-auto">
+        {/* --- HEADER --- */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -165,198 +219,153 @@ const Resources: React.FC = () => {
           className="text-center mb-12"
         >
           <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6">
-            Interview 
-            <span 
-              // Header text gradient using the new blue/cyan accents
-              style={{ 
+            Interview{" "}
+            <span
+              style={{
                 background: `linear-gradient(to right, ${primaryAccentColor}, ${secondaryAccentColor})`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
-                Resources
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              Resources
             </span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Access curated resources shared by industry experts to ace your interviews and advance your career.
+            Access curated resources shared by industry experts to ace your interviews.
           </p>
         </motion.div>
 
         <div className="grid lg:grid-cols-4 gap-8">
-          {/* Filters Sidebar */}
+          {/* --- FILTER SIDEBAR --- */}
           <div className="lg:col-span-1">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              // Sidebar card background is pure white
-              className="rounded-2xl shadow-lg p-6 border border-gray-100" style={{ backgroundColor: cardBackgroundColor }}
+              className="rounded-2xl shadow-lg p-6 border border-gray-100"
+              style={{ backgroundColor: cardBackgroundColor }}
             >
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Filter Resources</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Resource Type</label>
-                  <select
-                    value={selectedType}
-                    onChange={handleTypeChange}
-                    // Uses customFocusStyle for the ring color
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75 transition-all duration-200"
-                    style={customFocusStyle} 
-                  >
-                    {resourceTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Upload Resource CTA */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              // Sidebar CTA background uses the new light cyan color
-              className="rounded-2xl p-6 mt-6 border border-gray-200" style={{ backgroundColor: lightElementColor, borderColor: primaryAccentColor }}
-            >
-              <h3 className="text-lg font-bold text-gray-800 mb-3">Share Your Resources</h3>
-              <p className="text-gray-700 text-sm mb-4">
-                Help others by sharing your interview materials and earn points!
-              </p>
-              {/* Button gradient uses the strong new accents */}
-              <button 
-                className="w-full px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-xl"
-                style={{
-                  background: `linear-gradient(to right, ${primaryAccentColor}, ${secondaryAccentColor})`,
-                  transition: 'background-color 0.2s',
-                }}
+              <h3 className="text-lg font-bold text-gray-800 mb-4">
+                Filter Resources
+              </h3>
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 transition-all duration-200"
+                style={customFocusStyle}
               >
-                Upload Resource
-              </button>
+                {resourceTypes.map((type) => (
+                  <option key={type}>{type}</option>
+                ))}
+              </select>
             </motion.div>
           </div>
 
-          {/* Main Content */}
+          {/* --- MAIN CONTENT --- */}
           <div className="lg:col-span-3">
-            {/* Search Bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mb-6"
-            >
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search resources..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  // Uses customFocusStyle for the ring color
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-75 transition-all duration-200 shadow-sm"
-                  style={customFocusStyle}
-                />
-              </div>
-            </motion.div>
+            {/* 🔍 Search Bar */}
+            <div className="mb-6 relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search resources..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 shadow-sm"
+                style={customFocusStyle}
+              />
+            </div>
 
-            {/* Resources Grid */}
+            {/* 🧾 Resource Cards */}
             <div className="space-y-6">
               {filteredResources.map((resource, index) => {
-                const IconComponent = resource.icon;
+                const IconComponent =
+                  resource.type === "Video Tutorials" ? Video : FileText;
+
                 return (
                   <motion.div
                     key={resource.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: index * 0.1 }}
-                    // Card background is pure white
-                    className="rounded-2xl shadow-lg p-6 border border-gray-100 transition-all duration-300 group hover:shadow-xl" 
+                    className="rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all"
                     style={{ backgroundColor: cardBackgroundColor }}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-4">
-                        {/* Icon background gradient uses the new blue/cyan accents */}
-                        <div 
-                          className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shadow-lg"
-                          style={{ background: `linear-gradient(to bottom right, ${primaryAccentColor}, ${secondaryAccentColor})` }}
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center"
+                          style={{
+                            background: `linear-gradient(to bottom right, ${primaryAccentColor}, ${secondaryAccentColor})`,
+                          }}
                         >
                           <IconComponent className="w-6 h-6 text-white" />
                         </div>
-                        <div>
-                          {/* Type tag text and background uses the new light cyan colors */}
-                          <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: lightElementColor, color: secondaryAccentColor }}>
-                            {resource.type}
-                          </span>
-                        </div>
+                        <span
+                          className="px-3 py-1 rounded-full text-xs font-medium"
+                          style={{
+                            backgroundColor: lightElementColor,
+                            color: secondaryAccentColor,
+                          }}
+                        >
+                          {resource.type}
+                        </span>
                       </div>
-                      <div className="flex items-center space-x-2 text-yellow-500">
+                      <div className="flex items-center text-yellow-500">
                         <Star className="w-4 h-4 fill-current" />
-                        <span className="text-sm font-medium text-gray-600">{resource.rating}</span>
+                        <span className="ml-1 text-sm font-medium text-gray-600">
+                          {resource.rating?.toFixed(1) || "0.0"}
+                        </span>
                       </div>
                     </div>
 
-                    <h3 
-                      className="text-xl font-bold text-gray-800 mb-3 transition-colors duration-200" 
-                      // Custom hover effect for title color using the primary accent
-                      onMouseEnter={(e: React.MouseEvent<HTMLHeadingElement>) => e.currentTarget.style.color = primaryAccentColor} 
-                      onMouseLeave={(e: React.MouseEvent<HTMLHeadingElement>) => e.currentTarget.style.color = '#1f2937'}
-                    >
+                    <h3 className="text-xl font-bold text-gray-800 mb-3">
                       {resource.title}
                     </h3>
-                    <p className="text-gray-600 mb-4 leading-relaxed">
-                      {resource.description}
-                    </p>
+                    <p className="text-gray-600 mb-4">{resource.description}</p>
 
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        {/* Author icon background gradient uses the new blue/cyan accents */}
-                        <div 
-                          className="w-8 h-8 rounded-full flex items-center justify-center shadow-md"
-                          style={{ background: `linear-gradient(to bottom right, ${primaryAccentColor}, ${secondaryAccentColor})` }}
-                        >
-                          <User className="w-4 h-4 text-white" />
-                        </div>
+                        <User className="text-gray-500 w-5 h-5" />
                         <div>
-                          <p className="font-medium text-gray-800">{resource.author}</p>
-                          <p className="text-sm text-gray-500">{resource.company}</p>
+                          <p className="font-medium text-gray-800">
+                            {resource.author}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {resource.company}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <Calendar className="w-4 h-4 mr-1" />
-                        <span>{resource.uploadedAt}</span>
+                        {new Date(resource.uploaded_at).toLocaleDateString()}
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex justify-between items-center pt-4 border-t mt-4">
                       <div className="flex items-center space-x-6 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Download className="w-4 h-4" />
                           <span>{resource.downloads}</span>
                         </div>
-                        {/* Rate button color uses the primary accent color */}
-                        <button 
+                        <button
                           onClick={() => openRatingModal(resource)}
-                          className="flex items-center space-x-1 transition-colors duration-200 font-medium"
-                          style={{ color: primaryAccentColor }} onMouseEnter={e => e.currentTarget.style.color = secondaryAccentColor} onMouseLeave={e => e.currentTarget.style.color = primaryAccentColor}
+                          style={{ color: primaryAccentColor }}
+                          className="flex items-center space-x-1 font-medium"
                         >
                           <Star className="w-4 h-4" />
-                          <span>Rate this resource</span>
+                          <span>Rate</span>
                         </button>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        {/* Format tag background uses light cyan */}
-                        <span className="px-2 py-1 text-gray-700 rounded text-xs font-medium" style={{ backgroundColor: lightElementColor }}>
-                          {resource.format}
-                        </span>
-                        {/* Download button gradient uses the strong new accents */}
-                        <button 
-                          className="px-4 py-2 text-white rounded-lg font-medium transform hover:scale-105 transition-all duration-200 shadow-lg"
-                          style={{
-                            background: `linear-gradient(to right, ${primaryAccentColor}, ${secondaryAccentColor})`,
-                          }}
-                        >
-                          Download
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleDownload(resource)}
+                        className="px-4 py-2 text-white rounded-lg font-medium shadow-md hover:scale-105 transition-all"
+                        style={{
+                          background: `linear-gradient(to right, ${primaryAccentColor}, ${secondaryAccentColor})`,
+                        }}
+                      >
+                        Download
+                      </button>
                     </div>
                   </motion.div>
                 );
@@ -366,38 +375,48 @@ const Resources: React.FC = () => {
         </div>
       </div>
 
-      {/* Rating Pop-up Modal */}
-      <AnimatePresence> 
-        {isModalOpen && (
+      {/* ⭐ Rating Modal */}
+      <AnimatePresence>
+        {isModalOpen && selectedResource && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-            onClick={closeRatingModal}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 50, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.9, y: 50, opacity: 0 }}
-              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full relative"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white p-6 rounded-2xl shadow-lg w-[350px] relative"
             >
-              <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Rate this Resource</h2>
-              <p className="text-center text-gray-600 mb-6">
-                {selectedResource?.title}
+              <h2 className="text-xl font-bold text-center mb-2 text-gray-800">
+                Rate this Resource
+              </h2>
+              <p className="text-gray-600 text-center mb-4">
+                {selectedResource.title}
               </p>
-              <div className="flex justify-center mb-6">
-                <RatingStars rating={selectedResource?.rating || 0} onRate={handleRate} />
-              </div>
+              <RatingStars
+                rating={selectedResource.rating || 0}
+                tempRating={tempRating}
+                setTempRating={setTempRating}
+              />
+              <button
+                onClick={handleSubmitRating}
+                disabled={submitting}
+                className={`w-full mt-6 py-2 rounded-lg text-white font-medium transition ${
+                  submitting
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {submitting ? "Submitting..." : "Submit Rating"}
+              </button>
               <button
                 onClick={closeRatingModal}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute top-3 right-4 text-gray-500 hover:text-gray-700 text-lg"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                ×
               </button>
             </motion.div>
           </motion.div>

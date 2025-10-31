@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "../../api";
 import { Briefcase, X } from "lucide-react";
-import { JobListing } from "./PostJobForm";
+import { JobListing } from "./JobUpload";
 
 interface UpdateJobFormProps {
   open: boolean;

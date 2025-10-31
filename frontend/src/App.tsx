@@ -14,15 +14,16 @@ import ShareExperiencePage from './pages/Share-experience';
 import ExperienceDetail from './pages/ExperienceDetail';
 import Rewards from './pages/rewards';
 import ResumeBuilder from './pages/resume-builder';
-import Admin from './pages/admin';
+import Admin from './pages/admin/ViewOrUpdateExperiences';
 import JobPortal from './pages/JobPortal';
 import PrivateRoute from './components/privateRoute';
 import TemplateBasic from './templatess/TemplateBasic';
 import TemplateModern from './templatess/TemplateModern';
-import PostJobForm from './pages/admin/postJobForm';
+import PostJobForm from './pages/admin/JobUpload';
 import ResourceUpload from './pages/admin/resourceUpload';
-import ViewJobs from './pages/admin/ViewJobs';
+import ViewJobs from './pages/admin/ManageJobs';
 import UpdateJobForm from './pages/admin/UpdateJobForm';
+import AdminLayout from './components/AdminLayout';
 
 function App() {
   const dummyData = {
@@ -80,7 +81,7 @@ function App() {
               <Route path="/rewards" element={<Rewards/>} />
               <Route path="/resume-builder" element={<ResumeBuilder/>} />
               <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin" element={<AdminLayout />} />
               <Route path="/admin/view-jobs" element={<ViewJobs />} />
               <Route path="/admin/update-job/:id" element={<UpdateJobForm open={true} job={null} onClose={() => {}} onUpdate={() => {}} />} />
               <Route path="/admin/post-jobs" element={<PostJobForm open={true} onClose={() => {}} onAddJob={() => {}} />} />
