@@ -5,10 +5,10 @@ import { format, subYears, eachDayOfInterval, getWeek, getMonth, isSameDay, star
 
 const getSquareColor = (count: number) => {
   if (count === 0) return 'bg-gray-200';
-  if (count < 5) return 'bg-green-100';
-  if (count < 10) return 'bg-green-300';
-  if (count < 15) return 'bg-green-500';
-  return 'bg-green-700';
+  if (count < 5) return 'bg-blue-100';
+  if (count < 10) return 'bg-blue-300';
+  if (count < 15) return 'bg-blue-500';
+  return 'bg-blue-700';
 };
 
 const ActivityHeatmap = () => {
@@ -71,7 +71,7 @@ const ActivityHeatmap = () => {
   });
 
   return (
-    <div className="p-4 bg-white rounded-2xl shadow-lg border border-gray-100 font-sans">
+    <div className="p-4 bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-white/20 font-sans">
       <h3 className="text-xl font-bold text-gray-800 mb-4">Activity Heatmap</h3>
       <div className="flex flex-col">
         {/* Month labels */}
@@ -115,7 +115,7 @@ const ActivityHeatmap = () => {
                   return (
                     <div
                       key={dateStr}
-                      className={`w-3 h-3 rounded-sm ${getSquareColor(count)} ${isToday ? 'border border-gray-900' : ''}`}
+                      className={`w-3 h-3 rounded-sm ${getSquareColor(count)} ${isToday ? 'border border-blue-900' : ''}`}
                       data-tooltip-id="heatmap-tooltip"
                       data-tooltip-content={`${count} activities on ${format(day, 'MMM d, yyyy')}`}
                     />
@@ -132,10 +132,10 @@ const ActivityHeatmap = () => {
         <span>Less</span>
         <div className="flex space-x-1">
           <div className="w-3 h-3 rounded-sm bg-gray-200"></div>
-          <div className="w-3 h-3 rounded-sm bg-green-100"></div>
-          <div className="w-3 h-3 rounded-sm bg-green-300"></div>
-          <div className="w-3 h-3 rounded-sm bg-green-500"></div>
-          <div className="w-3 h-3 rounded-sm bg-green-700"></div>
+          <div className="w-3 h-3 rounded-sm bg-blue-100"></div>
+          <div className="w-3 h-3 rounded-sm bg-blue-300"></div>
+          <div className="w-3 h-3 rounded-sm bg-blue-500"></div>
+          <div className="w-3 h-3 rounded-sm bg-blue-700"></div>
         </div>
         <span>More</span>
       </div>
