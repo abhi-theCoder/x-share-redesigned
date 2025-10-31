@@ -21,6 +21,8 @@ import TemplateBasic from './templatess/TemplateBasic';
 import TemplateModern from './templatess/TemplateModern';
 import PostJobForm from './pages/admin/postJobForm';
 import ResourceUpload from './pages/admin/resourceUpload';
+import ViewJobs from './pages/admin/ViewJobs';
+import UpdateJobForm from './pages/admin/UpdateJobForm';
 
 function App() {
   const dummyData = {
@@ -79,7 +81,9 @@ function App() {
               <Route path="/resume-builder" element={<ResumeBuilder/>} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/admin" element={<Admin />} />
-              <Route path="/admin/post-job" element={<PostJobForm open={true} onClose={() => {}} onAddJob={() => {}} />} />
+              <Route path="/admin/view-jobs" element={<ViewJobs />} />
+              <Route path="/admin/update-job/:id" element={<UpdateJobForm open={true} job={null} onClose={() => {}} onUpdate={() => {}} />} />
+              <Route path="/admin/post-jobs" element={<PostJobForm open={true} onClose={() => {}} onAddJob={() => {}} />} />
               <Route path="/admin/resource-upload" element={<ResourceUpload open={true} onClose={() => {}} onAddResource={() => {}} />} />
             </Route>
 

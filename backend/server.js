@@ -10,6 +10,8 @@ const qnaRoutes = require('./routes/qnaRoutes.js');
 const leaderboardRoutes = require('./routes/leaderboardRoutes.js');
 const verifyToken = require('./controllers/verifyLoginToken.js');
 const adminExperienceRoutes = require('./routes/admin/adminExperienceRoutes.js');
+const adminJobRoutes = require('./routes/admin/adminJobRoutes.js');
+const jobRoutes = require('./routes/jobs.js');
 // Load environment variables from .env file
 dotenv.config();
 
@@ -28,6 +30,8 @@ app.use('/api/activity', activityRoutes);
 app.use('/api/qna', qnaRoutes);
 app.use('/api/verifyToken', verifyToken);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/admin/jobs', adminJobRoutes);
+app.use('/api/jobs', jobRoutes);
 app.use('/api/admin', adminExperienceRoutes);
 // A simple welcome route to confirm the server is running
 app.get('/', (req, res) => {
