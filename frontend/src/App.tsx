@@ -68,7 +68,6 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/experiences" element={<Experiences />} />
             <Route path="/qa" element={<QAndA />} />
-            <Route path="/resources" element={<Resources />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/jobs" element={<JobPortal />} />
@@ -81,6 +80,7 @@ function App() {
               <Route path="/rewards" element={<Rewards/>} />
               <Route path="/resume-builder" element={<ResumeBuilder/>} />
               <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/resources" element={<Resources />} />
               <Route path="/admin" element={<AdminLayout />} />
               <Route path="/admin/view-jobs" element={<ViewJobs />} />
               <Route path="/admin/update-job/:id" element={<UpdateJobForm open={true} job={null} onClose={() => {}} onUpdate={() => {}} />} />
