@@ -12,11 +12,12 @@ exports.createJob = async (req, res) => {
       experienceYears,
       salaryLPA,
       rating,
-      description
+      description,
+      url,
     } = req.body;
 
     // Basic validation
-    if (!title || !company || !location || !type || !mode || !description) {
+    if (!title || !company || !location || !type || !mode || !description || !url) {
       return res.status(400).json({ message: 'All required fields must be filled.' });
     }
 
@@ -33,6 +34,7 @@ exports.createJob = async (req, res) => {
           salaryLPA,
           rating,
           description,
+          url,
           created_at: new Date()
         }
       ])

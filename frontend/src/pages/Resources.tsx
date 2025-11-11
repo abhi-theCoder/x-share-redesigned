@@ -11,6 +11,7 @@ import {
   Video,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import Loader from "../components/Loader";
 
 // Types
 interface Resource {
@@ -203,7 +204,7 @@ const Resources: React.FC = () => {
   const customFocusStyle = { "--tw-ring-color": primaryAccentColor } as React.CSSProperties;
 
   if (loading)
-    return <div className="text-center mt-20">Loading resources...</div>;
+    return <div className="text-center mt-20"><Loader/></div>;
 
   return (
     <div

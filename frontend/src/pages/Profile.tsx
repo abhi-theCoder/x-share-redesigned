@@ -10,6 +10,7 @@ import LoginRequired from '../components/LoginRequired';
 import verifyToken from '../components/verifyLogin';
 import ActivityHeatmap from '../components/ActivityHeatmap';
 import axios from '../api';
+import Loader from '../components/Loader';
 
 // ✅ Icon map
 const iconMap: { [key: string]: React.ComponentType<any> } = {
@@ -438,6 +439,7 @@ const Profile = () => {
   const [error, setError] = useState<string | null>(null);
   const [bookmarks, setBookmarks] = useState<Experience[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [id, setId] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -452,6 +454,18 @@ const Profile = () => {
   const engagementData = {
     contributions: 47,
     likesReceived: 128
+  };
+
+  //handle share
+  const handleShare = () => {
+    if (!id) return;
+    const userId = id;
+    const profileUrl = `${window.location.origin}/profile/${userId}`;
+    navigator.clipboard.writeText(profileUrl).then(() => {
+      alert('Profile URL copied to clipboard!');
+    }).catch((err) => {
+      console.error('Failed to copy profile URL: ', err);
+    });
   };
 
   useEffect(() => {
@@ -481,6 +495,8 @@ const Profile = () => {
         const profileRes = await axios.get('api/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
+
+        setId(profileRes.data.id);
         const userId = profileRes.data.id;
 
         const totalPoints = profileRes.data.stats.find((stat: any) => stat.label === 'Total Points')?.value || 0;
@@ -583,12 +599,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin shadow-lg"></div>
-          <p className="text-blue-600 font-medium">Loading your profile...</p>
-        </div>
-      </div>
+      <Loader/>
     );
   }
 
@@ -650,7 +661,8 @@ const Profile = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-700 rounded-xl font-medium hover:bg-white transition-all duration-200 shadow-lg border border-white/30">
+              <button onClick={handleShare}
+              className="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm text-gray-700 rounded-xl font-medium hover:bg-white transition-all duration-200 shadow-lg border border-white/30">
                 <Share2 className="w-4 h-4" />
                 <span>Share</span>
               </button>
@@ -1022,7 +1034,15 @@ const Profile = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <ActivityHeatmap />
+              <ActivityHeatmap
+              data={profileData?.recentActivity?.map((a) => ({
+                date: a.date || a.created_at?.split("T")[0],
+                count: a.num_of_activities || 1,
+                points: a.points || 0,
+                title: a.title,
+              }))}
+            />
+
             </motion.div>
           </div>
         </div>

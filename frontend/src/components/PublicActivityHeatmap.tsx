@@ -10,7 +10,12 @@ import {
   isSameDay,
   startOfWeek
 } from 'date-fns';
-import { Clock2 } from 'lucide-react'; // Added Clock2 icon for better header look
+import { Clock2 } from 'lucide-react'; 
+
+// Prop interface for the component
+interface ActivityHeatmapProps {
+  userId: string; // The ID of the user whose activity to display
+}
 
 const getSquareColor = (count: number) => {
   if (count === 0) return 'bg-gray-200';
@@ -20,37 +25,40 @@ const getSquareColor = (count: number) => {
   return 'bg-green-700';
 };
 
-const ActivityHeatmap = () => {
+// Renamed component for clarity as requested previously
+const PublicActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ userId }) => {
   const [activityData, setActivityData] = useState<any[]>([]);
-  const token = localStorage.getItem('token');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!userId) {
+        setLoading(false);
+        return;
+    }
+    
     const fetchActivity = async () => {
       setLoading(true);
       try {
-        // This component is currently fetching *authenticated* user data
-        const res = await axios.get(`/api/activity`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log('Fetched activity:', res.data);
+        // NOTE: Keeping your API endpoint as provided: /api/activity/public/:userId
+        const res = await axios.get(`/api/activity/public/${userId}`);
+        
+        console.log(`Fetched activity for user ${userId}:`, res.data);
         setActivityData(Array.isArray(res.data) ? res.data : []);
       } catch (error) {
-        console.error('Failed to load activity data', error);
+        console.error(`Failed to load activity data for user ${userId}`, error);
         setActivityData([]);
       } finally {
         setLoading(false);
       }
     };
     fetchActivity();
-  }, [token]); // Added token dependency
+  }, [userId]); 
 
   const today = new Date();
   const oneYearAgo = subYears(today, 1);
 
-  // ✅ Normalize data for quick lookup
+  // Normalize data for quick lookup
   const normalizedData = activityData.reduce((acc, item) => {
-    // Ensure item.date is formatted correctly
     const dateStr = item.date ? format(new Date(item.date), 'yyyy-MM-dd') : null;
     if (dateStr) {
       acc[dateStr] = item.num_of_activities;
@@ -58,18 +66,18 @@ const ActivityHeatmap = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  // ✅ Dynamically include latest activity date
+  // Dynamically include latest activity date
   const latestActivityDate = activityData.length
     ? new Date(activityData[activityData.length - 1].date)
     : today;
 
-  // startOfWeek with weekStartsOn: 0 (Sunday) is crucial for layout alignment
+  // startOfWeek with weekStartsOn: 0 (Sunday) is used
   const allDays = eachDayOfInterval({
     start: startOfWeek(oneYearAgo, { weekStartsOn: 0 }),
     end: latestActivityDate > today ? latestActivityDate : today,
   });
 
-  // ✅ Build weeks
+  // Build weeks
   const weeks: Date[][] = [];
   let currentWeek: Date[] = [];
   let lastWeekIdentifier = `${getWeek(allDays[0], { weekStartsOn: 0 })}-${allDays[0].getFullYear()}`;
@@ -85,7 +93,7 @@ const ActivityHeatmap = () => {
   });
   weeks.push(currentWeek);
 
-  // ✅ Month labels
+  // Month labels
   const monthLabels: { name: string; index: number }[] = [];
   let lastMonth = -1;
   weeks.forEach((week, weekIndex) => {
@@ -96,42 +104,34 @@ const ActivityHeatmap = () => {
     }
   });
 
-  // Helper function to render a day label span for vertical alignment
-  const DayLabelSpan = ({ text, row, visible }: { text: string; row: number; visible: boolean }) => (
-    <span
-      className={`h-3.5 text-xs text-gray-500 font-medium ${
-        visible ? 'opacity-100' : 'opacity-0'
-      }`}
-      style={{ 
-        // Rows are 0-indexed (Sunday = 0, Monday = 1, etc.).
-        // Grid CSS would be better, but using Tailwind classes for basic layout:
-        lineHeight: '1.25rem' // Adjust this if needed for better alignment
-      }}
-    >
-      {visible ? text : '...'}
+  // Helper component for aligning day labels to grid rows
+  const DayLabel = ({ text, visible }: { text: string; visible: boolean }) => (
+    // w-8 is used here to match the grid cell width (w-3) + gap (gap-1) + mr-2 (for container)
+    // The h-3.5 and my-0.5 help align the text to the grid row height.
+    <span className={`h-3.5 text-xs text-gray-500 my-0.5 ${visible ? 'opacity-100' : 'opacity-0'}`}>
+        {visible ? text : '\u00A0'} {/* Use non-breaking space for hidden labels */}
     </span>
   );
 
-
   return (
-    // ✅ MODIFICATION 1: Apply glassmorphism styling
+    // Card styling to match the profile screenshot
     <div className="p-6 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/30 font-sans">
-      
-      {/* ✅ MODIFICATION 2: Updated Header */}
       <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-        <Clock2 className="w-6 h-6 mr-2 text-indigo-500" />
+        {/* Removed Clock2 icon to match the plain text header in the screenshot */}
         Activity Heatmap
       </h3>
 
       {loading ? (
         <div className="text-center py-8 text-gray-500">Loading activity data...</div>
+      ) : activityData.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">No activity recorded for this user in the last one year.</div>
       ) : (
         <div className="flex flex-col">
           {/* Month labels */}
           <div className="flex pl-8 ml-2 text-xs text-gray-500 mb-2 whitespace-nowrap">
             {monthLabels.map((month, index) => {
               const prevMonth = index > 0 ? monthLabels[index - 1] : { index: -1 };
-              const weeksToSkip = month.index - (prevMonth.index + 1);
+              const weeksToSkip = month.index - (prevMonth.index + 1); 
               return (
                 <React.Fragment key={month.name + month.index}>
                   {Array.from({ length: weeksToSkip }).map((_, i) => (
@@ -145,17 +145,15 @@ const ActivityHeatmap = () => {
 
           {/* Heatmap Grid */}
           <div className="flex overflow-x-auto scrollbar-hide mt-1">
-            
-            {/* ✅ MODIFICATION 3: Day Labels (Mon, Wed, Fri) */}
+            {/* MODIFICATION: Day of week labels (Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6) */}
             <div className="flex flex-col text-xs text-gray-500 mr-2 whitespace-nowrap">
-              {/* Day rows (0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat) */}
-              <DayLabelSpan text="" row={0} visible={false} /> {/* Sun (hidden) */}
-              <DayLabelSpan text="Mon" row={1} visible={true} />
-              <DayLabelSpan text="" row={2} visible={false} /> {/* Tue (hidden) */}
-              <DayLabelSpan text="Wed" row={3} visible={true} />
-              <DayLabelSpan text="" row={4} visible={false} /> {/* Thu (hidden) */}
-              <DayLabelSpan text="Fri" row={5} visible={true} />
-              <DayLabelSpan text="" row={6} visible={false} /> {/* Sat (hidden) */}
+              <DayLabel text="Sun" visible={false} /> {/* Row 0: Hidden */}
+              <DayLabel text="Mon" visible={true} />  {/* Row 1: Visible */}
+              <DayLabel text="Tue" visible={false} /> {/* Row 2: Hidden */}
+              <DayLabel text="Wed" visible={true} />  {/* Row 3: Visible */}
+              <DayLabel text="Thu" visible={false} /> {/* Row 4: Hidden */}
+              <DayLabel text="Fri" visible={true} />  {/* Row 5: Visible */}
+              <DayLabel text="Sat" visible={false} /> {/* Row 6: Hidden */}
             </div>
 
             <div className="flex gap-1">
@@ -192,8 +190,8 @@ const ActivityHeatmap = () => {
         </div>
       )}
 
-      {/* Legend */}
-      <div className="flex justify-between items-center mt-4 text-xs text-gray-500 pt-4 border-t border-white/30">
+      {/* Legend - Moved up slightly and removed border to match screenshot */}
+      <div className="flex justify-between items-center mt-4 text-xs text-gray-500">
         <span>Less</span>
         <div className="flex space-x-1">
           <div className="w-3 h-3 rounded-sm bg-gray-200"></div>
@@ -213,4 +211,4 @@ const ActivityHeatmap = () => {
   );
 };
 
-export default ActivityHeatmap;
+export default PublicActivityHeatmap;

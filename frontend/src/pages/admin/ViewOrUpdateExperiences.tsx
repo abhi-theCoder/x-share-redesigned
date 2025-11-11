@@ -354,7 +354,7 @@ const ViewOrUpdateExperiences = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen text-lg text-slate-500">
-        <p>Loading Admin Dashboard...</p>
+        <p>Loading experiences...</p>
       </div>
     );
   }

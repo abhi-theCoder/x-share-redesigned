@@ -24,6 +24,9 @@ import ResourceUpload from './pages/admin/resourceUpload';
 import ViewJobs from './pages/admin/ManageJobs';
 import UpdateJobForm from './pages/admin/UpdateJobForm';
 import AdminLayout from './components/AdminLayout';
+import AdminRoute from './components/adminRoute';
+import Unauthorized from './pages/admin/Unauthorized';
+import PublicUserProfilePage from './pages/PublicUserProfilePage';
 
 function App() {
   const dummyData = {
@@ -81,6 +84,10 @@ function App() {
               <Route path="/resume-builder" element={<ResumeBuilder/>} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/resources" element={<Resources />} />
+            </Route>
+
+            {/* Admin routes */}
+            <Route element={<AdminRoute />}>
               <Route path="/admin" element={<AdminLayout />} />
               <Route path="/admin/view-jobs" element={<ViewJobs />} />
               <Route path="/admin/update-job/:id" element={<UpdateJobForm open={true} job={null} onClose={() => {}} onUpdate={() => {}} />} />
@@ -88,9 +95,12 @@ function App() {
               <Route path="/admin/resource-upload" element={<ResourceUpload open={true} onClose={() => {}} onAddResource={() => {}} />} />
             </Route>
 
+            {/* unauthorize */}
+            <Route path="/unauthorized" element={<Unauthorized />} />
 
              {/* Testing routes */}
             {/* ✅ Testing Template Route */}
+            <Route path='/profile/:userId' element={<PublicUserProfilePage />}></Route>
             <Route path="/template-basic" element={<TemplateBasic data={dummyData} sectionOrder={sectionOrder} allSections={allSections}/>}/>
             <Route path="/template-modern" element={<TemplateModern data={dummyData} sectionOrder={sectionOrder} allSections={allSections}/>}/>
           </Routes>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "../../api";
 import {
   Briefcase,
@@ -17,6 +18,7 @@ export interface JobListing {
   company: string;
   location: string;
   description: string;
+  url: string;
   type: "Full-time" | "Internship";
   mode: "On-site" | "Remote" | "Hybrid";
   experienceYears: number;
@@ -37,6 +39,7 @@ const JobUpload: React.FC = () => {
     experienceYears: 0,
     salaryLPA: 0,
     description: "",
+    url: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -46,6 +49,26 @@ const JobUpload: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
+
+    let url = formData.url.trim();
+
+    // ✅ Automatically prepend https:// if missing
+    if (!/^https?:\/\//i.test(url)) {
+      url = "https://" + url;
+    }
+
+    // ✅ Validate final URL
+    const urlPattern =
+      /^(https?:\/\/)([\w-]+\.)+[\w-]{2,}(\/[\w-._~:/?#[\]@!$&'()*+,;=]*)?$/i;
+
+    if (!urlPattern.test(url)) {
+      setLoading(false);
+      setMessage({
+        type: "error",
+        text: "❌ Please enter a valid job URL (e.g., https://company.com/careers/job-id)",
+      });
+      return;
+    }
 
     try {
       const token = localStorage.getItem("token");
@@ -62,6 +85,7 @@ const JobUpload: React.FC = () => {
           salaryLPA: formData.salaryLPA,
           rating: 4.5,
           description: formData.description,
+          url,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -77,6 +101,7 @@ const JobUpload: React.FC = () => {
           experienceYears: 0,
           salaryLPA: 0,
           description: "",
+          url: "",
         });
       }
     } catch (err: any) {
@@ -233,7 +258,20 @@ const JobUpload: React.FC = () => {
             placeholder="Describe the job responsibilities, requirements, and benefits..."
           />
         </div>
-
+        {/* Job URL */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <Link className="w-4 h-4 text-blue-600" /> Job URL *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.url}
+            onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none mt-1"
+            placeholder="e.g., https://company.com/careers/job-id"
+          />
+        </div>
         {/* Status message */}
         {message && (
           <p

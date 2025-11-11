@@ -71,4 +71,27 @@ const addActivity = async (req, res) => {
   }
 };
 
-module.exports = { getActivityData, addActivity };
+
+//Get Public Activity Data
+const getPublicActivityData = async (req, res) => {
+  try {
+    const {userId} = req.params;
+    const oneYearAgo = dayjs().subtract(1, 'year').format('YYYY-MM-DD');
+
+    const { data, error } = await supabase
+      .from('activities')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', oneYearAgo)
+      .order('date', { ascending: true });
+
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    console.error('Error fetching activity:', err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+
+module.exports = { getActivityData, addActivity, getPublicActivityData };

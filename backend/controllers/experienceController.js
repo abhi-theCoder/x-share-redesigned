@@ -26,23 +26,23 @@ async function shareExperience(req, res) {
     }
 
     // 2️⃣ Fetch user's total points
-    const { data: userData, error: fetchError } = await supabase
-      .from('users')
-      .select('points')
-      .eq('id', userId)
-      .single();
+    // const { data: userData, error: fetchError } = await supabase
+    //   .from('users')
+    //   .select('points')
+    //   .eq('id', userId)
+    //   .single();
 
-    if (fetchError) throw fetchError;
+    // if (fetchError) throw fetchError;
 
-    const newPoints = (userData.points || 0) + POINTS_PER_EXPERIENCE;
+    // const newPoints = (userData.points || 0) + POINTS_PER_EXPERIENCE;
 
-    // 3️⃣ Update user's total points
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ points: newPoints })
-      .eq('id', userId);
+    // // 3️⃣ Update user's total points
+    // const { error: updateError } = await supabase
+    //   .from('users')
+    //   .update({ points: newPoints })
+    //   .eq('id', userId);
 
-    if (updateError) throw updateError;
+    // if (updateError) throw updateError;
 
     // 4️⃣ Check if an activity already exists for today
     const today = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
@@ -90,8 +90,8 @@ async function shareExperience(req, res) {
     res.status(201).json({
       message: 'Experience shared successfully!',
       experience: newExperience[0],
-      pointsEarned: POINTS_PER_EXPERIENCE,
-      newTotalPoints: newPoints
+      // pointsEarned: POINTS_PER_EXPERIENCE,
+      // newTotalPoints: newPoints
     });
   } catch (error) {
     console.error('Error sharing experience:', error);
