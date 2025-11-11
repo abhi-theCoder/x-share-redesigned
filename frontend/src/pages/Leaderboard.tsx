@@ -5,6 +5,7 @@ import {
   Crown, Award, Medal, Star, Zap, TrendingUp,
   Shield, Target, Flame, Users
 } from 'lucide-react';
+import Loader from '../components/Loader';
 
 // --- Type Definitions (Unchanged) ---
 interface LevelInfo {
@@ -237,11 +238,7 @@ const Leaderboard: React.FC = () => {
   // --- End of renderRow
 
   if (loading) {
-    return (
-      <div className="min-h-screen pt-20 flex justify-center items-start bg-gray-50">
-        <p className="text-xl text-gray-500 mt-20">Loading Leaderboard data...</p>
-      </div>
-    );
+    return <Loader />;
   }
 
   return (

@@ -101,25 +101,60 @@ async function shareExperience(req, res) {
 
 async function getExperiences(req, res) {
   try {
-    // Select all fields from the 'experiences' table (*) and join with the 'users' table
-    // to get all of its fields (*) using the foreign key relationship.
-    const { data: experiences, error } = await supabase
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const search = req.query.search?.trim() || '';
+    const type = req.query.type?.trim() || '';
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    // Base query
+    let query = supabase
       .from('experiences')
-      .select('*, users(*)')
-      .eq('status', 'approved'); // Only fetch approved experiences
-      
-    if (error) {
-      throw error;
+      .select('*, users!inner(*)', { count: 'exact' }) // Use inner join if users(*) is required
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false });
+
+    // 🔍 Apply type/category filter (if provided)
+    if (type && type.toLowerCase() !== 'all') {
+      query = query.eq('type', type.toLowerCase());
     }
 
-    res.status(200).json(experiences);
+    // 🔍 Apply search filter across multiple columns
+    if (search) {
+      // NOTE: Supabase applies an implicit AND between `.eq()` and the `.or()` below.
+      // This is the correct way to combine type/status filters with multi-column search.
+      query = query.or(
+        `role.ilike.*${search}*,company.ilike.*${search}*,location.ilike.*${search}*,overall_experience.ilike.*${search}*,preparation_tips.ilike.*${search}*,work_culture.ilike.*${search}*`
+      );
+
+    }
+
+    // Apply pagination
+    query = query.range(from, to);
+
+    const { data: experiences, error, count } = await query;
+
+    if (error) throw error;
+
+    // ✅ Build meta data for frontend
+    const meta = {
+      total: count || 0,
+      page,
+      limit,
+      totalPages: Math.ceil((count || 0) / limit)
+    };
+
+    res.status(200).json({
+      data: experiences || [],
+      meta
+    });
   } catch (error) {
-    console.error('Error fetching experiences:', error);
-    res.status(500).json({ message: 'Internal server error.' });
+    console.error('❌ Error fetching experiences:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 }
 
-// controllers/experienceController.js
 // Existing getSingleExperience function (completed previously)
 async function getSingleExperience(req, res) {
   const { id } = req.params;
