@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import axios from '../api';
 import { motion } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
 import {
-  Crown, Award, Medal, Star, Zap, TrendingUp,
-  Shield, Target, Flame, Users
+  Crown, Medal, Star, TrendingUp,
+  Shield, Flame, Users
 } from 'lucide-react';
 import Loader from '../components/Loader';
 
@@ -51,17 +52,18 @@ function getAvatarStyle(userId: string) {
 // --- Spacer Row Type for "..." ---
 const SPACER_ROW_ID = 'spacer-row';
 interface SpacerRow {
-    id: typeof SPACER_ROW_ID;
-    isSpacer: true;
+  id: typeof SPACER_ROW_ID;
+  isSpacer: true;
 }
 
 const Leaderboard: React.FC = () => {
+  const { theme } = useTheme();
   const [topUsers, setTopUsers] = useState<LeaderboardUser[]>([]);
   const [currentUser, setCurrentUser] = useState<LeaderboardUser | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Define the number of top users to always show
-  const TOP_N = 5; 
+  const TOP_N = 5;
 
   const fetchLeaderboard = async () => {
     try {
@@ -71,12 +73,12 @@ const Leaderboard: React.FC = () => {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
+
       // 1. Mark the current user data explicitly
       const current = { ...data.currentUser, youAreHere: true };
-      
+
       // 2. Process topUsers list: check if currentUser is already in it
-      const updatedTopUsers = data.topUsers.map(user => 
+      const updatedTopUsers = data.topUsers.map(user =>
         user.id === current.id ? current : user
       );
 
@@ -108,8 +110,8 @@ const Leaderboard: React.FC = () => {
   // --- Core Logic: Prepare the final list for display ---
   const displayList = useMemo<Array<LeaderboardUser | SpacerRow>>(() => {
     if (!currentUser) return topUsers;
-    
-    const currentUserRank = currentUser.rank ?? Infinity; 
+
+    const currentUserRank = currentUser.rank ?? Infinity;
     const isCurrentUserInTopN = currentUserRank <= TOP_N;
 
     // Filter out the current user from the main topUsers list if they will be added separately later.
@@ -119,13 +121,13 @@ const Leaderboard: React.FC = () => {
     // assuming the API returned the list in correct rank order.
     if (isCurrentUserInTopN) {
       return topUsers.slice(0, TOP_N);
-    } 
-    
+    }
+
     // Case: Current user is outside the top N (rank > 5)
-    
+
     // 1. Get the top N users
     const finalDisplayList: Array<LeaderboardUser | SpacerRow> = filteredTopUsers.slice(0, TOP_N);
-    
+
     // 2. Add the spacer
     finalDisplayList.push({ id: SPACER_ROW_ID, isSpacer: true });
 
@@ -142,12 +144,12 @@ const Leaderboard: React.FC = () => {
     if ((item as SpacerRow).isSpacer) {
       return (
         <motion.div
-            key={SPACER_ROW_ID}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-4 text-lg font-medium text-gray-400"
+          key={SPACER_ROW_ID}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className={`text-center py-4 text-lg font-medium ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}
         >
-            ...
+          ...
         </motion.div>
       );
     }
@@ -155,7 +157,7 @@ const Leaderboard: React.FC = () => {
     const user = item as LeaderboardUser;
     // Use the rank provided by the API (which is essential for the current user's entry) 
     // or fallback to index+1 for users in the topUsers array.
-    const rank = user.rank ?? index + 1; 
+    const rank = user.rank ?? index + 1;
     const isTop3 = rank <= 3;
     const avatarStyle = getAvatarStyle(user.id);
     const isCurrentUser = user.youAreHere; // This flag is set in fetchLeaderboard
@@ -165,22 +167,22 @@ const Leaderboard: React.FC = () => {
 
     if (isCurrentUser) {
       // Highlighted style for current user. Use slightly larger padding for visual weight.
-      cardClasses = `bg-blue-50 border-2 border-blue-500 ring-4 ring-blue-100 p-6 ${cardClasses}`;
+      cardClasses = `${theme === 'dark' ? 'bg-blue-900/20 border-blue-500/50 ring-blue-500/20' : 'bg-blue-50 border-blue-500 ring-blue-100'} border-2 ring-4 p-6 ${cardClasses}`;
     } else if (isTop3) {
-      // Top 3 distinct style (your original p-6 style)
-      cardClasses = `bg-white border-2 p-6 ${rank === 1 ? 'border-yellow-400 shadow-xl shadow-yellow-100' : 'border-gray-200 shadow-lg'} ${cardClasses}`;
+      // Top 3 distinct style
+      cardClasses = `${theme === 'dark' ? 'bg-space-900/60 backdrop-blur-md border-white/20' : 'bg-white border-gray-200'} border-2 p-6 ${rank === 1 ? 'border-yellow-400 shadow-xl shadow-yellow-500/10' : 'shadow-lg'} ${cardClasses}`;
     } else {
-      // Standard row style (your original p-4 style)
-      cardClasses = `bg-white border border-gray-100 ${cardClasses}`;
+      // Standard row style
+      cardClasses = `${theme === 'dark' ? 'bg-space-900/40 backdrop-blur-sm border-white/5 hover:bg-space-800/60' : 'bg-white border-gray-100'} border ${cardClasses}`;
     }
-    
+
     // Adjusted rank element
     const rankElement = isTop3 ? (
       <div className="w-10 h-10 flex items-center justify-center">
         {getRankBadge(rank)}
       </div>
     ) : (
-      <span className="w-10 text-lg text-center font-bold text-gray-600">{rank}</span>
+      <span className={`w-10 text-lg text-center font-bold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{rank}</span>
     );
 
     // Use the first letter of the name for the avatar if no avatar URL is present
@@ -195,7 +197,7 @@ const Leaderboard: React.FC = () => {
         className={cardClasses}
       >
         <div className="flex items-center gap-4">
-          
+
           {/* Rank */}
           {rankElement}
 
@@ -210,15 +212,15 @@ const Leaderboard: React.FC = () => {
             )}
             {/* Star badge for current user, matching your sidebar UI */}
             {isCurrentUser && (
-                <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full border border-blue-300 shadow-lg">
-                    <Star className="w-4 h-4 text-blue-500 fill-blue-100" />
-                </div>
+              <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full border border-blue-300 shadow-lg">
+                <Star className="w-4 h-4 text-blue-500 fill-blue-100" />
+              </div>
             )}
           </div>
 
           {/* Name & Details */}
           <div>
-            <h3 className={`text-lg font-bold ${isCurrentUser ? 'text-blue-700' : 'text-gray-800'}`}>
+            <h3 className={`text-lg font-bold ${isCurrentUser ? 'text-blue-500' : theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
               {user.name} {isCurrentUser && <span className="text-sm text-blue-500 font-medium">(You)</span>}
             </h3>
             <p className="text-sm text-gray-500">
@@ -242,8 +244,9 @@ const Leaderboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-16 bg-gray-50 text-gray-900 px-4 sm:px-6 lg:px-16">
-      
+    <div className={`min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-16 transition-colors duration-300 ${theme === 'dark' ? 'bg-transparent text-white' : 'bg-gray-50 text-gray-900'
+      }`}>
+
       {/* --- Header Section --- */}
       <header className="text-center mb-12">
         <motion.h1
@@ -253,17 +256,17 @@ const Leaderboard: React.FC = () => {
         >
           Community Champions 🏆
         </motion.h1>
-        <p className="text-gray-600 mt-2 text-lg max-w-2xl mx-auto">
+        <p className={`mt-2 text-lg max-w-2xl mx-auto ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
           See who's leading the charge in contributions and expertise this month.
         </p>
       </header>
 
       <div className="grid lg:grid-cols-3 gap-10">
-        
+
         {/* --- Leaderboard List Section --- */}
         <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-             <Users className="w-6 h-6 text-blue-500 mr-2" /> Top Contributors
+          <h2 className={`text-2xl font-bold mb-4 flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+            <Users className="w-6 h-6 text-blue-500 mr-2" /> Top Contributors
           </h2>
           {/* Renders the calculated list, including the current user and "..." */}
           {displayList.map(renderRow)}
@@ -277,19 +280,20 @@ const Leaderboard: React.FC = () => {
             className="lg:col-span-1 space-y-6"
           >
             {/* Current User Card */}
-            <div className="p-7 bg-white rounded-2xl shadow-xl border-t-4 border-blue-500">
-              <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 mb-6">
+            <div className={`p-7 rounded-2xl shadow-xl border-t-4 border-blue-500 transition-all duration-300 ${theme === 'dark' ? 'bg-space-900/40 backdrop-blur-md border-white/10' : 'bg-white'
+              }`}>
+              <h2 className={`flex items-center gap-2 text-xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                 <TrendingUp className="text-blue-500 w-5 h-5" /> Your Progress
               </h2>
-              
-              <div className="flex items-center gap-4 border-b border-gray-100 pb-4 mb-4">
+
+              <div className={`flex items-center gap-4 border-b pb-4 mb-4 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'}`}>
                 <div className="relative">
                   <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-md ${getAvatarStyle(currentUser.id)}`}>
-                     {currentUser.avatar ? (
-                        <img src={currentUser.avatar} className="w-full h-full object-cover rounded-full border-2 border-white" alt={currentUser.name} />
-                      ) : (
-                        currentUser.name.charAt(0).toUpperCase()
-                      )}
+                    {currentUser.avatar ? (
+                      <img src={currentUser.avatar} className="w-full h-full object-cover rounded-full border-2 border-white" alt={currentUser.name} />
+                    ) : (
+                      currentUser.name.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full border border-blue-300 shadow-lg">
                     <Star className="w-4 h-4 text-blue-500 fill-blue-100" />
@@ -297,7 +301,7 @@ const Leaderboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">{currentUser.name}</h3>
+                  <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>{currentUser.name}</h3>
                   <p className="text-sm text-gray-500">{currentUser.company || "Level Up!"}</p>
                 </div>
               </div>
@@ -308,43 +312,46 @@ const Leaderboard: React.FC = () => {
                   label="Rank"
                   value={`#${currentUser.rank}`}
                   color="text-green-600"
+                  theme={theme}
                 />
                 <StatBox
                   icon={<Star className="text-yellow-500" />}
                   label="Points"
                   value={currentUser.points.toString()}
                   color="text-yellow-600"
+                  theme={theme}
                 />
                 <StatBox
                   icon={<Flame className="text-red-500" />}
                   label="Contr."
                   value={currentUser.contributions.toString()}
                   color="text-red-600"
+                  theme={theme}
                 />
               </div>
             </div>
 
             {/* Level & Rewards Placeholder */}
             <div className="p-6 bg-blue-50 rounded-2xl border border-blue-200 shadow-sm">
-            <h3 className="text-lg font-bold text-blue-700 mb-3">
-              Your Current Level: <span className="font-extrabold">{currentUser.level.level}</span>
-            </h3>
+              <h3 className="text-lg font-bold text-blue-700 mb-3">
+                Your Current Level: <span className="font-extrabold">{currentUser.level.level}</span>
+              </h3>
 
-            {/* XP Progress Bar */}
-            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-              <div
-                className="bg-blue-500 h-2.5 transition-all duration-500"
-                style={{ width: `${currentUser.level.progressPercent}%` }}
-              ></div>
+              {/* XP Progress Bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className="bg-blue-500 h-2.5 transition-all duration-500"
+                  style={{ width: `${currentUser.level.progressPercent}%` }}
+                ></div>
+              </div>
+
+              <p className="text-xs text-gray-600 mt-2">
+                {currentUser.level.progressPercent}% to next level
+                {currentUser.level.nextLevel && (
+                  <> (<span className="font-semibold">{currentUser.level.pointsToNextLevel}</span> points left for {currentUser.level.nextLevel})</>
+                )}
+              </p>
             </div>
-
-            <p className="text-xs text-gray-600 mt-2">
-              {currentUser.level.progressPercent}% to next level
-              {currentUser.level.nextLevel && (
-                <> (<span className="font-semibold">{currentUser.level.pointsToNextLevel}</span> points left for {currentUser.level.nextLevel})</>
-              )}
-            </p>
-          </div>
           </motion.div>
         )}
 
@@ -354,8 +361,8 @@ const Leaderboard: React.FC = () => {
 };
 
 // --- New Reusable StatBox Component ---
-const StatBox: React.FC<{ icon: React.ReactNode, label: string, value: string, color: string }> = ({ icon, label, value, color }) => (
-  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+const StatBox: React.FC<{ icon: React.ReactNode, label: string, value: string, color: string, theme: string }> = ({ icon, label, value, color, theme }) => (
+  <div className={`p-3 rounded-lg border transition-all duration-300 ${theme === 'dark' ? 'bg-space-950/50 border-white/10' : 'bg-gray-50 border-gray-100'}`}>
     <div className="flex justify-center items-center mb-1">
       {React.cloneElement(icon as React.ReactElement, { className: "w-5 h-5 mr-1" })}
       <p className={`text-lg font-extrabold ${color}`}>{value}</p>

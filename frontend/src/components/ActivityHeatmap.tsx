@@ -10,17 +10,19 @@ import {
   isSameDay,
   startOfWeek
 } from 'date-fns';
-import { Clock2 } from 'lucide-react'; // Added Clock2 icon for better header look
+import { Clock2 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
-const getSquareColor = (count: number) => {
-  if (count === 0) return 'bg-gray-200';
-  if (count < 5) return 'bg-green-100';
-  if (count < 10) return 'bg-green-300';
-  if (count < 15) return 'bg-green-500';
-  return 'bg-green-700';
+const getSquareColor = (count: number, theme: string) => {
+  if (count === 0) return theme === 'dark' ? 'bg-white/5' : 'bg-gray-200';
+  if (count < 5) return theme === 'dark' ? 'bg-brand-cyan/30' : 'bg-green-100';
+  if (count < 10) return theme === 'dark' ? 'bg-brand-cyan/50' : 'bg-green-300';
+  if (count < 15) return theme === 'dark' ? 'bg-brand-cyan/70' : 'bg-green-500';
+  return theme === 'dark' ? 'bg-brand-cyan' : 'bg-green-700';
 };
 
 const ActivityHeatmap = () => {
+  const { theme } = useTheme();
   const [activityData, setActivityData] = useState<any[]>([]);
   const token = localStorage.getItem('token');
   const [loading, setLoading] = useState(true);
@@ -99,10 +101,9 @@ const ActivityHeatmap = () => {
   // Helper function to render a day label span for vertical alignment
   const DayLabelSpan = ({ text, row, visible }: { text: string; row: number; visible: boolean }) => (
     <span
-      className={`h-3.5 text-xs text-gray-500 font-medium ${
-        visible ? 'opacity-100' : 'opacity-0'
-      }`}
-      style={{ 
+      className={`h-3.5 text-xs text-gray-500 font-medium ${visible ? 'opacity-100' : 'opacity-0'
+        }`}
+      style={{
         // Rows are 0-indexed (Sunday = 0, Monday = 1, etc.).
         // Grid CSS would be better, but using Tailwind classes for basic layout:
         lineHeight: '1.25rem' // Adjust this if needed for better alignment
@@ -115,11 +116,11 @@ const ActivityHeatmap = () => {
 
   return (
     // ✅ MODIFICATION 1: Apply glassmorphism styling
-    <div className="p-6 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/30 font-sans">
-      
+    <div className={`p-6 rounded-3xl shadow-xl border font-sans ${theme === 'dark' ? 'glass border-white/10' : 'bg-white/60 backdrop-blur-xl border-white/30'}`}>
+
       {/* ✅ MODIFICATION 2: Updated Header */}
-      <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-        <Clock2 className="w-6 h-6 mr-2 text-indigo-500" />
+      <h3 className={`text-xl font-bold mb-4 flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+        <Clock2 className={`w-6 h-6 mr-2 ${theme === 'dark' ? 'text-brand-cyan' : 'text-indigo-500'}`} />
         Activity Heatmap
       </h3>
 
@@ -137,15 +138,15 @@ const ActivityHeatmap = () => {
                   {Array.from({ length: weeksToSkip }).map((_, i) => (
                     <span key={`spacer-${index}-${i}`} className="w-4"></span>
                   ))}
-                  <span className="font-semibold text-gray-600 w-fit">{month.name}</span>
+                  <span className={`font-semibold w-fit ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{month.name}</span>
                 </React.Fragment>
               );
             })}
           </div>
 
           {/* Heatmap Grid */}
-          <div className="flex overflow-x-auto scrollbar-hide mt-1">
-            
+          <div className="flex overflow-x-auto scrollbar-thin pb-4 mt-1">
+
             {/* ✅ MODIFICATION 3: Day Labels (Mon, Wed, Fri) */}
             <div className="flex flex-col text-xs text-gray-500 mr-2 whitespace-nowrap">
               {/* Day rows (0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat) */}
@@ -170,16 +171,15 @@ const ActivityHeatmap = () => {
                     return (
                       <div
                         key={dateStr}
-                        className={`w-3 h-3 rounded-sm ${getSquareColor(count)} ${
-                          isToday ? 'border border-gray-900 ring-1 ring-offset-1 ring-gray-900' : ''
-                        }`}
+                        className={`w-3 h-3 rounded-sm ${getSquareColor(count, theme)} ${isToday ? `border ring-1 ring-offset-1 ${theme === 'dark' ? 'border-white ring-white ring-offset-space-950' : 'border-gray-900 ring-gray-900'}` : ''
+                          }`}
                         data-tooltip-id="heatmap-tooltip"
                         data-tooltip-content={
                           count > 0
                             ? `${count} activit${count === 1 ? 'y' : 'ies'} on ${format(
-                                day,
-                                'MMM d, yyyy'
-                              )}`
+                              day,
+                              'MMM d, yyyy'
+                            )}`
                             : `No activity on ${format(day, 'MMM d, yyyy')}`
                         }
                       />
@@ -193,14 +193,14 @@ const ActivityHeatmap = () => {
       )}
 
       {/* Legend */}
-      <div className="flex justify-between items-center mt-4 text-xs text-gray-500 pt-4 border-t border-white/30">
+      <div className={`flex justify-between items-center mt-4 text-xs pt-4 border-t ${theme === 'dark' ? 'text-gray-400 border-white/10' : 'text-gray-500 border-white/30'}`}>
         <span>Less</span>
         <div className="flex space-x-1">
-          <div className="w-3 h-3 rounded-sm bg-gray-200"></div>
-          <div className="w-3 h-3 rounded-sm bg-green-100"></div>
-          <div className="w-3 h-3 rounded-sm bg-green-300"></div>
-          <div className="w-3 h-3 rounded-sm bg-green-500"></div>
-          <div className="w-3 h-3 rounded-sm bg-green-700"></div>
+          <div className={`w-3 h-3 rounded-sm ${getSquareColor(0, theme)}`}></div>
+          <div className={`w-3 h-3 rounded-sm ${getSquareColor(1, theme)}`}></div>
+          <div className={`w-3 h-3 rounded-sm ${getSquareColor(6, theme)}`}></div>
+          <div className={`w-3 h-3 rounded-sm ${getSquareColor(11, theme)}`}></div>
+          <div className={`w-3 h-3 rounded-sm ${getSquareColor(20, theme)}`}></div>
         </div>
         <span>More</span>
       </div>

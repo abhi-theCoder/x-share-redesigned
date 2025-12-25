@@ -82,7 +82,7 @@ const getBookmarkedExperiences = async (req, res) => {
 
 const addBookmark = async (req, res) => {
   try {
-    userId = req.userId;
+    const userId = req.userId;
     const { experienceId } = req.body;
     if (!userId || !experienceId) return res.status(400).json({ error: 'Missing fields' });
 
@@ -97,7 +97,7 @@ const addBookmark = async (req, res) => {
 const removeBookmark = async (req, res) => {
   try {
     const { experienceId } = req.body;
-    userId = req.userId;
+    const userId = req.userId;
     if (!userId || !experienceId) return res.status(400).json({ error: 'Missing fields' });
 
     await removeUserBookmark(userId, experienceId);

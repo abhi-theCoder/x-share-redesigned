@@ -9,21 +9,8 @@ import {
 } from 'react-beautiful-dnd';
 import { GripVertical, ChevronDown, ChevronUp, ArrowRight, Rocket, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import LoginRequired from '../components/LoginRequired';
-import verifyToken from '../components/verifyLogin';
-
-// Colors and styles based on Home.js palette
-const PALETTE = {
-  blueDark: 'blue-700',
-  blue: 'blue-500',
-  purple: 'purple-600',
-  textPrimary: 'gray-800',
-  textSecondary: 'gray-600',
-  bgLight: 'gray-50',
-  bgCard: 'white',
-  border: 'gray-200',
-  error: 'red-500',
-};
+import { verifyToken } from '../components/verifyLogin';
+import { useTheme } from '../context/ThemeContext';
 
 const roundOptions = [
   'Online Assessment',
@@ -60,6 +47,7 @@ const initialSections: Section[] = [
 ];
 
 export default function ShareExperiencePage(): JSX.Element {
+  const { theme } = useTheme();
   const [formData, setFormData] = useState<FormData>({
     company: '',
     role: '',
@@ -77,7 +65,7 @@ export default function ShareExperiencePage(): JSX.Element {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedRounds, setExpandedRounds] = useState<string[]>([]);
   const [expandedPreview, setExpandedPreview] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Initial loading true for auth check
   const [submissionStatus, setSubmissionStatus] = useState<string | null>(null);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +73,7 @@ export default function ShareExperiencePage(): JSX.Element {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -95,26 +83,21 @@ export default function ShareExperiencePage(): JSX.Element {
           return;
         }
         const valid = await verifyToken(token);
-        console.log(valid)
         if (!valid) {
-            localStorage.removeItem('token');
-            navigate('/login');
-            return;
+          localStorage.removeItem('token');
+          navigate('/login');
+          return;
         }
       } catch (err) {
-        console.error('Failed to fetch profile:', err);
+        console.error('Failed to verify logic:', err);
         setError('Failed to load profile data.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
-  }, []);
-
-  // if (error === 'User not authenticated.') {
-  //   return <LoginRequired />;
-  // }
+    checkAuth();
+  }, [navigate]);
 
   const handleSubmit = async () => {
     if (!validateCurrentStep()) {
@@ -144,7 +127,7 @@ export default function ShareExperiencePage(): JSX.Element {
           navigate('/experiences');
         }, 5000);
       }
-    } catch (error) {
+    } catch (error: any) {
       setLoading(false);
       const errorMessage = error.response?.data?.message || 'Submission failed due to an unknown error.';
       setSubmissionStatus(`Error: ${errorMessage}`);
@@ -222,12 +205,12 @@ export default function ShareExperiencePage(): JSX.Element {
 
   const handleTabClick = (idx: number) => {
     if (idx < currentStep) {
-        setCurrentStep(idx);
-        return;
+      setCurrentStep(idx);
+      return;
     }
 
     if (validateCurrentStep()) {
-        setCurrentStep(idx);
+      setCurrentStep(idx);
     }
   };
 
@@ -286,7 +269,7 @@ export default function ShareExperiencePage(): JSX.Element {
       prev.includes(round) ? prev.filter(r => r !== round) : [...prev, round]
     );
   };
-  
+
   const toggleAccordionRound = (round: string) => {
     setExpandedRounds(prev =>
       prev.includes(round) ? prev.filter(r => r !== round) : [...prev, round]
@@ -298,7 +281,7 @@ export default function ShareExperiencePage(): JSX.Element {
       case 'companyInfo':
         return (
           <div className="space-y-6">
-            <h2 className={`text-3xl font-bold bg-gradient-to-r from-blue-700 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-6`}>
+            <h2 className={`text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent`}>
               Company Info
             </h2>
             <GlassInput label="Company Name *" value={formData.company}
@@ -327,21 +310,24 @@ export default function ShareExperiencePage(): JSX.Element {
       case 'selectionProcess':
         return (
           <div>
-            <h2 className={`text-3xl font-bold bg-gradient-to-r from-blue-700 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-6`}>
+            <h2 className={`text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent`}>
               Selection Process
             </h2>
-            <p className="text-gray-600 mb-4">Select the process rounds you want, then reorder as desired and add questions/answers:</p>
+            <p className={`mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Select the process rounds you want, then reorder as desired and add questions/answers:</p>
             <div className="flex flex-wrap gap-2 mb-5">
               {roundOptions.map((round) => (
                 <button
                   key={round}
                   type="button"
                   onClick={() => handleRoundToggle(round)}
-                  className={`rounded-full border font-semibold px-4 py-2 select-none transition ${
-                    formData.selection_rounds.includes(round)
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-400 text-white border-none shadow-lg'
-                      : `bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-100`
-                  }`}
+                  className={`rounded-full border font-semibold px-4 py-2 select-none transition ${formData.selection_rounds.includes(round)
+                    ? theme === 'dark'
+                      ? 'bg-gradient-to-r from-brand-cyan to-brand-blue text-black border-none shadow-lg'
+                      : 'bg-gradient-to-r from-blue-600 to-blue-400 text-white border-none shadow-lg'
+                    : theme === 'dark'
+                      ? 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-100'
+                    }`}
                 >
                   {round}
                 </button>
@@ -352,7 +338,7 @@ export default function ShareExperiencePage(): JSX.Element {
               {(provided) => (
                 <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-6 min-h-[100px]">
                   {(formData.selection_rounds.length === 0) ? (
-                    <div className="text-gray-400 italic select-none py-4">No rounds selected</div>
+                    <div className={`italic select-none py-4 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>No rounds selected</div>
                   ) : (
                     formData.selection_rounds.map((round, idx) => (
                       <Draggable key={round} draggableId={round} index={idx}>
@@ -360,22 +346,25 @@ export default function ShareExperiencePage(): JSX.Element {
                           <div
                             ref={prov.innerRef}
                             {...prov.draggableProps}
-                            className="bg-white rounded-xl shadow p-5 mb-2 border border-gray-100"
+                            className={`rounded-xl shadow p-5 mb-2 border transition-colors ${theme === 'dark'
+                              ? 'glass border-white/10'
+                              : 'bg-white border-gray-100'
+                              }`}
                             style={{ ...prov.draggableProps.style }}
                           >
                             <div className="flex items-start gap-2">
                               <span
                                 {...prov.dragHandleProps}
                                 aria-label="Drag to reorder round"
-                                className="mt-1 mr-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-blue-500"
+                                className={`mt-1 mr-2 cursor-grab active:cursor-grabbing ${theme === 'dark' ? 'text-gray-500 hover:text-brand-cyan' : 'text-gray-400 hover:text-blue-500'}`}
                                 style={{ padding: 3 }}
                               >
                                 <GripVertical size={22} />
                               </span>
                               <div className="flex-1">
-                                <button type="button" onClick={() => toggleAccordionRound(round)} className="flex justify-between items-center w-full text-left font-semibold text-gray-800 mb-1">
+                                <button type="button" onClick={() => toggleAccordionRound(round)} className={`flex justify-between items-center w-full text-left font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                                   <span>
-                                    <span className="text-sm font-bold mr-2 text-gray-400">{idx + 1}.</span> {round}
+                                    <span className={`text-sm font-bold mr-2 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>{idx + 1}.</span> {round}
                                   </span>
                                   {expandedRounds.includes(round) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                 </button>
@@ -383,30 +372,37 @@ export default function ShareExperiencePage(): JSX.Element {
                                 {expandedRounds.includes(round) && (
                                   <div className="mt-4 space-y-4">
                                     {(formData.rounds_data[round] || []).map((qa, i) => (
-                                      <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 shadow-sm" key={i}>
+                                      <div className={`p-4 rounded-lg border shadow-sm ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200'}`} key={i}>
                                         <div className="flex justify-between items-center mb-2">
-                                          <label className="font-medium text-gray-700">Question {i + 1}</label>
+                                          <label className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Question {i + 1}</label>
                                           <button type="button"
                                             onClick={() => removeRoundQA(round, i)}
-                                            className="text-red-500 font-bold px-1 hover:bg-red-50 rounded"
+                                            className="text-red-500 font-bold px-1 hover:opacity-80 rounded"
                                           >✕</button>
                                         </div>
                                         <textarea
                                           placeholder="Question *"
                                           value={qa.question}
                                           rows={3}
-                                          className={`w-full border rounded-md px-2 py-1 focus:outline-none focus:ring-2 bg-white
-                                            ${errors[`${round}_question_${i}`] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-400'}`}
+                                          className={`w-full border rounded-md px-2 py-1 focus:outline-none focus:ring-2 
+                                            ${errors[`${round}_question_${i}`]
+                                              ? 'border-red-500 focus:ring-red-500'
+                                              : theme === 'dark'
+                                                ? 'bg-black/20 border-white/20 text-white focus:ring-brand-cyan'
+                                                : 'bg-white border-gray-300 focus:ring-blue-400'}`}
                                           onChange={e => updateRoundQA(round, i, 'question', e.target.value)}
                                         />
                                         {errors[`${round}_question_${i}`] && <p className="text-sm mt-1 text-red-500">{errors[`${round}_question_${i}`]}</p>}
                                         <div className="mt-4">
-                                          <label className="font-medium text-gray-700">Answer (optional)</label>
+                                          <label className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Answer (optional)</label>
                                           <textarea
                                             placeholder="Answer"
                                             value={qa.answer}
                                             rows={3}
-                                            className="w-full border border-gray-300 rounded-md px-2 py-1 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                                            className={`w-full border rounded-md px-2 py-1 mt-1 focus:outline-none focus:ring-2 
+                                              ${theme === 'dark'
+                                                ? 'bg-black/20 border-white/20 text-white focus:ring-brand-cyan'
+                                                : 'bg-white border-gray-300 focus:ring-blue-400'}`}
                                             onChange={e => updateRoundQA(round, i, 'answer', e.target.value)}
                                           />
                                         </div>
@@ -414,7 +410,10 @@ export default function ShareExperiencePage(): JSX.Element {
                                     ))}
                                     <button
                                       type="button"
-                                      className="mt-1 text-sm rounded-full px-3 py-1 font-medium border border-blue-500 text-blue-600 hover:bg-blue-50 transition-all duration-200"
+                                      className={`mt-1 text-sm rounded-full px-3 py-1 font-medium border transition-all duration-200 ${theme === 'dark'
+                                        ? 'border-brand-cyan text-brand-cyan hover:bg-brand-cyan/10'
+                                        : 'border-blue-500 text-blue-600 hover:bg-blue-50'
+                                        }`}
                                       onClick={() => addQuestion(round)}
                                     >+ Add Question</button>
                                   </div>
@@ -435,10 +434,10 @@ export default function ShareExperiencePage(): JSX.Element {
       case 'preparationTips':
         return (
           <div className="space-y-6">
-            <h2 className={`text-3xl font-bold bg-gradient-to-r from-blue-700 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-6`}>
+            <h2 className={`text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent`}>
               Preparation Tips
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className={`mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
               Share a summary of how you prepared for this interview. What resources did you use? What was most helpful?
             </p>
             <GlassInput label="Preparation Summary *" value={formData.preparation_tips} type="textarea"
@@ -448,11 +447,11 @@ export default function ShareExperiencePage(): JSX.Element {
         );
       case 'finalReview':
         return (
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h2 className={`text-3xl font-bold bg-gradient-to-r from-blue-700 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-6`}>
+          <div className={`rounded-xl shadow-lg p-6 border ${theme === 'dark' ? 'glass border-white/10' : 'bg-white border-gray-100'}`}>
+            <h2 className={`text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent`}>
               Final Review
             </h2>
-            <div className="text-gray-700 space-y-1 mb-4">
+            <div className={`space-y-1 mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
               <p><strong>Company:</strong> {formData.company}</p>
               <p><strong>Role:</strong> {formData.role}</p>
               <p><strong>Type:</strong> {formData.type}</p>
@@ -460,16 +459,16 @@ export default function ShareExperiencePage(): JSX.Element {
               <p><strong>Date:</strong> {formData.date}</p>
             </div>
             <div className="space-y-4">
-              <h4 className="font-semibold text-lg text-gray-800">Rounds Data</h4>
+              <h4 className={`font-semibold text-lg ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Rounds Data</h4>
               {formData.selection_rounds.length > 0 ? (
                 formData.selection_rounds.map((round, idx) => (
-                  <div key={round} className="border-b pb-2">
+                  <div key={round} className="border-b border-gray-200/20 pb-2">
                     <button
                       onClick={() => toggleAccordion(round)}
-                      className="flex justify-between items-center w-full text-left font-medium text-gray-600"
+                      className={`flex justify-between items-center w-full text-left font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
                     >
                       <span>
-                        <span className="text-sm font-bold mr-2 text-gray-400">{idx + 1}.</span> {round}
+                        <span className={`text-sm font-bold mr-2 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>{idx + 1}.</span> {round}
                       </span>
                       {expandedPreview.includes(round) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
@@ -477,33 +476,33 @@ export default function ShareExperiencePage(): JSX.Element {
                       <div className="mt-2 pl-6">
                         {formData.rounds_data[round]?.length > 0 ? (
                           formData.rounds_data[round].map((qa, i) => (
-                            <div key={i} className="mb-2 p-2 rounded-md bg-gray-100">
-                              <p className="font-semibold text-gray-800">Q: {qa.question}</p>
-                              {qa.answer && <p className="text-gray-600">A: {qa.answer}</p>}
+                            <div key={i} className={`mb-2 p-2 rounded-md ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`}>
+                              <p className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Q: {qa.question}</p>
+                              {qa.answer && <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>A: {qa.answer}</p>}
                             </div>
                           ))
                         ) : (
-                          <p className="italic text-gray-500">No questions added for this round.</p>
+                          <p className={`italic ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>No questions added for this round.</p>
                         )}
                       </div>
                     )}
                   </div>
                 ))
               ) : (
-                <p className="italic text-gray-500">No rounds selected.</p>
+                <p className={`italic ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>No rounds selected.</p>
               )}
             </div>
             <div className="mt-6">
-              <h4 className="font-semibold text-lg mb-2 text-gray-800">Preparation Tips</h4>
-              <p className="bg-gray-100 p-4 rounded-xl border border-gray-200 white-space: pre-wrap;">
-                {formData.preparation_tips || <span className="italic text-gray-500">Not provided.</span>}
+              <h4 className={`font-semibold text-lg mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Preparation Tips</h4>
+              <p className={`p-4 rounded-xl border white-space: pre-wrap; ${theme === 'dark' ? 'bg-white/5 border-white/10 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-700'}`}>
+                {formData.preparation_tips || <span className="italic opacity-60">Not provided.</span>}
               </p>
             </div>
             <div className="mt-6">
-              <h4 className="font-semibold text-lg mb-2 text-gray-800">Overall Experience Summary</h4>
+              <h4 className={`font-semibold text-lg mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Overall Experience Summary</h4>
               <GlassInput label="" value={formData.overall_experience} type="textarea"
-              onChange={v => setFormData(f => ({ ...f, overall_experience: v }))}
-              error={errors.overall_experience} />
+                onChange={v => setFormData(f => ({ ...f, overall_experience: v }))}
+                error={errors.overall_experience} />
             </div>
           </div>
         );
@@ -553,20 +552,20 @@ export default function ShareExperiencePage(): JSX.Element {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="relative p-8 bg-white rounded-2xl shadow-2xl flex flex-col items-center justify-center text-center max-w-sm mx-auto"
+              className={`relative p-8 rounded-2xl shadow-2xl flex flex-col items-center justify-center text-center max-w-sm mx-auto ${theme === 'dark' ? 'glass border border-white/10 text-white' : 'bg-white text-gray-800'}`}
             >
-              <h3 className="text-3xl font-bold text-blue-600 mb-4">Experience Shared!</h3>
+              <h3 className={`text-3xl font-bold mb-4 ${theme === 'dark' ? 'text-brand-cyan' : 'text-blue-600'}`}>Experience Shared!</h3>
               <div className="text-4xl font-extrabold text-gray-800">
-                <span className="text-6xl font-extrabold text-yellow-500">+50</span> Coins are awaiting to come after approval
+                <span className="text-6xl font-extrabold text-yellow-500">+50</span> <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>Coins pending approval</span>
               </div>
-              <p className="mt-2 text-gray-600">
+              <p className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                 Thank you for your valuable contribution.
               </p>
-              <div className="mt-4 flex items-center text-blue-600 animate-pulse">
+              <div className={`mt-4 flex items-center animate-pulse ${theme === 'dark' ? 'text-brand-cyan' : 'text-blue-600'}`}>
                 <CheckCircle size={24} className="mr-2" />
                 <span className="font-semibold">Redirecting...</span>
               </div>
-              
+
               {[...Array(25)].map((_, i) => (
                 <motion.span
                   key={i}
@@ -595,16 +594,34 @@ export default function ShareExperiencePage(): JSX.Element {
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <main className="bg-gray-50 min-h-screen">
-        <div className="max-w-4xl mx-auto py-7 px-2">
-          <nav className="flex gap-3 items-center mb-6">
+      <main className={`min-h-screen pt-20 transition-colors duration-300 ${theme === 'dark' ? 'bg-transparent' : 'bg-gray-50'}`}>
+
+        {/* Deep Space Background Decor */}
+        {theme === 'dark' ? (
+          <>
+            <div className="fixed top-0 left-0 w-96 h-96 bg-brand-blue/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-[100px] pointer-events-none"></div>
+            <div className="fixed bottom-0 right-0 w-96 h-96 bg-brand-purple/10 rounded-full translate-x-1/3 translate-y-1/3 blur-[100px] pointer-events-none"></div>
+          </>
+        ) : (
+          <>
+            <div className="absolute top-0 -left-10 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl opacity-70 pointer-events-none"></div>
+            <div className="absolute bottom-0 -right-10 w-80 h-80 bg-cyan-200/20 rounded-full blur-3xl opacity-70 pointer-events-none"></div>
+          </>
+        )}
+
+        <div className="max-w-4xl mx-auto py-7 px-4 relative z-10">
+          <nav className="flex gap-3 items-center mb-6 overflow-x-auto pb-2 scrollbar-hide">
             {sections.map((section, idx) => {
+              const isActive = currentStep === idx;
               const tabContent = (
                 <div
-                  className={`flex items-center rounded-xl px-4 py-2 border font-semibold select-none transition-all duration-300 shadow-sm
-                    ${
-                      currentStep === idx
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-400 text-white border-none shadow-lg'
+                  className={`flex items-center rounded-xl px-4 py-2 border font-semibold select-none transition-all duration-300 shadow-sm whitespace-nowrap
+                    ${isActive
+                      ? theme === 'dark'
+                        ? 'bg-gradient-to-r from-brand-cyan to-brand-blue text-black border-none shadow-lg'
+                        : 'bg-gradient-to-r from-blue-600 to-blue-400 text-white border-none shadow-lg'
+                      : theme === 'dark'
+                        ? 'glass border-white/10 text-gray-300 hover:bg-white/10'
                         : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
                     }
                   `}
@@ -647,7 +664,7 @@ export default function ShareExperiencePage(): JSX.Element {
           <TricolorProgressBar current={currentStep} total={sections.length} />
 
           <section className="mb-10">{renderSection(sections[currentStep])}</section>
-          
+
           {submissionStatus && (
             <div className={`p-4 rounded-md mb-4 font-semibold ${submissionStatus.startsWith('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
               {submissionStatus}
@@ -659,10 +676,9 @@ export default function ShareExperiencePage(): JSX.Element {
               onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
               disabled={currentStep === 0 || loading}
               className={`px-6 py-3 rounded-xl border-2 font-semibold transition-all duration-300
-                ${
-                  currentStep === 0 || loading
-                    ? 'border-gray-300 text-gray-400 cursor-not-allowed'
-                    : 'bg-white border-blue-500 text-blue-600 hover:bg-blue-50'
+                ${currentStep === 0 || loading
+                  ? theme === 'dark' ? 'border-white/10 text-gray-600 cursor-not-allowed' : 'border-gray-300 text-gray-400 cursor-not-allowed'
+                  : theme === 'dark' ? 'glass border-white/20 text-white hover:bg-white/10' : 'bg-white border-blue-500 text-blue-600 hover:bg-blue-50'
                 }`}
             >
               Previous
@@ -670,15 +686,18 @@ export default function ShareExperiencePage(): JSX.Element {
             <button
               onClick={handleNext}
               disabled={loading}
-              className="px-8 py-4 text-white bg-gradient-to-r from-blue-600 to-blue-400 shadow-lg disabled:opacity-50 rounded-xl font-semibold text-lg
-                hover:from-blue-700 hover:to-blue-500 hover:transform hover:scale-105 hover:-translate-y-1 transition-all duration-300 ease-in-out"
+              className={`px-8 py-4 text-white shadow-lg disabled:opacity-50 rounded-xl font-semibold text-lg transition-all duration-300 ease-in-out hover:transform hover:scale-105 hover:-translate-y-1 ${theme === 'dark'
+                ? 'bg-gradient-to-r from-brand-cyan to-brand-blue hover:shadow-brand-cyan/20 text-black'
+                : 'bg-gradient-to-r from-blue-600 to-blue-400 hover:shadow-blue-500/20'
+                }`}
+
             >
               {loading ? 'Publishing...' : currentStep === sections.length - 1 ? 'Publish Experience' : 'Next'}
               {currentStep === sections.length - 1 ? <Rocket className="inline w-5 h-5 ml-2" /> : <ArrowRight className="inline w-5 h-5 ml-2" />}
             </button>
           </div>
         </div>
-        
+
         <CoinAnimation />
 
       </main>
@@ -693,13 +712,18 @@ function GlassInput(props: {
   type?: string;
   error?: string;
 }) {
+  const { theme } = useTheme();
   return (
     <div>
-      <label className="block mb-2 font-medium text-gray-800">{props.label}</label>
+      <label className={`block mb-2 font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>{props.label}</label>
       {props.type === 'textarea' ? (
         <textarea
-          className={`w-full px-4 py-2 rounded-md border shadow-sm focus:outline-none focus:ring-2 bg-white
-            ${props.error ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-400'}`}
+          className={`w-full px-4 py-2 rounded-md border shadow-sm focus:outline-none focus:ring-2 
+            ${props.error
+              ? 'border-red-500 focus:ring-red-500'
+              : theme === 'dark'
+                ? 'bg-white/5 border-white/10 text-white focus:ring-brand-cyan'
+                : 'bg-white border-gray-200 focus:ring-blue-400'}`}
           value={props.value}
           onChange={e => props.onChange(e.target.value)}
           rows={5}
@@ -707,8 +731,12 @@ function GlassInput(props: {
       ) : (
         <input
           type={props.type || 'text'}
-          className={`w-full px-4 py-2 rounded-md border shadow-sm focus:outline-none focus:ring-2 bg-white
-            ${props.error ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-400'}`}
+          className={`w-full px-4 py-2 rounded-md border shadow-sm focus:outline-none focus:ring-2 
+            ${props.error
+              ? 'border-red-500 focus:ring-red-500'
+              : theme === 'dark'
+                ? 'bg-white/5 border-white/10 text-white focus:ring-brand-cyan'
+                : 'bg-white border-gray-200 focus:ring-blue-400'}`}
           value={props.value}
           onChange={e => props.onChange(e.target.value)}
         />
@@ -724,16 +752,20 @@ function GlassSelect(props: {
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
 }) {
+  const { theme } = useTheme();
   return (
     <div>
-      <label className="block mb-2 font-medium text-gray-800">{props.label}</label>
+      <label className={`block mb-2 font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>{props.label}</label>
       <select
-        className="w-full px-4 py-2 rounded-md border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+        className={`w-full px-4 py-2 rounded-md border shadow-sm focus:outline-none focus:ring-2 
+          ${theme === 'dark'
+            ? 'bg-white/5 border-white/10 text-white focus:ring-brand-cyan'
+            : 'bg-white border-gray-200 focus:ring-blue-400'}`}
         value={props.value}
         onChange={e => props.onChange(e.target.value)}
       >
         {props.options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value} className={theme === 'dark' ? 'bg-zinc-900 text-white' : ''}>{opt.label}</option>
         ))}
       </select>
     </div>
@@ -744,19 +776,20 @@ const TricolorProgressBar: React.FC<{ current: number; total: number }> = ({
   current,
   total,
 }) => {
+  const { theme } = useTheme();
   const percent = ((current + 1) / total) * 100;
   return (
     <div className="w-full py-3 mb-2 select-none">
       <div className="flex justify-between mb-1">
-        <span className="font-semibold text-gray-600">{`Step ${current + 1} of ${total}`}</span>
-        <span className="font-semibold text-gray-600">{`${Math.round(percent)}% Complete`}</span>
+        <span className={`font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{`Step ${current + 1} of ${total}`}</span>
+        <span className={`font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{`${Math.round(percent)}% Complete`}</span>
       </div>
-      <div className="w-full h-3 bg-gray-200 rounded-2xl overflow-hidden">
+      <div className={`w-full h-3 rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`}>
         <div
           className="h-3 rounded-2xl"
           style={{
             width: `${percent}%`,
-            background: 'linear-gradient(90deg, #60A5FA 0%, #818CF8 50%, #A855F7 100%)',
+            background: 'linear-gradient(90deg, #32a5d4 0%, #3b82f6 50%, #a855f7 100%)',
             transition: 'width 0.3s cubic-bezier(.65,.05,.36,1)',
           }}
         />

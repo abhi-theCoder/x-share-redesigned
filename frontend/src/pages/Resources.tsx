@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Loader from "../components/Loader";
+import { useTheme } from "../context/ThemeContext";
 
 // Types
 interface Resource {
@@ -47,11 +48,10 @@ const RatingStars: React.FC<RatingStarsProps> = ({
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
-          className={`w-8 h-8 cursor-pointer transition-all duration-200 ${
-            star <= (hovered || tempRating || rating)
-              ? "text-yellow-400 fill-current"
-              : "text-gray-300"
-          }`}
+          className={`w-8 h-8 cursor-pointer transition-all duration-200 ${star <= (hovered || tempRating || rating)
+            ? "text-yellow-400 fill-current"
+            : "text-gray-300"
+            }`}
           onMouseEnter={() => setHovered(star)}
           onMouseLeave={() => setHovered(0)}
           onClick={() => setTempRating(star)}
@@ -62,6 +62,7 @@ const RatingStars: React.FC<RatingStarsProps> = ({
 };
 
 const Resources: React.FC = () => {
+  const { theme } = useTheme();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -196,20 +197,15 @@ const Resources: React.FC = () => {
   };
 
   // --- COLORS ---
-  const primaryAccentColor = "#45B5DA";
-  const secondaryAccentColor = "#0F9BC0";
-  const mainBackgroundColor = "#EEF2F7";
-  const cardBackgroundColor = "#FFFFFF";
-  const lightElementColor = "#D4EEF9";
-  const customFocusStyle = { "--tw-ring-color": primaryAccentColor } as React.CSSProperties;
+  // Colors now handled by Tailwind classes based on theme
 
   if (loading)
-    return <div className="text-center mt-20"><Loader/></div>;
+    return <div className="text-center mt-20"><Loader /></div>;
 
   return (
     <div
-      className="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8"
-      style={{ backgroundColor: mainBackgroundColor }}
+      className={`min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${theme === 'dark' ? 'bg-transparent' : 'bg-[#EEF2F7]'
+        }`}
     >
       <div className="max-w-7xl mx-auto">
         {/* --- HEADER --- */}
@@ -219,19 +215,15 @@ const Resources: React.FC = () => {
           transition={{ duration: 0.8 }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6">
+          <h1 className={`text-4xl md:text-5xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
             Interview{" "}
             <span
-              style={{
-                background: `linear-gradient(to right, ${primaryAccentColor}, ${secondaryAccentColor})`,
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
+              className="bg-gradient-to-r from-brand-cyan to-brand-blue bg-clip-text text-transparent"
             >
               Resources
             </span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className={`text-xl max-w-3xl mx-auto ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
             Access curated resources shared by industry experts to ace your interviews.
           </p>
         </motion.div>
@@ -243,17 +235,21 @@ const Resources: React.FC = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="rounded-2xl shadow-lg p-6 border border-gray-100"
-              style={{ backgroundColor: cardBackgroundColor }}
+              className={`rounded-2xl shadow-xl p-6 border transition-all duration-300 ${theme === 'dark'
+                ? 'bg-space-900/40 backdrop-blur-md border-white/10 ring-1 ring-white/5'
+                : 'bg-white border-gray-100'
+                }`}
             >
-              <h3 className="text-lg font-bold text-gray-800 mb-4">
+              <h3 className={`text-lg font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                 Filter Resources
               </h3>
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 transition-all duration-200"
-                style={customFocusStyle}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 ${theme === 'dark'
+                  ? 'bg-space-800 border-space-700 text-white focus:ring-brand-cyan'
+                  : 'bg-white border-gray-200 text-gray-900 focus:ring-brand-cyan'
+                  }`}
               >
                 {resourceTypes.map((type) => (
                   <option key={type}>{type}</option>
@@ -272,8 +268,10 @@ const Resources: React.FC = () => {
                 placeholder="Search resources..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 shadow-sm"
-                style={customFocusStyle}
+                className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 shadow-xl ${theme === 'dark'
+                  ? 'bg-space-900/40 backdrop-blur-md border-white/10 text-white placeholder-gray-500 focus:ring-brand-cyan'
+                  : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-brand-cyan'
+                  }`}
               />
             </div>
 
@@ -289,47 +287,45 @@ const Resources: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: index * 0.1 }}
-                    className="rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all"
-                    style={{ backgroundColor: cardBackgroundColor }}
+                    className={`rounded-2xl shadow-xl p-6 border hover:shadow-2xl transition-all duration-300 ${theme === 'dark'
+                      ? 'bg-space-900/40 backdrop-blur-md border-white/10'
+                      : 'bg-white border-gray-100'
+                      }`}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-4">
                         <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center"
-                          style={{
-                            background: `linear-gradient(to bottom right, ${primaryAccentColor}, ${secondaryAccentColor})`,
-                          }}
+                          className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-brand-cyan to-brand-blue"
                         >
                           <IconComponent className="w-6 h-6 text-white" />
                         </div>
                         <span
-                          className="px-3 py-1 rounded-full text-xs font-medium"
-                          style={{
-                            backgroundColor: lightElementColor,
-                            color: secondaryAccentColor,
-                          }}
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${theme === 'dark'
+                            ? 'bg-space-800 text-brand-cyan'
+                            : 'bg-[#D4EEF9] text-[#0F9BC0]'
+                            }`}
                         >
                           {resource.type}
                         </span>
                       </div>
                       <div className="flex items-center text-yellow-500">
                         <Star className="w-4 h-4 fill-current" />
-                        <span className="ml-1 text-sm font-medium text-gray-600">
+                        <span className={`ml-1 text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                           {resource.rating?.toFixed(1) || "0.0"}
                         </span>
                       </div>
                     </div>
 
-                    <h3 className="text-xl font-bold text-gray-800 mb-3">
+                    <h3 className={`text-xl font-bold mb-3 ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
                       {resource.title}
                     </h3>
-                    <p className="text-gray-600 mb-4">{resource.description}</p>
+                    <p className={`mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{resource.description}</p>
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <User className="text-gray-500 w-5 h-5" />
                         <div>
-                          <p className="font-medium text-gray-800">
+                          <p className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
                             {resource.author}
                           </p>
                           <p className="text-sm text-gray-500">
@@ -343,7 +339,7 @@ const Resources: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center pt-4 border-t mt-4">
+                    <div className={`flex justify-between items-center pt-4 border-t mt-4 ${theme === 'dark' ? 'border-space-800' : 'border-gray-100'}`}>
                       <div className="flex items-center space-x-6 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Download className="w-4 h-4" />
@@ -351,8 +347,7 @@ const Resources: React.FC = () => {
                         </div>
                         <button
                           onClick={() => openRatingModal(resource)}
-                          style={{ color: primaryAccentColor }}
-                          className="flex items-center space-x-1 font-medium"
+                          className={`flex items-center space-x-1 font-medium ${theme === 'dark' ? 'text-brand-cyan' : 'text-[#45B5DA]'}`}
                         >
                           <Star className="w-4 h-4" />
                           <span>Rate</span>
@@ -360,10 +355,7 @@ const Resources: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleDownload(resource)}
-                        className="px-4 py-2 text-white rounded-lg font-medium shadow-md hover:scale-105 transition-all"
-                        style={{
-                          background: `linear-gradient(to right, ${primaryAccentColor}, ${secondaryAccentColor})`,
-                        }}
+                        className="px-4 py-2 text-white rounded-lg font-medium shadow-md hover:scale-105 transition-all bg-gradient-to-r from-brand-cyan to-brand-blue"
                       >
                         Download
                       </button>
@@ -389,12 +381,13 @@ const Resources: React.FC = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white p-6 rounded-2xl shadow-lg w-[350px] relative"
+              className={`p-6 rounded-2xl shadow-2xl w-[350px] relative transition-all duration-300 ${theme === 'dark' ? 'bg-space-900/60 backdrop-blur-xl border border-white/10' : 'bg-white'
+                }`}
             >
-              <h2 className="text-xl font-bold text-center mb-2 text-gray-800">
+              <h2 className={`text-xl font-bold text-center mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                 Rate this Resource
               </h2>
-              <p className="text-gray-600 text-center mb-4">
+              <p className={`text-center mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                 {selectedResource.title}
               </p>
               <RatingStars
@@ -405,11 +398,10 @@ const Resources: React.FC = () => {
               <button
                 onClick={handleSubmitRating}
                 disabled={submitting}
-                className={`w-full mt-6 py-2 rounded-lg text-white font-medium transition ${
-                  submitting
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
+                className={`w-full mt-6 py-2 rounded-lg text-white font-medium transition ${submitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-brand-cyan to-brand-blue hover:brightness-110"
+                  }`}
               >
                 {submitting ? "Submitting..." : "Submit Rating"}
               </button>

@@ -4,7 +4,10 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, Users, ArrowRight } from 'lucide-react';
 import axios from '../api';
 
+import { useTheme } from '../context/ThemeContext';
+
 const Login = () => {
+  const { theme } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,17 +35,29 @@ const Login = () => {
       setIsLoading(false);
     }
   };
-  
+
 
   return (
     // Background: Changed to a neutral, slightly blue/indigo tinted gradient
-    <div className="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <div className="max-w-md mx-auto">
+    <div className={`min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${theme === 'dark'
+      ? 'bg-transparent'
+      : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'
+      }`}>
+      {theme === 'dark' && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-blue/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-purple/10 rounded-full blur-[100px]" />
+        </div>
+      )}
+      <div className="max-w-md mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100"
+          className={`rounded-2xl shadow-2xl p-8 border ${theme === 'dark'
+            ? 'glass border-white/10'
+            : 'bg-white border-gray-100'
+            }`}
         >
           {/* Header */}
           <div className="text-center mb-8">
@@ -55,8 +70,8 @@ const Login = () => {
             >
               <Users className="w-8 h-8 text-white" />
             </motion.div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
-            <p className="text-gray-600">Sign in to continue your journey</p>
+            <h1 className={`text-3xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Welcome Back</h1>
+            <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Sign in to continue your journey</p>
           </div>
 
           {/* Login Form */}
@@ -72,7 +87,7 @@ const Login = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
@@ -80,7 +95,10 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   // Focus Ring: Changed from orange-500 to blue-500
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${theme === 'dark'
+                    ? 'bg-white/5 border-white/10 text-white placeholder-gray-500'
+                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+                    }`}
                   placeholder="Enter your email"
                   required
                 />
@@ -92,7 +110,7 @@ const Login = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Password</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
@@ -100,7 +118,10 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   // Focus Ring: Changed from orange-500 to blue-500
-                  className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className={`w-full pl-12 pr-12 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${theme === 'dark'
+                    ? 'bg-white/5 border-white/10 text-white placeholder-gray-500'
+                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+                    }`}
                   placeholder="Enter your password"
                   required
                 />
@@ -123,10 +144,10 @@ const Login = () => {
               <label className="flex items-center">
                 {/* Checkbox: Changed from text-orange-600/focus:ring-orange-500 to blue */}
                 <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                <span className="ml-2 text-sm text-gray-600">Remember me</span>
+                <span className={`ml-2 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Remember me</span>
               </label>
               {/* Link: Changed from text-orange-600 to text-blue-600 */}
-              <Link to="#" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <Link to="#" className={`text-sm font-medium ${theme === 'dark' ? 'text-brand-cyan hover:text-brand-blue' : 'text-blue-600 hover:text-blue-700'}`}>
                 Forgot password?
               </Link>
             </motion.div>
@@ -138,7 +159,10 @@ const Login = () => {
               type="submit"
               disabled={isLoading}
               // Button Gradient: Changed from Orange/Green to Blue-600/Blue-400 (matching Sign Up in Header)
-              className="w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-500 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className={`w-full flex items-center justify-center px-6 py-3 text-white rounded-xl font-semibold transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${theme === 'dark'
+                ? 'bg-gradient-to-r from-brand-cyan to-brand-blue hover:from-brand-cyan hover:to-brand-purple'
+                : 'bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500'
+                }`}
             >
               {isLoading ? (
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -160,10 +184,10 @@ const Login = () => {
           >
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+                <div className={`w-full border-t ${theme === 'dark' ? 'border-white/10' : 'border-gray-200'}`}></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">Don't have an account?</span>
+                <span className={`px-4 ${theme === 'dark' ? 'bg-space-950 text-gray-400' : 'bg-white text-gray-500'}`}>Don't have an account?</span>
               </div>
             </div>
           </motion.div>

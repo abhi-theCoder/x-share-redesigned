@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
 import {
   Users,
   Share2,
@@ -21,13 +22,12 @@ import {
   Package,
 } from 'lucide-react';
 
-import rocket from '../images/rocket.png';
+
 
 // --- Styling Constants ---
-const PRIMARY_BLUE = 'text-blue-600';
-const ACCENT_BG_LIGHT = 'bg-[#F7F8FA]'; // Very light gray/blue for backgrounds/sections
-const ACCENT_BG_MEDIUM = 'bg-[#EEF2F7]'; // Slightly darker background for the Rewards section
-const MAIN_BG = 'bg-[#F0F9FE]'; // Main page background
+const TEXT_GRADIENT = 'bg-clip-text text-transparent bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-purple';
+const BTN_PRIMARY = 'px-8 py-3 bg-brand-blue/90 hover:bg-brand-blue text-white rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.8)] transition-all duration-300 flex items-center justify-center whitespace-nowrap';
+const SECTION_SPACING = 'py-24 px-4 sm:px-6 lg:px-8';
 
 // --- Content Data ---
 
@@ -87,67 +87,91 @@ const professionalBenefits = [
   { icon: MessageSquare, title: 'Community feedback', description: 'Helpful votes and comments surface the most useful advice.' },
 ];
 
-const transition = { type: 'spring', stiffness: 100, damping: 20 };
+const transition = { type: 'spring', stiffness: 100, damping: 20 } as const;
 
 
 
 /**
  * Renders a single problem point.
  */
-const ProblemItem: React.FC<{ text: string }> = ({ text }) => (
-  <li className="flex items-start mb-4 text-gray-600">
-    <AlertTriangle className="w-5 h-5 mr-3 mt-1 text-red-500 flex-shrink-0" />
-    <span className="font-medium">{text}</span>
-  </li>
-);
 
-/**
- * Renders a single solution point.
- */
-const SolutionItem: React.FC<{ icon: React.FC<any>, text: string }> = ({ icon: Icon, text }) => (
-  <li className="flex items-start mb-4 text-gray-700">
-    <CheckCircle className="w-5 h-5 mr-3 mt-1 text-blue-500 flex-shrink-0 fill-blue-50 opacity-90" />
-    <span className="font-medium">{text}</span>
-  </li>
-);
 
 /**
  * The main application component.
  */
 const Home: React.FC = () => {
-  return (
-    <div className={`min-h-screen font-sans ${MAIN_BG}`}>
+  const { theme } = useTheme();
 
-      {/* 1. Hero Section (Screenshot 1) */}
-      <section className="pt-16 pb-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+  return (
+    <div className={`min-h-screen font-sans overflow-x-hidden selection:bg-brand-cyan/30 transition-colors duration-300 ${theme === 'dark'
+      ? 'bg-transparent text-white'
+      : 'bg-gradient-to-br from-blue-50 via-white to-purple-50 text-gray-900'
+      }`}>
+
+      {/* 1. Hero Section */}
+      <section className="relative pt-20 pb-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Background Decorative Elements */}
+        {theme === 'dark' && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
+            <div className="absolute top-20 left-10 w-72 h-72 bg-brand-purple/20 rounded-full blur-[100px]" />
+            <div className="absolute bottom-20 right-10 w-96 h-96 bg-brand-cyan/20 rounded-full blur-[100px]" />
+          </div>
+        )}
+
+        <div className="relative max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           {/* Text Content */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={transition}
+            className="z-10"
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
-              Real interview insights to help you succeed.
+            <div className={`inline-flex items-center px-4 py-2 rounded-full border text-sm font-medium mb-6 backdrop-blur-md ${theme === 'dark'
+              ? 'bg-white/5 border-white/10 text-brand-cyan'
+              : 'bg-blue-100 border-blue-200 text-blue-700'
+              }`}>
+              <span className="flex h-2 w-2 relative mr-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${theme === 'dark' ? 'bg-brand-cyan' : 'bg-blue-600'}`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${theme === 'dark' ? 'bg-brand-cyan' : 'bg-blue-600'}`}></span>
+              </span>
+              The Future of Interview Prep
+            </div>
+
+            <h1 className={`text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Unlock your <br />
+              <span className={theme === 'dark' ? TEXT_GRADIENT : 'bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600'}>Career Potential</span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-lg leading-relaxed">
-              Explore community-verified tips and preparation guides. Track your progress and earn rewards as you grow.
+
+            <p className={`text-lg md:text-xl mb-10 max-w-lg leading-relaxed ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+              Join the elite community sharing verified interview intelligence.
+              Master your preparation with real-world insights, powered by collective experience.
             </p>
+
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                to="/signup"
-                className="px-8 py-3 text-white bg-blue-600 shadow-lg text-white rounded-xl font-semibold text-lg
-                  hover:bg-blue-700 hover:shadow-xl transition-all duration-300 flex items-center justify-center"
-              >
-                Get started
+              <Link to="/signup" className={BTN_PRIMARY}>
+                Start Now
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
-              <Link
-                to="/rewards"
-                className="px-8 py-3 border-2 border-blue-500 text-blue-600 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all duration-200 flex items-center justify-center"
-              >
-                Explore rewards
+              <Link to="/rewards" className={`px-8 py-3 rounded-xl font-bold text-lg backdrop-blur-sm transition-all duration-300 flex items-center justify-center ${theme === 'dark'
+                ? 'bg-white/5 border border-white/10 hover:bg-white/10 text-white'
+                : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 shadow-sm'
+                }`}>
+                <span className="mr-2">Explore Rewards</span>
+                <ChevronRight className="w-4 h-4" />
               </Link>
+            </div>
+
+            {/* Stats strip */}
+            <div className={`mt-12 flex items-center gap-8 text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="flex items-center gap-2">
+                <Users className={`w-5 h-5 ${theme === 'dark' ? 'text-brand-blue' : 'text-blue-600'}`} />
+                <span>2,000+ Pilots</span>
+              </div>
+              <div className={`h-4 w-px ${theme === 'dark' ? 'bg-white/10' : 'bg-gray-300'}`} />
+              <div className="flex items-center gap-2">
+                <BookOpen className={`w-5 h-5 ${theme === 'dark' ? 'text-brand-purple' : 'text-purple-600'}`} />
+                <span>5k+ Stories</span>
+              </div>
             </div>
           </motion.div>
 
@@ -156,34 +180,123 @@ const Home: React.FC = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ ...transition, delay: 0.2 }}
-            className="w-full h-80 lg:h-[450px] overflow-hidden rounded-3xl shadow-2xl"
+            className="relative w-full h-[500px] flex items-center justify-center"
           >
-            <img
-              src={rocket} // <-- This is where the imported 'rocket' variable is used!
-              alt="An illustration of a rocket launching towards planets, symbolizing career growth and success."
-              className="object-cover w-full h-full"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "https://placehold.co/800x600/D1E1E9/2E4057?text=Placeholder+Image";
-              }}
-            />
+            {/* Holographic Platform Effect */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-brand-blue/20 to-brand-purple/20 rounded-full blur-[60px] animate-pulse-glow" />
+
+            <motion.div
+              className="relative z-10 w-full h-full animate-float"
+            >
+              <div className="relative z-10 w-full h-full animate-float flex items-center justify-center">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  {/* Outer Orbiting Ring */}
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                    className="absolute w-96 h-96 border-2 border-dashed border-brand-cyan/20 rounded-full"
+                  />
+
+                  {/* Middle Orbiting Ring */}
+                  <motion.div
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="absolute w-80 h-80 border-2 border-brand-purple/30 rounded-full"
+                  >
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-brand-purple rounded-full shadow-[0_0_15px_rgba(157,78,221,0.8)]" />
+                  </motion.div>
+
+                  {/* Inner Spinning Geometry */}
+                  <motion.div
+                    animate={{
+                      rotateY: [0, 360],
+                      rotateX: [0, 180, 0],
+                    }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                    className="relative w-64 h-64 flex items-center justify-center"
+                    style={{ perspective: "1000px" }}
+                  >
+                    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_20px_rgba(0,240,255,0.5)]">
+                      <defs>
+                        <linearGradient id="core-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#00F0FF" stopOpacity="0.8" />
+                          <stop offset="100%" stopColor="#9D4EDD" stopOpacity="0.8" />
+                        </linearGradient>
+                      </defs>
+                      {/* Central Hexagon Core */}
+                      <motion.path
+                        animate={{
+                          scale: [1, 1.1, 1],
+                          opacity: [0.5, 0.8, 0.5]
+                        }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                        d="M50 5 L90 27.5 L90 72.5 L50 95 L10 72.5 L10 27.5 Z"
+                        fill="none"
+                        stroke="url(#core-grad)"
+                        strokeWidth="1.5"
+                      />
+                      {/* Connection Lines */}
+                      <path d="M50 5 L50 95 M10 27.5 L90 72.5 M90 27.5 L10 72.5" stroke="url(#core-grad)" strokeWidth="0.5" opacity="0.3" />
+                    </svg>
+                  </motion.div>
+
+                  {/* Pulsing Core Glow */}
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.4, 1],
+                      opacity: [0.1, 0.3, 0.1],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                    className="absolute w-48 h-48 bg-brand-cyan rounded-full blur-[80px]"
+                  />
+
+                  {/* Data Particles */}
+                  {[...Array(6)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      animate={{
+                        x: [0, Math.cos(i * 60 * Math.PI / 180) * 150],
+                        y: [0, Math.sin(i * 60 * Math.PI / 180) * 150],
+                        opacity: [0, 1, 0],
+                        scale: [0, 1, 0],
+                      }}
+                      transition={{
+                        duration: 3 + i,
+                        repeat: Infinity,
+                        delay: i * 0.5,
+                      }}
+                      className="absolute w-2 h-2 bg-brand-cyan rounded-full shadow-[0_0_10px_#00F0FF]"
+                    />
+                  ))}
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* 2. How X-share Works Section (Screenshot 2, top) */}
-      <section id="how-it-works" className={`py-20 px-4 sm:px-6 lg:px-8 ${ACCENT_BG_LIGHT}`}>
-        <div className="max-w-7xl mx-auto">
-          <motion.h2
+      {/* 2. How X-share Works Section */}
+      <section id="how-it-works" className={`relative ${SECTION_SPACING}`}>
+        {/* Background Gradient Mesh */}
+        <div className="absolute inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto">
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={transition}
-            className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12"
+            className="text-center mb-16"
           >
-            How X Share works
-          </motion.h2>
+            <h2 className={`text-3xl md:text-5xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Protocol: <span className={theme === 'dark' ? 'text-brand-cyan' : 'text-blue-600'}>Synchronize</span>
+            </h2>
+            <p className={`max-w-2xl mx-auto ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              A systematic approach to decoding the interview process. Join the network to access and contribute intelligence.
+            </p>
+          </motion.div>
 
+          {/* Steps Grid */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
             {howItWorksSteps.map((step, index) => {
               const IconComponent = step.icon;
@@ -194,115 +307,137 @@ const Home: React.FC = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ ...transition, delay: index * 0.1 }}
-                  className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 text-center flex flex-col items-center group hover:shadow-xl hover:border-blue-200 transition-all duration-300"
+                  className={`group relative p-6 rounded-2xl flex flex-col items-center text-center transition-all duration-300 ${theme === 'dark'
+                    ? 'glass hover:bg-white/10'
+                    : 'bg-white shadow-lg hover:shadow-xl border border-gray-100'
+                    }`}
                 >
-                  <div className={`p-3 rounded-xl mb-4 border-2 border-gray-200 group-hover:border-blue-400 transition-colors duration-200`}>
-                    <IconComponent className={`w-6 h-6 ${PRIMARY_BLUE}`} />
+                  {theme === 'dark' && (
+                    <div className="absolute inset-0 bg-gradient-to-b from-brand-cyan/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                  )}
+
+                  <div className={`relative p-4 rounded-xl mb-4 group-hover:scale-110 transition-transform duration-300 ${theme === 'dark' ? 'bg-brand-blue/10 text-brand-cyan' : 'bg-blue-50 text-blue-600'
+                    }`}>
+                    <IconComponent className="w-8 h-8" />
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">{step.title}</h3>
-                  <p className="text-sm text-gray-500">{step.description}</p>
+
+                  <h3 className={`relative text-lg font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{step.title}</h3>
+                  <p className={`relative text-xs sm:text-sm leading-relaxed transition-colors ${theme === 'dark' ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-600'}`}>
+                    {step.description}
+                  </p>
                 </motion.div>
               );
             })}
           </div>
 
-          <p className="text-center text-sm text-gray-500 mt-8 flex items-center justify-center">
-            <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-            Community posts are lightly reviewed for clarity and usefulness.
+          <p className="text-center text-sm text-gray-500 mt-12 flex items-center justify-center">
+            <CheckCircle className="w-4 h-4 mr-2 text-brand-blue" />
+            <span className="opacity-70">Community intelligence is cryptographically verified (simulated).</span>
           </p>
         </div>
       </section>
 
-      {/* 3. Why Choose X-share (Problems vs. Solutions) (Screenshot 2, bottom) */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      {/* 3. Why Choose  */}
+      <section className={`${SECTION_SPACING} ${theme === 'dark' ? 'bg-space-900/50' : 'bg-white/60'} backdrop-blur-sm`}>
         <div className="max-w-7xl mx-auto">
-          <motion.h2
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={transition}
-            className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-4"
+            className="text-center mb-16"
           >
-            Why choose X Share
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ ...transition, delay: 0.1 }}
-            className="text-center text-lg text-gray-600 mb-16"
-          >
-            Real experiences, practical guidance, and a community focused on helping you succeed. 
-          </motion.p>
+            <h2 className={`text-3xl md:text-4xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Upgrade Your <span className={theme === 'dark' ? 'text-brand-purple' : 'text-purple-600'}>Strategy</span>
+            </h2>
+            <p className={`max-w-2xl mx-auto ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Legacy preparation methods are obsolete. Deploy the X-Share framework for optimal results.
+            </p>
+          </motion.div>
 
           <div className="grid md:grid-cols-2 gap-10">
-            {/* Problems Students Face */}
+            {/* Problems */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={transition}
-              className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-red-400"
+              className={`p-8 rounded-2xl border-l-4 border-red-500/50 ${theme === 'dark' ? 'glass' : 'bg-white shadow-lg border border-gray-100'}`}
             >
-              <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+              <h3 className={`text-2xl font-bold mb-6 flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                 <AlertTriangle className="w-6 h-6 mr-3 text-red-500" />
-                Problems Students Face
+                System Failures
               </h3>
-              <ul className="list-none p-0">
+              <ul className="space-y-4">
                 {problems.map((p, i) => (
-                  <ProblemItem key={i} text={p} />
+                  <li key={i} className={`flex items-start ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <span className="w-1.5 h-1.5 mt-2 mr-3 bg-red-500 rounded-full flex-shrink-0" />
+                    <span>{p}</span>
+                  </li>
                 ))}
               </ul>
             </motion.div>
 
-            {/* How We Help You Succeed */}
+            {/* Solutions */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={transition}
-              className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-blue-400"
+              className={`p-8 rounded-2xl border-l-4 border-brand-cyan relative overflow-hidden ${theme === 'dark' ? 'glass' : 'bg-white shadow-lg border border-gray-100'
+                }`}
             >
-              <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                <Package className="w-6 h-6 mr-3 text-blue-500" />
-                How We Help You Succeed
+              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] pointer-events-none ${theme === 'dark' ? 'bg-brand-cyan/10' : 'bg-blue-100'
+                }`} />
+
+              <h3 className={`text-2xl font-bold mb-6 flex items-center relative z-10 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <Package className="w-6 h-6 mr-3 text-brand-cyan" />
+                The Solution
               </h3>
-              <ul className="list-none p-0">
-                {solutions.map((s, i) => (
-                  <SolutionItem key={i} icon={s.icon} text={s.text} />
-                ))}
+              <ul className="space-y-4 relative z-10">
+                {solutions.map((s, i) => {
+                  const Icon = s.icon;
+                  return (
+                    <li key={i} className={`flex items-start group ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <div className={`mr-3 mt-1 p-1 rounded transition-colors duration-300 ${theme === 'dark'
+                        ? 'bg-brand-cyan/10 text-brand-cyan group-hover:bg-brand-cyan group-hover:text-black'
+                        : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                        }`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <span className={`font-medium transition-colors ${theme === 'dark' ? 'group-hover:text-white' : 'group-hover:text-gray-900'}`}>{s.text}</span>
+                    </li>
+                  )
+                })}
               </ul>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* 4. Rewards Section (Screenshot 3) */}
-      <section id="rewards" className={`py-20 px-4 sm:px-6 lg:px-8 ${ACCENT_BG_MEDIUM}`}>
-        <div className="max-w-7xl mx-auto">
+      {/* 4. Rewards Section */}
+      <section id="rewards" className={`relative ${SECTION_SPACING}`}>
+        {theme === 'dark' && <div className="absolute inset-0 bg-space-950/50" />}
+        <div className="relative max-w-7xl mx-auto">
           <div className="flex justify-between items-end mb-12">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={transition}
-              className="text-3xl md:text-4xl font-bold text-gray-800"
+              className={`text-3xl md:text-5xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
             >
-              Rewards that value your real experience
+              Gamified <span className="text-yellow-400">Progression</span>
             </motion.h2>
-            <Link
-              to="/share-and-earn"
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition duration-200 hidden sm:block"
-            >
+            <Link to="/share-and-earn" className="hidden sm:inline-flex px-6 py-2 bg-yellow-500/10 border border-yellow-500/50 text-yellow-400 rounded-lg font-semibold hover:bg-yellow-500/20 transition duration-200">
               Share and earn
             </Link>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
             {[
-              { title: 'Earn points', content: ['Post an experience: +50 pts', 'Add interview Q&A: +10 pts each (max +50)', 'Helpful votes from peers: +2 pts per upvote'] },
-              { title: 'Quality multipliers', content: ['Verified by 3+ peers: x1.2', 'Company/role details filled: x1.1', 'Weekly streak (3 posts): +30 bonus pts'] },
-              { title: 'Redeem & showcase', content: ['Gift cards & perks starting at 300 pts', 'Profile badges (Bronze, Silver, Gold)', 'Leaderboard recognition for top mentors'] },
+              { title: 'Earn Credits', content: ['Post Intelligence: +50 pts', 'Verified Insight: +10 pts', 'Peer Validation: +2 pts'] },
+              { title: 'Multipliers', content: ['Verified Elite Status: x1.2', 'Complete Data Set: x1.1', 'Weekly Streak: +30 bonus'] },
+              { title: 'Redemption', content: ['Tech Perks & Gear', 'Profile Badges (Bronze, Silver, Gold)', 'Mentor Leaderboard Access'] },
             ].map((card, index) => (
               <motion.div
                 key={card.title}
@@ -310,14 +445,18 @@ const Home: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ ...transition, delay: index * 0.1 }}
-                className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
+                className={`p-6 rounded-xl border relative overflow-hidden group ${theme === 'dark'
+                  ? 'glass border-white/10'
+                  : 'bg-white shadow-lg border-gray-100'
+                  }`}
               >
-                <h3 className="text-xl font-bold text-gray-800 mb-4">{card.title}</h3>
-                <ul className="list-none space-y-2 text-gray-600">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-500/10 rounded-full blur-[30px] group-hover:bg-yellow-500/20 transition-colors" />
+                <h3 className={`text-xl font-bold mb-4 relative z-10 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{card.title}</h3>
+                <ul className="space-y-3 relative z-10">
                   {card.content.map((item, i) => (
-                    <li key={i} className="flex items-start">
+                    <li key={i} className={`flex items-start ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                       <Star className="w-4 h-4 mt-1 mr-2 text-yellow-500 flex-shrink-0" fill="currentColor" />
-                      <span className="text-sm">{item}</span>
+                      <span className={`text-sm transition-colors ${theme === 'dark' ? 'group-hover:text-gray-200' : 'group-hover:text-gray-900'}`}>{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -331,14 +470,14 @@ const Home: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={transition}
-              className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
+              className={`p-6 rounded-xl border ${theme === 'dark' ? 'glass border-white/10' : 'bg-white shadow-lg border-gray-100'}`}
             >
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <Award className="w-6 h-6 mr-2 text-blue-500" />
-                Levels
+              <h3 className={`text-xl font-bold mb-4 flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <Award className="w-6 h-6 mr-2 text-yellow-500" />
+                Rankings
               </h3>
-              <p className="text-sm text-gray-600">
-                **Bronze: 300 pts** · **Silver: 800 pts** · **Gold: 1500 pts** · **Crown Mentor: invite-only** for consistently helpful contributions.
+              <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                <span className="text-yellow-600 font-bold">Bronze: 300 pts</span> · <span className="text-gray-400 font-bold">Silver: 800 pts</span> · <span className="text-yellow-400 font-bold">Gold: 1500 pts</span> · <span className="text-brand-purple font-bold">Crown Mentor: Invite-only</span>
               </p>
             </motion.div>
             <motion.div
@@ -346,37 +485,37 @@ const Home: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={transition}
-              className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
+              className={`p-6 rounded-xl border ${theme === 'dark' ? 'glass border-white/10' : 'bg-white shadow-lg border-gray-100'}`}
             >
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <MessageSquare className="w-6 h-6 mr-2 text-blue-500" />
-                What counts as helpful?
+              <h3 className={`text-xl font-bold mb-4 flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <MessageSquare className={`w-6 h-6 mr-2 ${theme === 'dark' ? 'text-brand-blue' : 'text-blue-600'}`} />
+                Quality Standards
               </h3>
-              <p className="text-sm text-gray-600">
-                Specific questions asked, timeline, rounds, resources, and reflection on what you would improve. Keep it honest, concise, and actionable.
+              <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                Contributions are rated on specificity, recency, and actionable value. High-quality data is prioritized.
               </p>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* 5. Benefits for Everyone (Screenshot 4) */}
-      <section id="benefits" className="py-20 px-4 sm:px-6 lg:px-8">
+      {/* 5. Benefits for Everyone */}
+      <section id="benefits" className={`${SECTION_SPACING} ${theme === 'dark' ? 'bg-mesh-gradient' : 'bg-gray-50'}`}>
         <div className="max-w-7xl mx-auto">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={transition}
-            className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12"
+            className={`text-3xl md:text-5xl font-bold text-center mb-16 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
           >
-            Benefits for Everyone
+            Network <span className={theme === 'dark' ? 'text-brand-cyan' : 'text-blue-600'}>Value</span>
           </motion.h2>
 
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Students Column */}
             <div className="space-y-8">
-              <h3 className="text-lg font-bold text-gray-500 border-b pb-2">Students</h3>
+              <h3 className="text-lg font-bold text-brand-cyan uppercase tracking-widest border-b border-brand-cyan/20 pb-2">Candidates</h3>
               {studentBenefits.map((benefit, index) => {
                 const IconComponent = benefit.icon;
                 return (
@@ -386,12 +525,17 @@ const Home: React.FC = () => {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, amount: 0.5 }}
                     transition={{ ...transition, delay: index * 0.1 }}
-                    className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex items-start hover:shadow-xl transition duration-300"
+                    className={`p-6 rounded-xl flex items-start transition duration-300 ${theme === 'dark'
+                      ? 'glass hover:bg-white/10'
+                      : 'bg-white shadow-lg border border-gray-100 hover:shadow-xl'
+                      }`}
                   >
-                    <IconComponent className={`w-7 h-7 mr-4 mt-1 ${PRIMARY_BLUE}`} />
+                    <div className={`p-3 rounded-lg mr-4 ${theme === 'dark' ? 'bg-brand-blue/10 text-brand-blue' : 'bg-blue-50 text-blue-600'}`}>
+                      <IconComponent className="w-6 h-6" />
+                    </div>
                     <div>
-                      <h4 className="text-xl font-bold text-gray-800 mb-1">{benefit.title}</h4>
-                      <p className="text-gray-600">{benefit.description}</p>
+                      <h4 className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{benefit.title}</h4>
+                      <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{benefit.description}</p>
                     </div>
                   </motion.div>
                 );
@@ -400,7 +544,7 @@ const Home: React.FC = () => {
 
             {/* Professionals Column */}
             <div className="space-y-8">
-              <h3 className="text-lg font-bold text-gray-500 border-b pb-2">Professionals</h3>
+              <h3 className="text-lg font-bold text-brand-purple uppercase tracking-widest border-b border-brand-purple/20 pb-2">Mentors</h3>
               {professionalBenefits.map((benefit, index) => {
                 const IconComponent = benefit.icon;
                 return (
@@ -410,12 +554,17 @@ const Home: React.FC = () => {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, amount: 0.5 }}
                     transition={{ ...transition, delay: index * 0.1 }}
-                    className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex items-start hover:shadow-xl transition duration-300"
+                    className={`p-6 rounded-xl flex items-start transition duration-300 ${theme === 'dark'
+                      ? 'glass hover:bg-white/10'
+                      : 'bg-white shadow-lg border border-gray-100 hover:shadow-xl'
+                      }`}
                   >
-                    <IconComponent className={`w-7 h-7 mr-4 mt-1 ${PRIMARY_BLUE}`} />
+                    <div className={`p-3 rounded-lg mr-4 ${theme === 'dark' ? 'bg-brand-purple/10 text-brand-purple' : 'bg-purple-50 text-purple-600'}`}>
+                      <IconComponent className="w-6 h-6" />
+                    </div>
                     <div>
-                      <h4 className="text-xl font-bold text-gray-800 mb-1">{benefit.title}</h4>
-                      <p className="text-gray-600">{benefit.description}</p>
+                      <h4 className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{benefit.title}</h4>
+                      <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{benefit.description}</p>
                     </div>
                   </motion.div>
                 );
@@ -425,7 +574,14 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-    </div>
+
+      {/* Footer */}
+      <footer className={`${theme === 'dark' ? 'bg-space-950 border-t border-white/10 text-gray-400' : 'bg-white border-t border-gray-200 text-gray-600'} py-12`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p>&copy; {new Date().getFullYear()} X-Share. All rights reserved.</p>
+        </div>
+      </footer>
+    </div >
   );
 };
 

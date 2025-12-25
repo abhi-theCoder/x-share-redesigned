@@ -10,6 +10,8 @@ import tshirt from '../images/tshirt.png';
 import { verifyToken } from '../components/verifyLogin';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api';
+import { useTheme } from '../context/ThemeContext';
+
 
 // Types
 interface Reward {
@@ -74,6 +76,7 @@ const StarPop = () => {
 
 const Rewards: React.FC = () => {
     const navigate = useNavigate();
+    const { theme } = useTheme();
     const [user, setUser] = useState<User | null>(null);
     const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
@@ -81,7 +84,6 @@ const Rewards: React.FC = () => {
     const [redeemedRewardName, setRedeemedRewardName] = useState('');
     const [pointsContribution, setPointsContribution] = useState(0);
     const [isAnimatingStar, setIsAnimatingStar] = useState(false); // ✅ New state for animation
-    const token = localStorage.getItem('token');
     const pointsToInrRate = 10;
 
     useEffect(() => {
@@ -175,7 +177,7 @@ const Rewards: React.FC = () => {
     const remainingCostInr = selectedReward ? ((selectedReward.points - pointsContribution) / pointsToInrRate).toFixed(2) : '0.00';
 
     return (
-        <div className="bg-gray-50 min-h-screen p-4 sm:p-8 font-sans">
+        <div className={`min-h-screen p-4 sm:p-8 font-sans transition-colors duration-300 ${theme === 'dark' ? 'bg-transparent' : 'bg-gray-50'}`}>
             <div className="max-w-7xl mx-auto py-8">
                 {/* User points balance */}
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-8 mb-8">
@@ -214,11 +216,10 @@ const Rewards: React.FC = () => {
                                         <span className="text-sm text-gray-600">points</span>
                                     </div>
                                     <button
-                                        className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                                            user.points >= reward.points
-                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
-                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                        }`}
+                                        className={`w-full py-3 rounded-lg font-medium transition-colors ${user.points >= reward.points
+                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            }`}
                                     >
                                         Redeem Now
                                     </button>
@@ -286,7 +287,7 @@ const Rewards: React.FC = () => {
                                         <span className="text-gray-500 ml-1">OR</span>
                                         <span className="font-bold text-xl text-blue-600 ml-1">₹{inrValue}</span>
                                     </div>
-                                    
+
                                     {/* Points Slider */}
                                     <div className="mb-6 px-4">
                                         <p className="text-center text-sm text-gray-500 mb-2">Adjust your points contribution</p>
@@ -299,11 +300,9 @@ const Rewards: React.FC = () => {
                                                 onChange={(e) => setPointsContribution(Number(e.target.value))}
                                                 className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200"
                                                 style={{
-                                                    background: `linear-gradient(to right, #4F46E5 0%, #4F46E5 ${
-                                                        (pointsContribution / Math.min(selectedReward.points, user.points)) * 100
-                                                    }%, #E5E7EB ${
-                                                        (pointsContribution / Math.min(selectedReward.points, user.points)) * 100
-                                                    }%, #E5E7EB 100%)`,
+                                                    background: `linear-gradient(to right, #4F46E5 0%, #4F46E5 ${(pointsContribution / Math.min(selectedReward.points, user.points)) * 100
+                                                        }%, #E5E7EB ${(pointsContribution / Math.min(selectedReward.points, user.points)) * 100
+                                                        }%, #E5E7EB 100%)`,
                                                 }}
                                             />
                                         </div>
@@ -312,7 +311,7 @@ const Rewards: React.FC = () => {
                                             <span>{selectedReward.points} Points</span>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="bg-gray-800 text-white rounded-xl p-6 mb-6 text-center">
                                         <p className="text-lg font-medium mb-2">Your Total Cost:</p>
                                         <div className="flex items-center justify-center space-x-2">
@@ -328,11 +327,10 @@ const Rewards: React.FC = () => {
                                     <button
                                         onClick={handleConfirmRedemption}
                                         disabled={user.balance < Number(remainingCostInr) || user.points < pointsContribution}
-                                        className={`w-full py-4 rounded-full font-medium transition-colors text-white text-lg ${
-                                            user.balance >= Number(remainingCostInr) && user.points >= pointsContribution
-                                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
-                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        }`}
+                                        className={`w-full py-4 rounded-full font-medium transition-colors text-white text-lg ${user.balance >= Number(remainingCostInr) && user.points >= pointsContribution
+                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
                                     >
                                         Confirm Redemption
                                     </button>
