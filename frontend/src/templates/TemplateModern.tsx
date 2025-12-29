@@ -1,7 +1,7 @@
 import React from 'react';
 // Assuming same type definitions as TemplateBasic for brevity
 // import { ResumeData } from '../ResumeBuilder'; 
-import { Mail, Phone, MapPin, Linkedin, Github } from 'lucide-react';
+import { Mail, Phone, MapPin, Linkedin } from 'lucide-react';
 
 // --- Re-define Data Types for the Template (Must match ResumeBuilder) ---
 interface PersonalInfo { name: string; title: string; email: string; phone: string; location: string; linkedin: string; github: string; portfolio: string; }
@@ -15,7 +15,7 @@ interface SectionConfig { id: string; name: string; icon: React.FC<any>; form: s
 
 
 interface ResumeData {
-    personal: PersonalInfo; summary: string; experience: ExperienceItem[]; education: EducationItem[]; skills: SkillItem[]; projects: ProjectItem[]; certifications: CertificationItem[]; achievements: AchievementItem[]; interests: string;
+    personal: PersonalInfo; summary: string; experience: ExperienceItem[]; education: EducationItem[]; skills: SkillItem[]; projects: ProjectItem[]; certifications: CertificationItem[]; achievements: AchievementItem[]; interests: string; languages: string; references: string; custom: { [id: string]: string };
 }
 
 interface TemplateProps {
@@ -27,9 +27,21 @@ interface TemplateProps {
 
 
 const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSections }) => {
-    const { personal, summary, experience, education, skills, projects, certifications, achievements, interests } = data;
+    const { personal, summary, experience, education, skills, projects, certifications, achievements, interests, languages, references, custom } = data;
 
-    const formatDate = (date: string) => date ? new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'Present';
+    const formatDate = (date: string) => {
+        if (!date) return 'Present';
+        if (date.toLowerCase() === 'present') return 'Present';
+
+        if (/^\d{4}-\d{2}$/.test(date)) {
+            const [year, month] = date.split('-');
+            const dateObj = new Date(parseInt(year), parseInt(month) - 1);
+            return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        }
+
+        const dateObj = new Date(date);
+        return isNaN(dateObj.getTime()) ? date : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+    };
 
     const renderContactItem = (Icon: React.FC<any>, content: string | undefined) => (
         content ? (
@@ -46,15 +58,15 @@ const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSectio
             <h2 className="text-xl font-bold uppercase tracking-wide text-gray-800">{title}</h2>
         </div>
     );
-    
+
     // --- Section Render Maps ---
-    
+
     // Sections that appear in the main (4/5) column
     const mainSectionMap: { [key: string]: React.ReactNode | null } = {
         summary: summary ? (
             <div>
                 {renderSectionTitle('Profile')}
-                <p className="text-justify">{summary}</p>
+                <p className="text-justify text-gray-700">{summary}</p>
             </div>
         ) : null,
 
@@ -65,11 +77,11 @@ const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSectio
                     {experience.map(item => (
                         <div key={item.id} className="relative">
                             <div className="absolute -left-[22px] top-1 w-3 h-3 bg-blue-500 rounded-full"></div>
-                            <h3 className="font-extrabold text-base">{item.title}</h3>
-                            <p className="text-sm italic text-gray-600">{item.company}</p>
-                            <p className="text-xs text-gray-500 mb-1">{formatDate(item.startDate)} - {item.endDate === 'Present' ? 'Present' : formatDate(item.endDate)}</p>
-                            <ul className="list-disc ml-5 text-sm">
-                                {item.description.split('. ').map((bullet, idx) => bullet.trim() && <li key={idx}>{bullet.trim()}</li>)}
+                            <h3 className="font-extrabold text-base text-gray-900">{item.title}</h3>
+                            <p className="text-sm italic text-gray-600 font-bold">{item.company}</p>
+                            <p className="text-xs text-gray-500 mb-1">{formatDate(item.startDate)} - {formatDate(item.endDate)}</p>
+                            <ul className="list-disc ml-5 text-sm text-gray-700">
+                                {item.description.split(/[\n]/).map((bullet, idx) => bullet.trim() && <li key={idx}>{bullet.trim()}</li>)}
                             </ul>
                         </div>
                     ))}
@@ -83,9 +95,9 @@ const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSectio
                 <div className="space-y-3">
                     {projects.map(item => (
                         <div key={item.id}>
-                            <h3 className="font-extrabold text-sm">{item.name} ({item.role})</h3>
+                            <h3 className="font-extrabold text-sm text-gray-900">{item.name} ({item.role})</h3>
                             <p className="text-xs text-blue-600 hover:underline">{item.url}</p>
-                            <p className="text-sm mt-1">{item.description}</p>
+                            <p className="text-sm mt-1 text-gray-700">{item.description}</p>
                         </div>
                     ))}
                 </div>
@@ -95,7 +107,7 @@ const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSectio
         achievements: achievements.length > 0 ? (
             <div>
                 {renderSectionTitle('Achievements')}
-                <ul className="list-disc ml-5 text-sm space-y-1">
+                <ul className="list-disc ml-5 text-sm space-y-1 text-gray-700">
                     {achievements.map(item => (
                         <li key={item.id}>{item.description}</li>
                     ))}
@@ -113,7 +125,7 @@ const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSectio
                     {skills.map((skill, index) => (
                         <li
                             key={index}
-                            className="text-xs font-medium bg-gray-100 rounded-full px-2 py-0.5 inline-block mr-1 mb-1"
+                            className="text-xs font-medium bg-gray-100 rounded-full px-2 py-0.5 inline-block mr-1 mb-1 text-gray-800"
                         >
                             {skill.name}
                             {skill.level && (
@@ -133,9 +145,9 @@ const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSectio
                 <div className="space-y-3">
                     {education.map(item => (
                         <div key={item.id}>
-                            <p className="font-semibold text-xs">{item.degree}</p>
+                            <p className="font-semibold text-xs text-gray-900">{item.degree}</p>
                             <p className="text-xs text-gray-600">{item.institution}</p>
-                            <p className="text-xs text-gray-500 mb-1">{formatDate(item.startDate)} - {item.endDate === 'Present' ? 'Present' : formatDate(item.endDate)}</p>
+                            <p className="text-xs text-gray-500 mb-1">{formatDate(item.startDate)} - {formatDate(item.endDate)}</p>
                             {item.description && <p className="text-[10px] italic text-gray-500">{item.description}</p>}
                         </div>
                     ))}
@@ -149,9 +161,9 @@ const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSectio
                 <div className="space-y-2">
                     {certifications.map(item => (
                         <div key={item.id}>
-                            <p className="font-semibold text-xs">{item.name}</p>
+                            <p className="font-semibold text-xs text-gray-900">{item.name}</p>
                             <p className="text-xs text-gray-600">{item.authority}</p>
-                            <p className="text-xs text-gray-500">{item.date}</p>
+                            <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
                         </div>
                     ))}
                 </div>
@@ -161,9 +173,33 @@ const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSectio
         interests: interests.trim() ? (
             <div>
                 {renderSectionTitle('Interests')}
-                <p className="text-xs">{interests}</p>
+                <p className="text-xs text-gray-700">{interests}</p>
             </div>
         ) : null,
+        languages: languages.trim() ? (
+            <div>
+                {renderSectionTitle('Languages')}
+                <p className="text-xs text-gray-700">{languages}</p>
+            </div>
+        ) : null,
+        references: references.trim() ? (
+            <div>
+                {renderSectionTitle('References')}
+                <p className="text-xs text-gray-700">{references}</p>
+            </div>
+        ) : null,
+        ...Object.keys(custom || {}).reduce((acc, id) => {
+            const config = allSections.find(s => s.id === id);
+            if (config) {
+                acc[id] = (
+                    <div>
+                        {renderSectionTitle(config.name)}
+                        <p className="text-xs text-gray-700">{custom[id]}</p>
+                    </div>
+                );
+            }
+            return acc;
+        }, {} as any)
     };
     // --- End Section Render Maps ---
 
@@ -174,8 +210,8 @@ const TemplateModern: React.FC<TemplateProps> = ({ data, sectionOrder, allSectio
 
 
     return (
-        <div className="font-sans text-gray-700 text-sm p-6 leading-relaxed">
-            
+        <div className="font-sans text-gray-700 text-sm p-6 leading-relaxed bg-white min-h-[1100px]">
+
             {/* Header / Name */}
             <div className="flex justify-between items-center mb-6 pb-2 border-b-4 border-blue-500">
                 <h1 className="text-4xl font-extrabold tracking-tighter text-gray-900">{personal.name.toUpperCase()}</h1>

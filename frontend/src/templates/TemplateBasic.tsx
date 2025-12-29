@@ -12,7 +12,7 @@ interface SectionConfig { id: string; name: string; icon: React.FC<any>; form: s
 
 
 interface ResumeData {
-    personal: PersonalInfo; summary: string; experience: ExperienceItem[]; education: EducationItem[]; skills: SkillItem[]; projects: ProjectItem[]; certifications: CertificationItem[]; achievements: AchievementItem[]; interests: string;
+    personal: PersonalInfo; summary: string; experience: ExperienceItem[]; education: EducationItem[]; skills: SkillItem[]; projects: ProjectItem[]; certifications: CertificationItem[]; achievements: AchievementItem[]; interests: string; languages: string; references: string; custom: { [id: string]: string };
 }
 
 interface TemplateProps {
@@ -23,13 +23,27 @@ interface TemplateProps {
 // --- End Data Types ---
 
 const TemplateBasic: React.FC<TemplateProps> = ({ data, sectionOrder, allSections }) => {
-    const { personal, summary, experience, education, skills, projects, certifications, achievements, interests } = data;
+    const { personal, summary, experience, education, skills, projects, certifications, achievements, interests, languages, references, custom } = data;
 
-    const formatDate = (date: string) => date ? new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'Present';
+    const formatDate = (date: string) => {
+        if (!date) return 'Present';
+        if (date.toLowerCase() === 'present') return 'Present';
+
+        // Handle YYYY-MM format from <input type="month" />
+        if (/^\d{4}-\d{2}$/.test(date)) {
+            const [year, month] = date.split('-');
+            const dateObj = new Date(parseInt(year), parseInt(month) - 1);
+            return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        }
+
+        // Fallback for other formats
+        const dateObj = new Date(date);
+        return isNaN(dateObj.getTime()) ? date : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+    };
 
     const renderHeader = () => (
-        <div className="text-center pb-4 border-b border-gray-400 mb-4 font-sans">
-            <h1 className="text-3xl font-bold uppercase tracking-wider mb-1 text-gray-900">{personal.name}</h1>
+        <div className="text-center pb-4 border-b border-gray-400 mb-4 font-sans text-gray-900">
+            <h1 className="text-3xl font-bold uppercase tracking-wider mb-1">{personal.name}</h1>
             <h2 className='text-lg font-medium text-blue-600 mb-2'>{personal.title}</h2>
             <div className="flex justify-center space-x-4 text-sm text-gray-700">
                 {personal.phone && <p>{personal.phone}</p>}
@@ -41,27 +55,27 @@ const TemplateBasic: React.FC<TemplateProps> = ({ data, sectionOrder, allSection
 
     const renderSection = (title: string, content: React.ReactNode) => (
         <div className="mb-6">
-            <h2 className="text-xl font-bold uppercase border-b-2 border-gray-500 pb-1 mb-3">{title}</h2>
+            <h2 className="text-xl font-bold uppercase border-b-2 border-gray-500 pb-1 mb-3 text-gray-900">{title}</h2>
             {content}
         </div>
     );
-    
+
     // --- Section Render Map ---
     const sectionMap: { [key: string]: React.ReactNode | null } = {
         personal: null, // Rendered in header
-        summary: summary ? renderSection('Professional Summary', <p className="text-justify">{summary}</p>) : null,
+        summary: summary ? renderSection('Professional Summary', <p className="text-justify text-gray-800">{summary}</p>) : null,
 
         experience: experience.length > 0 ? renderSection('Experience', (
             <div className="space-y-4">
                 {experience.map(item => (
                     <div key={item.id}>
                         <div className="flex justify-between items-center mb-1">
-                            <h3 className="font-bold text-base">{item.title} at {item.company}</h3>
+                            <h3 className="font-bold text-base text-gray-900">{item.title} at {item.company}</h3>
                             <p className="text-xs text-gray-600 font-medium whitespace-nowrap">
-                                {formatDate(item.startDate)} - {item.endDate}
+                                {formatDate(item.startDate)} - {formatDate(item.endDate)}
                             </p>
                         </div>
-                        <ul className="list-disc ml-5 text-sm">
+                        <ul className="list-disc ml-5 text-sm text-gray-700">
                             {item.description.split(/[.!?\n]/).map((bullet, idx) => bullet.trim() && <li key={idx}>{bullet.trim()}</li>)}
                         </ul>
                     </div>
@@ -74,18 +88,18 @@ const TemplateBasic: React.FC<TemplateProps> = ({ data, sectionOrder, allSection
                 {education.map(item => (
                     <div key={item.id} className="flex justify-between items-start">
                         <div>
-                            <h3 className="font-bold">{item.degree}</h3>
+                            <h3 className="font-bold text-gray-900">{item.degree}</h3>
                             <p className="text-sm text-gray-700">{item.institution}, {item.city}</p>
                             {item.description && <p className="text-xs italic text-gray-600 mt-1">{item.description}</p>}
                         </div>
                         <p className="text-xs text-gray-600 font-medium whitespace-nowrap">
-                            {formatDate(item.startDate)} - {item.endDate}
+                            {formatDate(item.startDate)} - {formatDate(item.endDate)}
                         </p>
                     </div>
                 ))}
             </div>
         )) : null,
-        
+
         skills: skills.length > 0 ? renderSection('Skills', (
             <div className="flex flex-wrap gap-2">
                 {skills.map((skill, index) => (
@@ -100,9 +114,9 @@ const TemplateBasic: React.FC<TemplateProps> = ({ data, sectionOrder, allSection
             <div className="space-y-3">
                 {projects.map(item => (
                     <div key={item.id}>
-                        <h3 className="font-bold">{item.name} ({item.role})</h3>
+                        <h3 className="font-bold text-gray-900">{item.name} ({item.role})</h3>
                         <p className="text-xs text-blue-600 hover:underline">{item.url}</p>
-                        <p className="text-sm mt-1">{item.description}</p>
+                        <p className="text-sm mt-1 text-gray-700">{item.description}</p>
                     </div>
                 ))}
             </div>
@@ -112,15 +126,15 @@ const TemplateBasic: React.FC<TemplateProps> = ({ data, sectionOrder, allSection
             <div className="space-y-3">
                 {certifications.map(item => (
                     <div key={item.id}>
-                        <p className="font-bold">{item.name} ({item.authority})</p>
-                        <p className="text-xs text-gray-600">{item.date}</p>
+                        <p className="font-bold text-gray-900">{item.name} ({item.authority})</p>
+                        <p className="text-xs text-gray-600">{formatDate(item.date)}</p>
                     </div>
                 ))}
             </div>
         )) : null,
 
         achievements: achievements.length > 0 ? renderSection('Key Achievements', (
-            <ul className="list-disc ml-5 text-sm space-y-1">
+            <ul className="list-disc ml-5 text-sm space-y-1 text-gray-700">
                 {achievements.map(item => (
                     <li key={item.id}>{item.description}</li>
                 ))}
@@ -128,14 +142,27 @@ const TemplateBasic: React.FC<TemplateProps> = ({ data, sectionOrder, allSection
         )) : null,
 
         interests: interests.trim() ? renderSection('Interests', (
-            <p className="text-sm">{interests}</p>
+            <p className="text-sm text-gray-700">{interests}</p>
         )) : null,
+        languages: languages.trim() ? renderSection('Languages', (
+            <p className="text-sm text-gray-700">{languages}</p>
+        )) : null,
+        references: references.trim() ? renderSection('References', (
+            <p className="text-sm text-gray-700">{references}</p>
+        )) : null,
+        ...Object.keys(custom || {}).reduce((acc: { [key: string]: React.ReactNode }, id) => {
+            const config = allSections.find((s: SectionConfig) => s.id === id);
+            if (config) {
+                acc[id] = renderSection(config.name, <p className="text-sm text-gray-700">{custom[id]}</p>);
+            }
+            return acc;
+        }, {})
     };
     // --- End Section Render Map ---
 
 
     return (
-        <div className="font-sans text-gray-800 text-sm p-4 leading-normal">
+        <div className="font-sans text-gray-800 text-sm p-4 leading-normal bg-white">
             {renderHeader()}
 
             {/* Iterate over the ordered sections */}

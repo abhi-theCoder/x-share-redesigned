@@ -14,7 +14,7 @@ interface SectionConfig { id: string; name: string; icon: React.FC<any>; form: s
 
 
 interface ResumeData {
-    personal: PersonalInfo; summary: string; experience: ExperienceItem[]; education: EducationItem[]; skills: SkillItem[]; projects: ProjectItem[]; certifications: CertificationItem[]; achievements: AchievementItem[]; interests: string;
+    personal: PersonalInfo; summary: string; experience: ExperienceItem[]; education: EducationItem[]; skills: SkillItem[]; projects: ProjectItem[]; certifications: CertificationItem[]; achievements: AchievementItem[]; interests: string; languages: string; references: string; custom: { [id: string]: string };
 }
 
 interface TemplateProps {
@@ -26,9 +26,21 @@ interface TemplateProps {
 
 
 const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, allSections }) => {
-    const { personal, summary, experience, education, skills, projects, certifications, achievements, interests } = data;
+    const { personal, summary, experience, education, skills, projects, certifications, achievements, interests, languages, references, custom } = data;
 
-    const formatDate = (date: string) => date ? new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'Present';
+    const formatDate = (date: string) => {
+        if (!date) return 'Present';
+        if (date.toLowerCase() === 'present') return 'Present';
+
+        if (/^\d{4}-\d{2}$/.test(date)) {
+            const [year, month] = date.split('-');
+            const dateObj = new Date(parseInt(year), parseInt(month) - 1);
+            return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        }
+
+        const dateObj = new Date(date);
+        return isNaN(dateObj.getTime()) ? date : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+    };
 
     const renderHeader = () => (
         <div className="pb-3 border-b-2 border-blue-600 mb-4">
@@ -40,8 +52,8 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
                 {personal.location && <p className="flex items-center space-x-1"><span className="text-blue-600">📍</span><span>{personal.location}</span></p>}
             </div>
             <div className="flex flex-wrap items-center text-sm text-blue-600 space-x-4 mt-1">
-                {personal.linkedin && <a href={`https://${personal.linkedin}`} target="_blank" rel="noopener noreferrer" className='hover:underline'>{personal.linkedin.split('/').pop()}</a>}
-                {personal.github && <a href={`https://${personal.github}`} target="_blank" rel="noopener noreferrer" className='hover:underline'>{personal.github.split('/').pop()}</a>}
+                {personal.linkedin && <a href={`https://${personal.linkedin}`} target="_blank" rel="noopener noreferrer" className='hover:underline text-blue-600'>{personal.linkedin.split('/').pop()}</a>}
+                {personal.github && <a href={`https://${personal.github}`} target="_blank" rel="noopener noreferrer" className='hover:underline text-blue-600'>{personal.github.split('/').pop()}</a>}
             </div>
         </div>
     );
@@ -49,15 +61,15 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
     const renderSectionTitle = (title: string) => (
         <h2 className="text-lg font-bold text-blue-600 uppercase border-b border-gray-300 pb-1 mb-3 mt-4">{title}</h2>
     );
-    
+
     // --- Section Render Maps ---
-    
+
     // Sections that appear in the main (3/4) column
     const mainSectionMap: { [key: string]: React.ReactNode | null } = {
         summary: summary ? (
             <div className="mb-4">
                 {renderSectionTitle('Summary')}
-                <p className="text-justify">{summary}</p>
+                <p className="text-justify text-gray-700 leading-relaxed font-sans">{summary}</p>
             </div>
         ) : null,
 
@@ -68,11 +80,11 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
                     {experience.map(item => (
                         <div key={item.id}>
                             <div className="flex justify-between items-start">
-                                <h3 className="font-extrabold text-base">{item.title}</h3>
-                                <p className="text-xs text-gray-500 font-medium whitespace-nowrap">{item.company}, {formatDate(item.startDate)} - {item.endDate === 'Present' ? 'Present' : formatDate(item.endDate)}</p>
+                                <h3 className="font-extrabold text-base text-gray-900 font-sans">{item.title}</h3>
+                                <p className="text-xs text-gray-500 font-medium whitespace-nowrap">{item.company}, {formatDate(item.startDate)} - {formatDate(item.endDate)}</p>
                             </div>
-                            <ul className="list-disc ml-5 text-sm mt-1">
-                                {item.description.split('. ').map((bullet, idx) => bullet.trim() && <li key={idx}>{bullet.trim()}</li>)}
+                            <ul className="list-disc ml-5 text-sm mt-1 text-gray-700">
+                                {item.description.split(/[\n]/).map((bullet, idx) => bullet.trim() && <li key={idx}>{bullet.trim()}</li>)}
                             </ul>
                         </div>
                     ))}
@@ -86,9 +98,9 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
                 <div className="space-y-3">
                     {projects.map(item => (
                         <div key={item.id}>
-                            <h3 className="font-extrabold text-sm">{item.name} ({item.role})</h3>
+                            <h3 className="font-extrabold text-sm text-gray-900">{item.name} ({item.role})</h3>
                             <p className="text-xs text-blue-600 hover:underline">{item.url}</p>
-                            <p className="text-sm mt-1">{item.description}</p>
+                            <p className="text-sm mt-1 text-gray-700">{item.description}</p>
                         </div>
                     ))}
                 </div>
@@ -98,7 +110,7 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
         achievements: achievements.length > 0 ? (
             <div className="mb-4">
                 {renderSectionTitle('Key Achievements')}
-                <ul className="list-disc ml-5 text-sm space-y-1">
+                <ul className="list-disc ml-5 text-sm space-y-1 text-gray-700">
                     {achievements.map(item => (
                         <li key={item.id}>{item.description}</li>
                     ))}
@@ -112,13 +124,13 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
         education: education.length > 0 ? (
             <div className="mb-4">
                 {renderSectionTitle('Education')}
-                <div className="space-y-3">
+                <div className="space-y-3 font-sans">
                     {education.map(item => (
                         <div key={item.id}>
-                            <p className="font-semibold text-xs">{item.degree}</p>
+                            <p className="font-bold text-xs text-gray-900">{item.degree}</p>
                             <p className="text-xs text-gray-700 italic">{item.institution}</p>
                             <p className="text-xs text-gray-500">{item.city}</p>
-                            <p className="text-xs text-gray-500">{formatDate(item.startDate)} - {item.endDate === 'Present' ? 'Present' : formatDate(item.endDate)}</p>
+                            <p className="text-xs text-gray-500">{formatDate(item.startDate)} - {formatDate(item.endDate)}</p>
                         </div>
                     ))}
                 </div>
@@ -126,13 +138,13 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
         ) : null,
 
         skills: skills.length > 0 ? (
-            <div className="mb-4">
+            <div className="mb-4 font-sans">
                 {renderSectionTitle('Skills')}
-                <ul className="flex flex-wrap">
+                <ul className="flex flex-wrap gap-1">
                     {skills.map((skill, index) => (
                         <li
                             key={index}
-                            className="text-xs font-medium bg-gray-100 rounded-full px-2 py-0.5 inline-block mr-1 mb-1"
+                            className="text-xs font-semibold bg-gray-100 text-gray-800 rounded px-2 py-0.5 border border-gray-200"
                         >
                             {skill.name}
                         </li>
@@ -142,14 +154,14 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
         ) : null,
 
         certifications: certifications.length > 0 ? (
-            <div className="mb-4">
+            <div className="mb-4 font-sans">
                 {renderSectionTitle('Certifications')}
                 <div className="space-y-2">
                     {certifications.map(item => (
                         <div key={item.id}>
-                            <p className="font-semibold text-xs">{item.name}</p>
-                            <p className="text-xs text-gray-600">{item.authority}</p>
-                            <p className="text-xs text-gray-500">{item.date}</p>
+                            <p className="font-bold text-xs text-gray-900">{item.name}</p>
+                            <p className="text-xs text-gray-700">{item.authority}</p>
+                            <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
                         </div>
                     ))}
                 </div>
@@ -157,11 +169,35 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
         ) : null,
 
         interests: interests.trim() ? (
-            <div className="mb-4">
+            <div className="mb-4 font-sans">
                 {renderSectionTitle('Interests')}
-                <p className="text-xs">{interests}</p>
+                <p className="text-xs text-gray-700">{interests}</p>
             </div>
         ) : null,
+        languages: languages.trim() ? (
+            <div className="mb-4 font-sans">
+                {renderSectionTitle('Languages')}
+                <p className="text-xs text-gray-700">{languages}</p>
+            </div>
+        ) : null,
+        references: references.trim() ? (
+            <div className="mb-4 font-sans">
+                {renderSectionTitle('References')}
+                <p className="text-xs text-gray-700">{references}</p>
+            </div>
+        ) : null,
+        ...Object.keys(custom || {}).reduce((acc, id) => {
+            const config = allSections.find(s => s.id === id);
+            if (config) {
+                acc[id] = (
+                    <div className="mb-4 font-sans">
+                        {renderSectionTitle(config.name)}
+                        <p className="text-xs text-gray-700">{custom[id]}</p>
+                    </div>
+                );
+            }
+            return acc;
+        }, {} as any)
     };
     // --- End Section Render Maps ---
 
@@ -171,7 +207,7 @@ const TemplateProfessional: React.FC<TemplateProps> = ({ data, sectionOrder, all
 
 
     return (
-        <div className="font-serif text-gray-800 text-sm p-4 leading-relaxed">
+        <div className="font-serif text-gray-800 text-sm p-8 leading-relaxed bg-white min-h-[1100px]">
             {renderHeader()}
 
             <div className="grid grid-cols-4 gap-6">
