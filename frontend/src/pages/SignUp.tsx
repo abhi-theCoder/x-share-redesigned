@@ -114,8 +114,8 @@ const SignUp: React.FC = () => {
   const handleSocialSignUp = (provider: 'google' | 'github' | 'linkedin') => {
     setIsLoading(true);
     // Redirect to backend social login initiation route
-    const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/';
-    window.location.href = `${backendUrl}api/auth/social/${provider}`;
+    const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+    window.location.href = `${backendUrl}/api/auth/social/${provider}`;
   };
 
   const coinVariants: any = {
