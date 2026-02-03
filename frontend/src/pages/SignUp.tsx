@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail,
@@ -12,6 +12,7 @@ import {
   Users,
   ArrowRight,
 } from 'lucide-react';
+import { FaGoogle, FaGithub, FaLinkedinIn } from 'react-icons/fa';
 import axios from '../api';
 import { useTheme } from '../context/ThemeContext';
 
@@ -25,9 +26,6 @@ interface FormData {
   company: string;
   location: string;
 }
-
-// ✅ Define backend error response type
-
 
 const SignUp: React.FC = () => {
   const { theme } = useTheme();
@@ -48,6 +46,20 @@ const SignUp: React.FC = () => {
   const [showCoinAnimation, setShowCoinAnimation] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Handle OAuth Redirect Callback from Backend
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    const userId = params.get('userId');
+
+    if (token && userId) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('userId', userId);
+      navigate('/profile');
+    }
+  }, [location, navigate]);
 
   // ✅ Make handleChange generic
   const handleChange = (
@@ -97,6 +109,13 @@ const SignUp: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSocialSignUp = (provider: 'google' | 'github' | 'linkedin') => {
+    setIsLoading(true);
+    // Redirect to backend social login initiation route
+    const backendUrl = 'http://localhost:5001';
+    window.location.href = `${backendUrl}/api/auth/social/${provider}`;
   };
 
   const coinVariants: any = {
@@ -213,6 +232,52 @@ const SignUp: React.FC = () => {
             </motion.div>
             <h1 className={`text-3xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Join X SHARE</h1>
             <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Create your account and start connecting</p>
+          </div>
+
+          {/* Social Login Buttons */}
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleSocialSignUp('google')}
+              className={`flex items-center justify-center p-3 rounded-xl border transition-all duration-200 ${theme === 'dark'
+                ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white'
+                : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                }`}
+            >
+              <FaGoogle className="w-5 h-5 text-red-500" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleSocialSignUp('linkedin')}
+              className={`flex items-center justify-center p-3 rounded-xl border transition-all duration-200 ${theme === 'dark'
+                ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white'
+                : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                }`}
+            >
+              <FaLinkedinIn className="w-5 h-5 text-blue-600" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleSocialSignUp('github')}
+              className={`flex items-center justify-center p-3 rounded-xl border transition-all duration-200 ${theme === 'dark'
+                ? 'bg-white/5 border-white/10 hover:bg-white/10 text-white'
+                : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700'
+                }`}
+            >
+              <FaGithub className="w-5 h-5 text-gray-900 dark:text-white" />
+            </motion.button>
+          </div>
+
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className={`w-full border-t ${theme === 'dark' ? 'border-white/10' : 'border-gray-200'}`}></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className={`px-4 ${theme === 'dark' ? 'bg-[#121214] text-gray-400' : 'bg-white text-gray-500'}`}>Or sign up with email</span>
+            </div>
           </div>
 
           {/* Role Selection */}

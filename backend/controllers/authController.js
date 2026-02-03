@@ -37,7 +37,7 @@ async function registerUser(req, res) {
       email,
       password: hashedPassword,
       role,
-      points:50,
+      points: 50,
       // Conditionally add company and location if the role is 'senior'
       ...(role === 'senior' && { company, location }),
     };
@@ -100,4 +100,136 @@ async function loginUser(req, res) {
   }
 }
 
-module.exports = { registerUser, loginUser };
+// Controller function to handle social login initiation
+async function initiateSocialLogin(req, res) {
+  const { provider } = req.params;
+  const allowedProviders = ['google', 'github', 'linkedin'];
+
+  if (!allowedProviders.includes(provider)) {
+    return res.status(400).json({ message: `Unsupported provider: ${provider}` });
+  }
+
+  // Redirect back to our backend callback
+  const redirectUrl = `${process.env.BACKEND_URL || 'http://localhost:5001'}/api/auth/social/callback`;
+
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: true,
+      },
+    });
+
+    if (error) {
+      console.error('Supabase OAuth error:', error.message);
+      return res.status(400).json({ message: error.message });
+    }
+
+    if (data?.url) {
+      res.redirect(data.url);
+    } else {
+      throw new Error('No redirection URL returned from Supabase.');
+    }
+  } catch (error) {
+    console.error('Error in initiateSocialLogin:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+}
+
+// Controller function to handle the callback from Supabase/Provider
+async function handleSocialCallback(req, res) {
+  // Pure Backend: Server a page to extract the hash/fragment and send it back to the server
+  res.send(`
+    <html>
+      <body style="background: #030014; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+        <div style="text-align: center;">
+          <h2>Authenticating...</h2>
+          <p>Please wait while we finalize your login.</p>
+        </div>
+        <script>
+          const hash = window.location.hash;
+          if (hash) {
+            const params = new URLSearchParams(hash.substring(1));
+            const accessToken = params.get('access_token');
+            if (accessToken) {
+              window.location.href = '/api/auth/social/process-token?access_token=' + accessToken;
+            } else {
+              document.body.innerHTML = 'Authentication tokens not found in URL.';
+            }
+          } else {
+            // Check for code if using PKCE, but construct manual URL above uses implicit
+            document.body.innerHTML = 'Authentication failed. No response found.';
+          }
+        </script>
+      </body>
+    </html>
+  `);
+}
+
+// Controller function to process the access token and create/login the user
+async function processSocialToken(req, res) {
+  const { access_token } = req.query;
+
+  if (!access_token) {
+    return res.status(400).json({ message: 'Access token is required.' });
+  }
+
+  try {
+    // Use the access token to get user info from Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(access_token);
+
+    if (error || !user) {
+      throw error || new Error('User not found');
+    }
+
+    const email = user.email;
+    const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0];
+
+    // Check if the user already exists in our 'users' table
+    let { data: existingUser, error: fetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      throw fetchError;
+    }
+
+    let finalUser = existingUser;
+
+    if (!existingUser) {
+      // Create a new user if they don't exist
+      const newUser = {
+        name,
+        email,
+        role: 'student', // Default role
+        points: 50,
+      };
+
+      const { data: insertedData, error: insertError } = await supabase
+        .from('users')
+        .insert([newUser])
+        .select()
+        .single();
+
+      if (insertError) {
+        throw insertError;
+      }
+      finalUser = insertedData;
+    }
+
+    // Generate our application JWT token
+    const token = jwt.sign({ id: finalUser.id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+
+    // Redirect to the frontend with the token and userId
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/login?token=${token}&userId=${finalUser.id}`);
+  } catch (error) {
+    console.error('Error in processing social token:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+}
+
+module.exports = { registerUser, loginUser, initiateSocialLogin, handleSocialCallback, processSocialToken };
