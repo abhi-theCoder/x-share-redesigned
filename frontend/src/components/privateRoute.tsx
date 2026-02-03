@@ -43,8 +43,8 @@ const PrivateRoute: React.FC = () => {
 
   // ✅ If not logged in, redirect to login page
   if (!isAuthenticated) {
-    // return <Navigate to="/login" replace />;
-    return <LoginRequired />;
+    return <Navigate to="/login" replace />;
+    // return <LoginRequired />;
   }
 
   // ✅ If logged in, show the protected route content
