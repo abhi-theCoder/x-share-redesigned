@@ -7,7 +7,7 @@ import {
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import html2pdf from 'html2pdf.js';
 import { useTheme } from '../context/ThemeContext';
-import { parseResumeWithAI, rewriteContentWithAI, analyzeATSWithAI } from '../services/aiService';
+// import { parseResumeWithAI, rewriteContentWithAI, analyzeATSWithAI } from '../services/aiService';
 
 // --- Import Templates ---
 import TemplateBasic from '../templates/TemplateBasic';
@@ -341,13 +341,13 @@ const ExperienceItemInput = React.memo(({ item, updateArrayItem, removeItem, han
           onChange={(e) => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
           className="input-field pr-10"
         />
-        <button
+        /* <button
           onClick={() => handleRewrite(localItem.description, `experience.${localItem.id}.description`, 'work experience achievements')}
           className="absolute right-3 top-3 p-1 rounded-lg bg-brand-cyan/10 text-brand-cyan hover:bg-brand-cyan hover:text-black transition-all opacity-0 group-hover/textarea:opacity-100"
           title="AI Rewrite"
         >
           <Sparkles size={14} />
-        </button>
+        </button> */
       </div>
       <button onClick={() => removeItem('experience', item.id)} className="absolute top-2 right-2 text-red-500 hover:bg-red-500/10 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X size={14} /></button>
     </div>
@@ -456,13 +456,13 @@ const ProjectItemInput = React.memo(({ item, updateArrayItem, removeItem, handle
           onChange={(e) => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
           className="input-field pr-10"
         />
-        <button
+        /* <button
           onClick={() => handleRewrite(localItem.description, `projects.${localItem.id}.description`, 'project description')}
           className="absolute right-3 top-3 p-1 rounded-lg bg-brand-cyan/10 text-brand-cyan hover:bg-brand-cyan hover:text-black transition-all opacity-0 group-hover/textarea:opacity-100"
           title="AI Rewrite"
         >
           <Sparkles size={14} />
-        </button>
+        </button> */
       </div>
       <button onClick={() => removeItem('projects', item.id)} className="absolute top-2 right-2 text-red-500 hover:bg-red-500/10 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X size={14} /></button>
     </div>
@@ -520,13 +520,13 @@ const AchievementItemInput = React.memo(({ item, updateArrayItem, removeItem, ha
           onChange={(e) => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
           className="input-field pr-10"
         />
-        <button
+        /* <button
           onClick={() => handleRewrite(localItem.description, `achievements.${localItem.id}.description`, 'professional achievement')}
           className="absolute right-3 top-3 p-1 rounded-lg bg-brand-cyan/10 text-brand-cyan hover:bg-brand-cyan hover:text-black transition-all opacity-0 group-hover/textarea:opacity-100"
           title="AI Rewrite"
         >
           <Sparkles size={14} />
-        </button>
+        </button> */
       </div>
       <button onClick={() => removeItem('achievements', item.id)} className="absolute top-2 right-2 text-red-500 hover:bg-red-500/10 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X size={14} /></button>
     </div>
@@ -564,13 +564,13 @@ const StringSectionForm = ({ value, label, placeholder, setResumeData, field, ha
     <div className="space-y-4">
       <div className="flex justify-between items-center px-1">
         <p className="text-[10px] uppercase tracking-widest font-bold text-gray-500">{label}</p>
-        <button
+        {/* <button
           onClick={() => handleRewrite(localValue, field, label)}
           className="flex items-center gap-2 text-[10px] font-bold text-brand-cyan hover:text-white transition-colors"
         >
           <Sparkles size={12} />
           AI REWRITE
-        </button>
+        </button> */}
       </div>
       <textarea
         rows={4}
@@ -751,7 +751,7 @@ const ResumeBuilder = () => {
     if (dragCounter > 0) console.log('Current Drag Counter:', dragCounter);
   }, [dragCounter]);
 
-  const handleRewrite = async (text: string, path: string, context?: string) => {
+  /* const handleRewrite = async (text: string, path: string, context?: string) => {
     if (!text || text.trim().length < 5) {
       alert('Please enter at least a few words to rewrite.');
       return;
@@ -772,7 +772,9 @@ const ResumeBuilder = () => {
     } finally {
       setIsAIProcessing(false);
     }
-  };
+  }; */
+
+  const handleRewrite = () => { };
 
   const acceptRewrite = () => {
     if (!pendingRewrite) return;
@@ -824,7 +826,7 @@ const ResumeBuilder = () => {
   };
 
   const handleATSAnalysis = async () => {
-    setIsAIProcessing(true);
+    /* setIsAIProcessing(true);
     try {
       const report = await analyzeATSWithAI(resumeData);
       setAiAtsReport(report);
@@ -832,7 +834,7 @@ const ResumeBuilder = () => {
       alert('Failed to analyze ATS score with AI.');
     } finally {
       setIsAIProcessing(false);
-    }
+    } */
   };
 
   useEffect(() => {
@@ -1005,7 +1007,7 @@ const ResumeBuilder = () => {
 
         const extractedText = fullText;
         setIsAIProcessing(true);
-        try {
+        /* try {
           const extractedData = await parseResumeWithAI(extractedText);
           setResumeData(prev => ({
             ...prev,
@@ -1013,18 +1015,18 @@ const ResumeBuilder = () => {
             personal: { ...prev.personal, ...extractedData.personal }
           }));
           alert('AI has successfully parsed your resume! Please review the details.');
-        } catch (error) {
-          console.error('AI Parse Failed, falling back to regex:', error);
-          const extracted = parseResumeText(extractedText);
-          setResumeData(prev => ({
-            ...prev,
-            ...extracted,
-            personal: { ...prev.personal, ...extracted.personal }
-          }));
-          alert('AI parsing failed. Used basic extraction instead. Please review.');
-        } finally {
-          setIsAIProcessing(false);
-        }
+        } catch (error) { */
+        console.error('AI Parse Disabled, falling back to regex:');
+        const extracted = parseResumeText(extractedText);
+        setResumeData(prev => ({
+          ...prev,
+          ...extracted,
+          personal: { ...prev.personal, ...extracted.personal }
+        }));
+        alert('Resume parsed. Please review the details.');
+        // } finally {
+        setIsAIProcessing(false);
+        // }
       } catch (err) {
         console.error('Error parsing PDF:', err);
         alert('Failed to parse PDF. Please try another file or manual entry.');
@@ -1112,7 +1114,7 @@ const ResumeBuilder = () => {
                 )}
               </div>
               <h2 className="text-3xl font-black mb-2 tracking-tighter">
-                {isAIProcessing ? 'AI is analyzing your resume...' : 'Drop your resume here'}
+                {isAIProcessing ? 'Analyzing your resume...' : 'Drop your resume here'}
               </h2>
               <p className="text-gray-500 font-medium">
                 {isAIProcessing ? 'This will only take a moment' : "We'll automatically parse your professional history"}
@@ -1136,7 +1138,7 @@ const ResumeBuilder = () => {
               <h1 className="text-4xl font-extrabold tracking-tight">Resume Builder</h1>
             </motion.div>
             <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-lg`}>
-              Craft your professional story with AI-powered precision.
+              Craft your professional story with precision.
             </p>
           </div>
 
@@ -1237,12 +1239,12 @@ const ResumeBuilder = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {activeSection === 'experience' && (
-                      <button onClick={() => alert(getAISuggestion('rewrite', null))} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${theme === 'dark' ? 'border-brand-purple/30 text-brand-purple hover:bg-brand-purple/10' : 'border-purple-200 text-purple-600 hover:bg-purple-50'}`}>
-                        <Zap className="w-4 h-4 fill-current" />
-                        AI REWRITE
-                      </button>
-                    )}
+                    {/* {activeSection === 'experience' && (
+                        <button onClick={() => alert(getAISuggestion('rewrite', null))} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${theme === 'dark' ? 'border-brand-purple/30 text-brand-purple hover:bg-brand-purple/10' : 'border-purple-200 text-purple-600 hover:bg-purple-50'}`}>
+                          <Zap className="w-4 h-4 fill-current" />
+                          AI REWRITE
+                        </button>
+                      )} */}
                     <button onClick={() => setIsEditingOrder(!isEditingOrder)} className={`p-2 rounded-xl transition-all ${isEditingOrder ? 'bg-rose-500 text-white' : (theme === 'dark' ? 'text-gray-500 hover:text-white hover:bg-white/10' : 'text-gray-400 hover:text-blue-600')}`}>
                       <GripVertical className="w-5 h-5" />
                     </button>
@@ -1373,7 +1375,7 @@ const ResumeBuilder = () => {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold text-lg">Resume Strength</h3>
                 <div className={`px-3 py-1 rounded-full text-xs font-black italic tracking-widest ${atsScore > 80 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-brand-cyan/20 text-brand-cyan uppercase'}`}>
-                  {atsScore > 80 ? 'EXCELLENT' : 'ATS READY'}
+                  {atsScore > 80 ? 'EXCELLENT' : 'OPTIMIZED'}
                 </div>
               </div>
               <div className="flex items-center gap-6">
@@ -1391,9 +1393,9 @@ const ResumeBuilder = () => {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className={`w-4 h-4 ${atsScore > 80 ? 'text-emerald-500' : 'text-gray-400'}`} />
-                    <span className={atsScore > 80 ? 'text-emerald-500 font-medium' : 'text-gray-500'}>ATS Optimized Content</span>
+                    <span className={atsScore > 80 ? 'text-emerald-500 font-medium' : 'text-gray-500'}>High Impact Content</span>
                   </div>
-                  <button onClick={() => setAtsReportVisible(!atsReportVisible)} className="text-xs font-bold text-brand-cyan hover:underline tracking-tight">VIEW FULL ATS REPORT</button>
+                  {/* <button onClick={() => setAtsReportVisible(!atsReportVisible)} className="text-xs font-bold text-brand-cyan hover:underline tracking-tight">VIEW FULL ATS REPORT</button> */}
                 </div>
               </div>
             </div>

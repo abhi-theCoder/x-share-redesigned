@@ -14,7 +14,7 @@ const verifyToken = require('./controllers/verifyLoginToken.js');
 const adminExperienceRoutes = require('./routes/admin/adminExperienceRoutes.js');
 const adminJobRoutes = require('./routes/admin/adminJobRoutes.js');
 const adminResourceRoutes = require("./routes/admin/adminResourceRoutes.js");
-const aiRoutes = require("./routes/aiRoutes.js");
+// const aiRoutes = require("./routes/aiRoutes.js");
 
 // Load environment variables from .env file
 dotenv.config();
@@ -39,7 +39,9 @@ app.use('/api/resources', resourceRoutes);
 app.use('/api/admin/jobs', adminJobRoutes);
 app.use("/api/admin/resources", adminResourceRoutes);
 app.use('/api/admin', adminExperienceRoutes);
-app.use('/api/ai', aiRoutes);
+
+// Removed AI featured as of now, will resume these features after some revenue generation
+// app.use('/api/ai', aiRoutes);
 
 // A simple welcome route to confirm the server is running
 app.get('/', (req, res) => {
