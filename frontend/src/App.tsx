@@ -44,7 +44,7 @@ function App() {
 
       if (accessToken) {
         // Use environment variable for backend URL, falling back to local for development
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
+        const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
         // Send token to backend to process and finalize login
         window.location.href = `${backendUrl}/api/auth/social/process-token?access_token=${accessToken}`;
       }
