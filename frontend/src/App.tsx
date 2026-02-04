@@ -30,9 +30,26 @@ import PublicUserProfilePage from './pages/PublicUserProfilePage';
 
 import ShootingStars from './components/ShootingStars';
 import { useTheme } from './context/ThemeContext';
+import { useEffect } from 'react';
 
 function App() {
   const { theme } = useTheme();
+
+  useEffect(() => {
+    // Handle Supabase OAuth hash fragment (Common in production if redirect configuration is slightly off)
+    const hash = window.location.hash;
+    if (hash && (hash.includes('access_token=') || hash.includes('type=recovery'))) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+
+      if (accessToken) {
+        // Use environment variable for backend URL, falling back to local for development
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
+        // Send token to backend to process and finalize login
+        window.location.href = `${backendUrl}/api/auth/social/process-token?access_token=${accessToken}`;
+      }
+    }
+  }, []);
 
   const dummyData = {
     personal: {
