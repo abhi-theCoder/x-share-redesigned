@@ -206,7 +206,8 @@ async function getComments(req, res) {
 // New function to add a comment
 async function addComment(req, res) {
   const { id } = req.params;
-  const { userId, commentText } = req.body;
+  const { commentText } = req.body;
+  const userId = req.userId; // From Token
   try {
     // Insert the new comment into the comments table
     const { data: newComment, error: commentError } = await supabase
@@ -225,11 +226,11 @@ async function addComment(req, res) {
       .update({ comments_count: (await supabase.from('experiences').select('comments_count').eq('id', id).single()).data.comments_count + 1 })
       .eq('id', id)
       .select();
-    
+
     if (updateError) {
       console.error('Error updating comments count:', updateError);
     }
-    
+
     res.status(201).json(newComment[0]);
   } catch (err) {
     console.error('Error in addComment:', err);
@@ -241,8 +242,9 @@ async function addComment(req, res) {
 // New function to handle voting (upvotes and downvotes)
 async function handleVote(req, res) {
   const { id } = req.params;
-  const { userId, voteType } = req.body;
-  
+  const { voteType } = req.body;
+  const userId = req.userId; // From Token
+
   try {
     const { data: experience, error: fetchError } = await supabase
       .from('experiences')

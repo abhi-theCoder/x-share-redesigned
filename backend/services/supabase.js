@@ -11,4 +11,19 @@ if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY environment variables.');
 }
 
-module.exports.supabase = createClient(supabaseUrl, supabaseServiceKey);
+let supabaseOptions = {};
+
+// When NOT in production, use the local DNS bypass for ISP blocks
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Running in Development Mode: Using Local DNS Bypass for Supabase');
+  const localFetchBypass = require('./localFetchBypass');
+  supabaseOptions = {
+    global: {
+      fetch: localFetchBypass
+    }
+  };
+} else {
+  console.log('Running in Production Mode: Using standard Supabase connection');
+}
+
+module.exports.supabase = createClient(supabaseUrl, supabaseServiceKey, supabaseOptions);

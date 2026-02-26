@@ -14,7 +14,7 @@ router.get('/:id', getSingleExperience);
 
 // New routes for comments and voting
 router.get('/:id/comments', getComments);
-router.post('/:id/comments', addComment);
-router.post('/:id/vote', handleVote);
+router.post('/:id/comments', authenticateToken, addComment);
+router.post('/:id/vote', authenticateToken, handleVote);
 
 module.exports = router;

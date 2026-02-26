@@ -36,11 +36,29 @@ const QAndA = () => {
 
   const trendingTopics = ['#GoogleInterview', '#SystemDesign', '#DSA', '#ProductManagement', '#StartupJobs'];
 
-  const topContributors = [
-    { name: 'Priya S.', posts: 45, initials: 'PS', color: 'bg-blue-600' },
-    { name: 'Rahul V.', posts: 38, initials: 'RV', color: 'bg-blue-600' },
-    { name: 'Ananya P.', posts: 32, initials: 'AP', color: 'bg-blue-600' },
-  ];
+  const [topContributors, setTopContributors] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchTopContributors = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const { data } = await axios.get('/api/leaderboard', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (data && data.topUsers) {
+          setTopContributors(data.topUsers.slice(0, 3).map((u: any) => ({
+            name: u.name,
+            posts: u.contributions || 0,
+            initials: u.name ? u.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U',
+            color: 'bg-blue-600'
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch top contributors", err);
+      }
+    };
+    fetchTopContributors();
+  }, []);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -71,12 +89,29 @@ const QAndA = () => {
     }
   };
 
-  const filteredQuestions = questions.filter(q =>
-    q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (Array.isArray(q.tags) ? q.tags : []).some(tag =>
-      tag.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  const parseTags = (tags: any): string[] => {
+    if (!tags) return [];
+    if (Array.isArray(tags)) return tags;
+    if (typeof tags === 'string') {
+      try {
+        const parsed = JSON.parse(tags);
+        return Array.isArray(parsed) ? parsed : [tags];
+      } catch (e) {
+        // If it looks like a postgres array string "{tag1,tag2}"
+        if (tags.startsWith('{') && tags.endsWith('}')) {
+          return tags.substring(1, tags.length - 1).split(',').map(t => t.trim());
+        }
+        return [tags];
+      }
+    }
+    return [];
+  };
+
+  const filteredQuestions = questions.filter(q => {
+    const questionTags = parseTags(q.tags);
+    return q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      questionTags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+  });
 
   return (
     <div className={`min-h-screen pb-20 pt-28 ${theme === 'dark' ? 'bg-[#030014]' : 'bg-[#f8fafc]'}`}>
@@ -134,14 +169,14 @@ const QAndA = () => {
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
                               <AvatarFallback className="bg-[#2563eb] text-white font-bold">
-                                {(q.users?.name || 'P')[0]}
+                                {q.users?.name ? q.users.name[0].toUpperCase() : 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="text-sm font-bold text-slate-900 dark:text-white">{q.users?.name || 'Priya Sharma'}</p>
+                              <p className="text-sm font-bold text-slate-900 dark:text-white">{q.users?.name || 'Unknown User'}</p>
                               <div className="flex flex-col text-[10px] text-slate-500 font-medium">
-                                <span>Software Engineer at Google</span>
-                                <span>2 hours ago</span>
+                                <span>{q.users && (q.users as any).company ? `Engineer at ${(q.users as any).company}` : 'Community Member'}</span>
+                                <span>{new Date(q.created_at).toLocaleDateString()}</span>
                               </div>
                             </div>
                           </div>
@@ -158,21 +193,11 @@ const QAndA = () => {
 
                       <CardContent className="p-6 pt-2">
                         <div className="text-slate-900 dark:text-white font-medium leading-relaxed space-y-4">
-                          <p className="flex items-center gap-2">
-                            <span>🎉</span> Thrilled to share that I've joined Google as a Software Engineer!
-                          </p>
-                          <p>After 6 months of preparation and countless rejections, I finally made it. Here's what helped me:</p>
-                          <ol className="list-decimal list-inside space-y-1 pl-1">
-                            <li>Consistent DSA practice (LeetCode + Xshare resources)</li>
-                            <li>Mock interviews with peers</li>
-                            <li>Reading interview experiences on Xshare</li>
-                            <li>Never giving up despite rejections</li>
-                          </ol>
-                          <p>To everyone on their journey - keep going! Your time will come. 🚀</p>
+                          <p className="whitespace-pre-wrap">{q.question}</p>
                         </div>
 
                         <div className="flex flex-wrap gap-2 mt-8 mb-4">
-                          {['CareerGrowth', 'Google', 'TechJobs'].map(tag => (
+                          {parseTags(q.tags).map(tag => (
                             <span key={tag} className="text-sm font-bold text-[#3b82f6] hover:underline cursor-pointer">
                               #{tag}
                             </span>
@@ -183,10 +208,10 @@ const QAndA = () => {
                         <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 font-medium">
                           <div className="flex items-center gap-1.5">
                             <span className="text-red-500">❤️</span>
-                            <span>{q.votes || 234} likes</span>
+                            <span>{q.votes || 0} likes</span>
                           </div>
                           <div>
-                            <span>{(q.question_comments || []).length || 45} comments • 12 shares</span>
+                            <span>{(q.question_comments || []).length} comments</span>
                           </div>
                         </div>
                       </CardContent>

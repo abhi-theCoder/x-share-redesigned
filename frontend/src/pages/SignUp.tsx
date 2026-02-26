@@ -87,6 +87,7 @@ const SignUp: React.FC = () => {
 
       navigate('/login');
     } catch (error: any) {
+      console.error("API Registration failed.", error);
       const msg = error.response?.data?.message || 'Registration failed. Please try again.';
       toast.error("Registration Error", {
         description: msg,
@@ -116,8 +117,8 @@ const SignUp: React.FC = () => {
             type="button"
             onClick={() => setFormData(p => ({ ...p, role: 'student' }))}
             className={`flex-1 flex flex-col items-center justify-center py-3 rounded-[14px] transition-all duration-200 ${formData.role === 'student'
-                ? 'bg-white dark:bg-slate-700 shadow-sm border border-slate-200/60 dark:border-slate-600'
-                : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50 transparent border border-transparent'
+              ? 'bg-white dark:bg-slate-700 shadow-sm border border-slate-200/60 dark:border-slate-600'
+              : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50 transparent border border-transparent'
               }`}
           >
             <span className={`text-[15px] font-bold ${formData.role === 'student' ? 'text-slate-900 dark:text-white' : 'text-slate-500'}`}>Student</span>
@@ -127,8 +128,8 @@ const SignUp: React.FC = () => {
             type="button"
             onClick={() => setFormData(p => ({ ...p, role: 'Working professional' }))}
             className={`flex-1 flex flex-col items-center justify-center py-3 rounded-[14px] transition-all duration-200 ${formData.role === 'Working professional'
-                ? 'bg-white dark:bg-slate-700 shadow-sm border border-slate-200/60 dark:border-slate-600'
-                : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50 transparent border border-transparent'
+              ? 'bg-white dark:bg-slate-700 shadow-sm border border-slate-200/60 dark:border-slate-600'
+              : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50 transparent border border-transparent'
               }`}
           >
             <span className={`text-[15px] font-bold ${formData.role === 'Working professional' ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-300'}`}>Working Professional</span>

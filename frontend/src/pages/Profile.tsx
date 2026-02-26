@@ -89,6 +89,7 @@ const calculateLevelAndProgress = (points: number) => {
 
   return {
     name: currentLevel.name,
+    icon: 'star',
     percentage: Math.floor(progress),
     progressText: nextLevel ? `Next: ${nextLevel.name} (${nextLevel.minPoints - points} XP left)` : "Max level Reached!",
     remaining: nextLevel ? `${points} / ${nextLevel.minPoints}` : `${points} / ∞`
@@ -137,7 +138,7 @@ const Profile = () => {
 
 
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load profile", err);
       setError('Failed to load profile data.');
     } finally {
       setLoading(false);

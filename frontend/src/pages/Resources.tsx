@@ -3,34 +3,58 @@ import {
   Search,
   Star,
   FileText,
-  BookOpen,
   Sparkles,
   Code2,
   Layout,
   Database,
   Brain,
-  Monitor,
-  Clock,
   Book,
   ChevronRight
 } from "lucide-react";
 import Loader from "../components/Loader";
 
 // Shadcn UI Components
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import axios from '../api';
+
+interface Resource {
+  id: number;
+  title: string;
+  description: string;
+  type?: string;
+  file_url: string;
+  rating: number;
+  downloads: number;
+  uploaded_at: string;
+}
 
 const Resources: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [resources, setResources] = useState<Resource[]>([]);
 
   useEffect(() => {
-    // Simulate loading for better UX transition
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
+    const fetchResources = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('/api/resources', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        console.log(res.data);
+        if (res.data && res.data.resources) {
+          setResources(res.data.resources);
+        }
+      } catch (err) {
+        console.error("Failed to load resources", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchResources();
   }, []);
 
   if (loading) return <Loader />;
@@ -44,35 +68,6 @@ const Resources: React.FC = () => {
     { title: "Resume", count: "25 resources", icon: FileText, color: "bg-slate-50 text-slate-400" },
   ];
 
-  const roadmaps = [
-    {
-      title: "Frontend Developer Roadmap",
-      description: "Master React, TypeScript, and modern web development",
-      level: "Beginner to Advanced",
-      time: "3-4 months",
-      lessons: "42 lessons",
-      rating: 4.8,
-      students: "12.5k"
-    },
-    {
-      title: "Backend Developer Roadmap",
-      description: "Learn Node.js, databases, and API design",
-      level: "Intermediate",
-      time: "4-5 months",
-      lessons: "56 lessons",
-      rating: 4.7,
-      students: "9.8k"
-    },
-    {
-      title: "Data Structures & Algorithms",
-      description: "Crack coding interviews at top tech companies",
-      level: "All Levels",
-      time: "2-3 months",
-      lessons: "120 lessons",
-      rating: 4.9,
-      students: "25.0k"
-    }
-  ];
 
   const companies = [
     { name: "Google", initial: "G", color: "bg-blue-600" },
@@ -133,54 +128,58 @@ const Resources: React.FC = () => {
         </div>
       </div>
 
-      {/* Learning Roadmaps */}
+      {/* Dynamic Resources Feed */}
       <div className="container max-w-7xl mx-auto px-4 lg:px-8 py-20">
         <div className="flex items-center justify-between mb-10">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Learning Roadmaps</h2>
-          <Button variant="ghost" className="text-blue-600 font-bold text-sm hover:bg-blue-50">
-            View All <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Community Shared Resources</h2>
+          <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">{resources.length} Available</Badge>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {roadmaps.map((map) => (
-            <Card key={map.title} className="rounded-2xl overflow-hidden border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm group cursor-pointer hover:shadow-lg transition-all">
-              <div className="h-44 bg-blue-600 flex items-center justify-center">
-                <BookOpen className="w-16 h-16 text-white" />
-              </div>
-              <CardContent className="p-6">
-                <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-none rounded-md px-2.5 py-1 text-[10px] font-bold mb-4">
-                  {map.level}
-                </Badge>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">
-                  {map.title}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6 line-clamp-2">
-                  {map.description}
-                </p>
-                <div className="flex items-center gap-6 mb-8 text-slate-500 dark:text-slate-400">
-                  <div className="flex items-center gap-2 text-xs font-semibold">
-                    <Clock className="w-4 h-4" />
-                    {map.time}
+
+        {resources.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {resources.map((res) => (
+              <Card key={res.id} className="rounded-2xl flex flex-col overflow-hidden border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm group hover:shadow-lg transition-all">
+                <CardHeader className="p-6 pb-2">
+                  <div className="flex justify-between items-start mb-2">
+                    <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-none rounded-md px-2.5 py-1 text-[10px] font-bold">
+                      {res.type || 'Document'}
+                    </Badge>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-current" />
+                      <span>{res.rating ? Number(res.rating).toFixed(1) : 'New'}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs font-semibold">
-                    <Monitor className="w-4 h-4" />
-                    {map.lessons}
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white line-clamp-2 min-h-[56px] group-hover:text-blue-600 transition-colors">
+                    {res.title}
+                  </h3>
+                </CardHeader>
+                <CardContent className="p-6 pt-2 flex-grow">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium line-clamp-3">
+                    {res.description || 'No description provided.'}
+                  </p>
+                </CardContent>
+                <CardFooter className="p-6 pt-0 border-t border-slate-50 dark:border-slate-800 mt-auto flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                    <Database className="w-4 h-4" />
+                    {res.downloads || 0} downloads
                   </div>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
-                  <div className="flex items-center gap-1.5">
-                    <Star className="w-4 h-4 text-amber-500 fill-current" />
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">{map.rating}</span>
-                    <span className="text-xs text-slate-500 font-medium ml-1">{map.students}</span>
-                  </div>
-                  <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold h-10 px-6 rounded-xl text-xs transition-all">
-                    Start Learning
+                  <Button
+                    variant="default"
+                    className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold px-4 rounded-xl text-xs transition-all"
+                    onClick={() => window.open(res.file_url, '_blank')}
+                  >
+                    Download
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-24 bg-slate-50 dark:bg-[#111827] rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No community resources yet</h3>
+            <p className="text-slate-500 font-medium">Be the first to share a valuable resource!</p>
+          </div>
+        )}
       </div>
 
       {/* Company-Specific Prep */}

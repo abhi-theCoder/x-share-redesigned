@@ -56,61 +56,10 @@ interface JobListing {
   applicants?: number;
   skills?: string[];
   isFeatured?: boolean;
+  created_at?: string;
 }
 
-const DUMMY_JOBS: JobListing[] = [
-  {
-    id: 101,
-    title: "Senior Software Engineer",
-    company: "Google",
-    location: "Bangalore, Karnataka",
-    type: "Full-time",
-    mode: "Hybrid",
-    experienceYears: "3-5 years",
-    salaryLPA: "25-35 LPA",
-    rating: 4.5,
-    description: "Lead the development of next-gen cloud infrastructure.",
-    url: "#",
-    postedAt: "2 days ago",
-    applicants: 234,
-    skills: ["React", "TypeScript", "Node.js", "GCP"],
-    isFeatured: true
-  },
-  {
-    id: 102,
-    title: "Product Manager",
-    company: "Microsoft",
-    location: "Hyderabad, Telangana",
-    type: "Full-time",
-    mode: "On-site",
-    experienceYears: "5-8 years",
-    salaryLPA: "30-45 LPA",
-    rating: 4.8,
-    description: "Drive product strategy for Azure cloud services.",
-    url: "#",
-    postedAt: "1 day ago",
-    applicants: 156,
-    skills: ["Strategy", "Azure", "SQL", "Agile"],
-    isFeatured: true
-  },
-  {
-    id: 103,
-    title: "Frontend Developer",
-    company: "Amazon",
-    location: "Gurgaon, Haryana",
-    type: "Full-time",
-    mode: "Remote",
-    experienceYears: "2-4 years",
-    salaryLPA: "18-28 LPA",
-    rating: 4.3,
-    description: "Build high-performance web applications for AWS.",
-    url: "#",
-    postedAt: "4 days ago",
-    applicants: 412,
-    skills: ["React", "Next.js", "Tailwind", "AWS"],
-    isFeatured: false
-  }
-];
+
 
 interface Filters {
   types: JobType[];
@@ -277,7 +226,7 @@ const JobCard = ({ job }: { job: JobListing }) => {
 
           {/* Skills Row */}
           <div className="flex flex-wrap gap-2">
-            {(job.skills || ["React", "TypeScript", "Node.js", "GCP"]).map(skill => (
+            {(job.skills && job.skills.length > 0 ? job.skills : ["React", "TypeScript", "Node.js"]).map(skill => (
               <Badge key={skill} variant="outline" className="px-3 py-1 rounded-full border-slate-200 dark:border-slate-700 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
                 {skill}
               </Badge>
@@ -291,20 +240,22 @@ const JobCard = ({ job }: { job: JobListing }) => {
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-500 font-semibold whitespace-nowrap">
                 <Clock className="w-4 h-4" />
-                {job.postedAt || "2 days ago"}
+                {job.postedAt || job.created_at ? new Date(job.created_at || '').toLocaleDateString() : "2 days ago"}
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-500 font-semibold whitespace-nowrap">
                 <Users className="w-4 h-4" />
-                {job.applicants || 234} applicants
+                {job.applicants || Math.floor(Math.random() * 50) + 5} applicants
               </div>
             </div>
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <Button variant="ghost" className="flex-1 sm:flex-none h-10 px-6 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600">
                 View Details
               </Button>
-              <Button className="flex-1 sm:flex-none h-10 px-8 rounded-lg text-xs font-bold bg-[#3b82f6] hover:bg-[#2563eb] text-white border-none transition-all duration-200 shadow-sm">
-                Apply Now
-              </Button>
+              <a href={job.url} target="_blank" rel="noopener noreferrer">
+                <Button className="flex-1 sm:flex-none h-10 px-8 rounded-lg text-xs font-bold bg-[#3b82f6] hover:bg-[#2563eb] text-white border-none transition-all duration-200 shadow-sm">
+                  Apply Now
+                </Button>
+              </a>
             </div>
           </div>
         </div>
@@ -322,11 +273,12 @@ const JobPortal = () => {
     experiences: [],
     minSalary: 0,
   });
-  const [jobs, setJobs] = useState<JobListing[]>(DUMMY_JOBS);
+  const [jobs, setJobs] = useState<JobListing[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalJobs, setTotalJobs] = useState(0);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -335,8 +287,10 @@ const JobPortal = () => {
         const res = await axios.get("/api/jobs", {
           params: { page, limit: 10, search: searchTerm, location: locationTerm },
         });
-        setJobs([...DUMMY_JOBS, ...res.data.jobs]);
+        setJobs(res.data.jobs);
+        console.log(res.data.jobs);
         setTotalPages(res.data.pagination.totalPages);
+        setTotalJobs(res.data.pagination.totalJobs);
       } catch (err) {
         console.error("Error fetching jobs:", err);
       } finally {
@@ -371,9 +325,18 @@ const JobPortal = () => {
           if (e === "10+ years") return experience >= 10;
           return true;
         });
-        return matchesType && matchesMode && matchesSalary && matchesExp;
+
+        const matchesSearchTerm = searchTerm === "" ||
+          job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.skills?.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesLocationTerm = locationTerm === "" ||
+          job.location.toLowerCase().includes(locationTerm.toLowerCase());
+
+        return matchesType && matchesMode && matchesSalary && matchesExp && matchesSearchTerm && matchesLocationTerm;
       }),
-    [jobs, filters]
+    [jobs, filters, searchTerm, locationTerm]
   );
 
   return (
@@ -440,7 +403,7 @@ const JobPortal = () => {
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-4">
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  <span className="text-blue-600">5000+</span> jobs found
+                  <span className="text-blue-600">{totalJobs}</span> jobs found
                 </p>
               </div>
 

@@ -116,7 +116,6 @@ const ExperienceDetail: React.FC = () => {
     const token = localStorage.getItem('token');
     try {
       const response = await axios.post(`/api/experiences/${id}/vote`, {
-        userId: currentUserId,
         voteType
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -132,6 +131,7 @@ const ExperienceDetail: React.FC = () => {
         toast.success(`Vote ${voteType === 'upvote' ? 'registered' : 'recorded'}`);
       }
     } catch (err) {
+      console.error('Synch failure.');
       toast.error('Synch failure.');
     }
   };
@@ -154,6 +154,7 @@ const ExperienceDetail: React.FC = () => {
         toast.success("Intelligence bookmarked.");
       }
     } catch (err) {
+      console.error('Sync failure.');
       toast.error('Sync failure.');
     }
   };
@@ -161,10 +162,12 @@ const ExperienceDetail: React.FC = () => {
   const handleCommentSubmit = async () => {
     if (!newComment.trim()) return;
     setCommentSubmitting(true);
+    const token = localStorage.getItem('token');
     try {
       const response = await axios.post<Comment>(`/api/experiences/${id}/comments`, {
-        userId: currentUserId,
         commentText: newComment,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       setComments(prev => [...prev, response.data]);
@@ -172,6 +175,7 @@ const ExperienceDetail: React.FC = () => {
       setExperience(prev => prev ? { ...prev, comments_count: (prev.comments_count || 0) + 1 } : null);
       toast.success("Response integrated.");
     } catch (err) {
+      console.error('Injection failed:', err);
       toast.error('Injection failed.');
     } finally {
       setCommentSubmitting(false);

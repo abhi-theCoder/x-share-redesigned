@@ -47,6 +47,7 @@ const Login = () => {
 
       navigate('/profile');
     } catch (error: any) {
+      console.error("API Login failed.", error);
       const msg = error.response?.data?.message || 'Login failed. Please try again.';
       toast.error("Authentication Error", {
         description: msg,
