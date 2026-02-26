@@ -1,420 +1,212 @@
 import React, { useEffect, useState } from "react";
-import axios from "../api";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
-  Download,
   Star,
-  Calendar,
-  User,
   FileText,
-  Video,
+  BookOpen,
+  Sparkles,
+  Code2,
+  Layout,
+  Database,
+  Brain,
+  Monitor,
+  Clock,
+  Book,
+  ChevronRight
 } from "lucide-react";
-import toast from "react-hot-toast";
 import Loader from "../components/Loader";
-import { useTheme } from "../context/ThemeContext";
 
-// Types
-interface Resource {
-  id: number;
-  title: string;
-  description: string;
-  author: string;
-  company: string;
-  type: string;
-  format: string;
-  downloads: number;
-  rating: number;
-  total_ratings: number;
-  uploaded_at: string;
-  file_url?: string;
-}
-
-interface RatingStarsProps {
-  rating: number;
-  tempRating: number;
-  setTempRating: (val: number) => void;
-}
-
-// --- ⭐ Reusable RatingStars Component ---
-const RatingStars: React.FC<RatingStarsProps> = ({
-  rating,
-  tempRating,
-  setTempRating,
-}) => {
-  const [hovered, setHovered] = useState(0);
-  return (
-    <div className="flex justify-center space-x-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={`w-8 h-8 cursor-pointer transition-all duration-200 ${star <= (hovered || tempRating || rating)
-            ? "text-yellow-400 fill-current"
-            : "text-gray-300"
-            }`}
-          onMouseEnter={() => setHovered(star)}
-          onMouseLeave={() => setHovered(0)}
-          onClick={() => setTempRating(star)}
-        />
-      ))}
-    </div>
-  );
-};
+// Shadcn UI Components
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 const Resources: React.FC = () => {
-  const { theme } = useTheme();
-  const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("All");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedResource, setSelectedResource] = useState<Resource | null>(
-    null
-  );
-  const [tempRating, setTempRating] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-
-  const resourceTypes = [
-    "All",
-    "Interview Questions",
-    "Coding Challenges",
-    "Resume Templates",
-    "Video Tutorials",
-  ];
-
-  // --- Fetch all resources ---
-  const fetchResources = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get("/api/resources", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setResources(res.data.resources || []);
-    } catch (err) {
-      console.error("Fetch Error:", err);
-      toast.error("Failed to load resources.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    fetchResources();
+    // Simulate loading for better UX transition
+    const timer = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(timer);
   }, []);
 
-  const filteredResources = resources.filter((r) => {
-    const matchesSearch =
-      r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === "All" || r.type === selectedType;
-    return matchesSearch && matchesType;
-  });
+  if (loading) return <Loader />;
 
-  const openRatingModal = (resource: Resource) => {
-    setSelectedResource(resource);
-    setTempRating(resource.rating || 0);
-    setIsModalOpen(true);
-  };
+  const categories = [
+    { title: "DSA", count: "150 resources", icon: Code2, color: "bg-blue-50 text-blue-600" },
+    { title: "System Design", count: "45 resources", icon: Layout, color: "bg-slate-50 text-slate-400" },
+    { title: "Frontend", count: "80 resources", icon: Book, color: "bg-green-50 text-green-600" },
+    { title: "Backend", count: "65 resources", icon: Database, color: "bg-amber-50 text-amber-600" },
+    { title: "AI/ML", count: "40 resources", icon: Brain, color: "bg-blue-50 text-blue-600" },
+    { title: "Resume", count: "25 resources", icon: FileText, color: "bg-slate-50 text-slate-400" },
+  ];
 
-  const closeRatingModal = () => {
-    setIsModalOpen(false);
-    setSelectedResource(null);
-    setTempRating(0);
-  };
-
-  // --- ⭐ Submit rating ---
-  const handleSubmitRating = async () => {
-    if (!selectedResource || !tempRating) {
-      toast.error("Please select a rating before submitting.");
-      return;
+  const roadmaps = [
+    {
+      title: "Frontend Developer Roadmap",
+      description: "Master React, TypeScript, and modern web development",
+      level: "Beginner to Advanced",
+      time: "3-4 months",
+      lessons: "42 lessons",
+      rating: 4.8,
+      students: "12.5k"
+    },
+    {
+      title: "Backend Developer Roadmap",
+      description: "Learn Node.js, databases, and API design",
+      level: "Intermediate",
+      time: "4-5 months",
+      lessons: "56 lessons",
+      rating: 4.7,
+      students: "9.8k"
+    },
+    {
+      title: "Data Structures & Algorithms",
+      description: "Crack coding interviews at top tech companies",
+      level: "All Levels",
+      time: "2-3 months",
+      lessons: "120 lessons",
+      rating: 4.9,
+      students: "25.0k"
     }
+  ];
 
-    const token = localStorage.getItem("token");
-    setSubmitting(true);
-
-    try {
-      const res = await axios.put(
-        `/api/resources/${selectedResource.id}/rate`,
-        { rating: tempRating },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const updated = res.data.resource;
-      setResources((prev) =>
-        prev.map((r) => (r.id === selectedResource.id ? updated : r))
-      );
-
-      toast.success("Thanks for rating!");
-      closeRatingModal();
-    } catch (err) {
-      console.error("Rating Error:", err);
-      toast.error("Failed to submit rating.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // --- 📦 Handle download ---
-  const handleDownload = async (resource: Resource) => {
-    const token = localStorage.getItem("token");
-    try {
-      // Update download count in backend
-      await axios.put(
-        `/api/resources/${resource.id}/download`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Update count locally
-      setResources((prev) =>
-        prev.map((r) =>
-          r.id === resource.id
-            ? { ...r, downloads: (r.downloads || 0) + 1 }
-            : r
-        )
-      );
-
-      // Fetch file as Blob to force download
-      if (resource.file_url) {
-        const response = await fetch(resource.file_url);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = resource.title || "resource"; // default filename
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Release memory
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      console.error("Download Error:", err);
-      toast.error("Failed to download resource.");
-    }
-  };
-
-  // --- COLORS ---
-  // Colors now handled by Tailwind classes based on theme
-
-  if (loading)
-    return <div className="text-center mt-20"><Loader /></div>;
+  const companies = [
+    { name: "Google", initial: "G", color: "bg-blue-600" },
+    { name: "Microsoft", initial: "M", color: "bg-blue-600" },
+    { name: "Amazon", initial: "A", color: "bg-blue-600" },
+    { name: "Meta", initial: "M", color: "bg-blue-600" }
+  ];
 
   return (
-    <div
-      className={`min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${theme === 'dark' ? 'bg-transparent' : 'bg-[#EEF2F7]'
-        }`}
-    >
-      <div className="max-w-7xl mx-auto">
-        {/* --- HEADER --- */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-12"
-        >
-          <h1 className={`text-4xl md:text-5xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-            Interview{" "}
-            <span
-              className="bg-gradient-to-r from-brand-cyan to-brand-blue bg-clip-text text-transparent"
-            >
-              Resources
-            </span>
-          </h1>
-          <p className={`text-xl max-w-3xl mx-auto ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-            Access curated resources shared by industry experts to ace your interviews.
-          </p>
-        </motion.div>
-
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* --- FILTER SIDEBAR --- */}
-          <div className="lg:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className={`rounded-2xl shadow-xl p-6 border transition-all duration-300 ${theme === 'dark'
-                ? 'bg-space-900/40 backdrop-blur-md border-white/10 ring-1 ring-white/5'
-                : 'bg-white border-gray-100'
-                }`}
-            >
-              <h3 className={`text-lg font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                Filter Resources
-              </h3>
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 ${theme === 'dark'
-                  ? 'bg-space-800 border-space-700 text-white focus:ring-brand-cyan'
-                  : 'bg-white border-gray-200 text-gray-900 focus:ring-brand-cyan'
-                  }`}
-              >
-                {resourceTypes.map((type) => (
-                  <option key={type}>{type}</option>
-                ))}
-              </select>
-            </motion.div>
+    <div className="min-h-screen pt-24 pb-32 bg-white dark:bg-slate-950">
+      {/* Hero Section */}
+      <div className="container max-w-7xl mx-auto px-4 lg:px-8 py-12">
+        <div className="text-center max-w-4xl mx-auto space-y-8">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 fill-current" />
+            Placement Prep Resources
           </div>
 
-          {/* --- MAIN CONTENT --- */}
-          <div className="lg:col-span-3">
-            {/* 🔍 Search Bar */}
-            <div className="mb-6 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search resources..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 shadow-xl ${theme === 'dark'
-                  ? 'bg-space-900/40 backdrop-blur-md border-white/10 text-white placeholder-gray-500 focus:ring-brand-cyan'
-                  : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-brand-cyan'
-                  }`}
-              />
+          <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+            Everything You Need to <span className="text-[#3b82f6]">Ace Your Interviews</span>
+          </h1>
+
+          <p className="text-lg text-slate-500 dark:text-slate-400 font-medium max-w-2xl mx-auto">
+            Curated roadmaps, practice problems, and company-specific prep guides
+          </p>
+
+          <div className="max-w-2xl mx-auto relative group">
+            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-slate-400" />
             </div>
-
-            {/* 🧾 Resource Cards */}
-            <div className="space-y-6">
-              {filteredResources.map((resource, index) => {
-                const IconComponent =
-                  resource.type === "Video Tutorials" ? Video : FileText;
-
-                return (
-                  <motion.div
-                    key={resource.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    className={`rounded-2xl shadow-xl p-6 border hover:shadow-2xl transition-all duration-300 ${theme === 'dark'
-                      ? 'bg-space-900/40 backdrop-blur-md border-white/10'
-                      : 'bg-white border-gray-100'
-                      }`}
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-4">
-                        <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-brand-cyan to-brand-blue"
-                        >
-                          <IconComponent className="w-6 h-6 text-white" />
-                        </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${theme === 'dark'
-                            ? 'bg-space-800 text-brand-cyan'
-                            : 'bg-[#D4EEF9] text-[#0F9BC0]'
-                            }`}
-                        >
-                          {resource.type}
-                        </span>
-                      </div>
-                      <div className="flex items-center text-yellow-500">
-                        <Star className="w-4 h-4 fill-current" />
-                        <span className={`ml-1 text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                          {resource.rating?.toFixed(1) || "0.0"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <h3 className={`text-xl font-bold mb-3 ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
-                      {resource.title}
-                    </h3>
-                    <p className={`mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{resource.description}</p>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <User className="text-gray-500 w-5 h-5" />
-                        <div>
-                          <p className={`font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                            {resource.author}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {resource.company}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {new Date(resource.uploaded_at).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    <div className={`flex justify-between items-center pt-4 border-t mt-4 ${theme === 'dark' ? 'border-space-800' : 'border-gray-100'}`}>
-                      <div className="flex items-center space-x-6 text-sm text-gray-500">
-                        <div className="flex items-center space-x-1">
-                          <Download className="w-4 h-4" />
-                          <span>{resource.downloads}</span>
-                        </div>
-                        <button
-                          onClick={() => openRatingModal(resource)}
-                          className={`flex items-center space-x-1 font-medium ${theme === 'dark' ? 'text-brand-cyan' : 'text-[#45B5DA]'}`}
-                        >
-                          <Star className="w-4 h-4" />
-                          <span>Rate</span>
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => handleDownload(resource)}
-                        className="px-4 py-2 text-white rounded-lg font-medium shadow-md hover:scale-105 transition-all bg-gradient-to-r from-brand-cyan to-brand-blue"
-                      >
-                        Download
-                      </button>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+            <Input
+              className="h-14 pl-14 pr-6 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-medium shadow-sm transition-all focus:ring-0 focus:border-blue-500"
+              placeholder="Search resources, topics, or companies..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
       </div>
 
-      {/* ⭐ Rating Modal */}
-      <AnimatePresence>
-        {isModalOpen && selectedResource && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className={`p-6 rounded-2xl shadow-2xl w-[350px] relative transition-all duration-300 ${theme === 'dark' ? 'bg-space-900/60 backdrop-blur-xl border border-white/10' : 'bg-white'
-                }`}
-            >
-              <h2 className={`text-xl font-bold text-center mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                Rate this Resource
-              </h2>
-              <p className={`text-center mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                {selectedResource.title}
-              </p>
-              <RatingStars
-                rating={selectedResource.rating || 0}
-                tempRating={tempRating}
-                setTempRating={setTempRating}
-              />
-              <button
-                onClick={handleSubmitRating}
-                disabled={submitting}
-                className={`w-full mt-6 py-2 rounded-lg text-white font-medium transition ${submitting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-brand-cyan to-brand-blue hover:brightness-110"
-                  }`}
-              >
-                {submitting ? "Submitting..." : "Submit Rating"}
-              </button>
-              <button
-                onClick={closeRatingModal}
-                className="absolute top-3 right-4 text-gray-500 hover:text-gray-700 text-lg"
-              >
-                ×
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Separator className="bg-slate-100 dark:bg-slate-900" />
+
+      {/* Browse by Category */}
+      <div className="container max-w-7xl mx-auto px-4 lg:px-8 py-20">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-10">Browse by Category</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          {categories.map((cat) => (
+            <Card key={cat.title} className="rounded-2xl border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all cursor-pointer group">
+              <CardContent className="p-8 flex flex-col items-center text-center">
+                <div className={`h-12 w-12 rounded-2xl ${cat.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                  <cat.icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{cat.title}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-500 font-medium">{cat.count}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Learning Roadmaps */}
+      <div className="container max-w-7xl mx-auto px-4 lg:px-8 py-20">
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Learning Roadmaps</h2>
+          <Button variant="ghost" className="text-blue-600 font-bold text-sm hover:bg-blue-50">
+            View All <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {roadmaps.map((map) => (
+            <Card key={map.title} className="rounded-2xl overflow-hidden border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm group cursor-pointer hover:shadow-lg transition-all">
+              <div className="h-44 bg-blue-600 flex items-center justify-center">
+                <BookOpen className="w-16 h-16 text-white" />
+              </div>
+              <CardContent className="p-6">
+                <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-none rounded-md px-2.5 py-1 text-[10px] font-bold mb-4">
+                  {map.level}
+                </Badge>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">
+                  {map.title}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6 line-clamp-2">
+                  {map.description}
+                </p>
+                <div className="flex items-center gap-6 mb-8 text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-2 text-xs font-semibold">
+                    <Clock className="w-4 h-4" />
+                    {map.time}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-semibold">
+                    <Monitor className="w-4 h-4" />
+                    {map.lessons}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
+                  <div className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-amber-500 fill-current" />
+                    <span className="text-sm font-bold text-slate-900 dark:text-white">{map.rating}</span>
+                    <span className="text-xs text-slate-500 font-medium ml-1">{map.students}</span>
+                  </div>
+                  <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold h-10 px-6 rounded-xl text-xs transition-all">
+                    Start Learning
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Company-Specific Prep */}
+      <div className="container max-w-7xl mx-auto px-4 lg:px-8 py-20">
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Company-Specific Prep</h2>
+          <Button variant="ghost" className="text-blue-600 font-bold text-sm hover:bg-blue-50">
+            View All Companies <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {companies.map((co) => (
+            <Card key={co.name} className="rounded-2xl border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group">
+              <div className="flex items-center gap-5">
+                <div className={`h-12 w-12 rounded-xl ${co.color} flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:scale-110 transition-transform`}>
+                  {co.initial}
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white leading-tight">{co.name}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Interview Prep</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

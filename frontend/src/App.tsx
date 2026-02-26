@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Home from './pages/Home';
@@ -14,7 +13,6 @@ import ShareExperiencePage from './pages/Share-experience';
 import ExperienceDetail from './pages/ExperienceDetail';
 import Rewards from './pages/rewards';
 import ResumeBuilder from './pages/resume-builder';
-import Admin from './pages/admin/ViewOrUpdateExperiences';
 import JobPortal from './pages/JobPortal';
 import PrivateRoute from './components/privateRoute';
 import TemplateBasic from './templates/TemplateBasic';
@@ -29,7 +27,7 @@ import Unauthorized from './pages/admin/Unauthorized';
 import PublicUserProfilePage from './pages/PublicUserProfilePage';
 
 import ShootingStars from './components/ShootingStars';
-import { useTheme } from './context/ThemeContext';
+import { useTheme } from '@/components/theme-provider';
 import { useEffect } from 'react';
 
 function App() {
@@ -98,6 +96,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/jobs" element={<JobPortal />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/resources" element={<Resources />} />
 
             {/* Protected routes */}
             <Route element={<PrivateRoute />}>
@@ -106,8 +106,6 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/rewards" element={<Rewards />} />
               <Route path="/resume-builder" element={<ResumeBuilder />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/resources" element={<Resources />} />
             </Route>
 
             {/* Admin routes */}

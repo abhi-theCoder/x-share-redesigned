@@ -1,29 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Menu, X, Users, MessageCircle, BookOpen,
-  Trophy, User, LogOut, Award, Briefcase, Sun, Moon
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Menu, X, Briefcase, Users, BookOpen, Trophy, MessageSquare, ChevronRight, Award, LogOut } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ModeToggle } from "@/components/mode-toggle";
 import { verifyToken } from './verifyLogin';
 import axios from '../api';
-import { useTheme } from '../context/ThemeContext';
 
-interface NavigationItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
+const navigation = [
+  { name: "Experiences", href: "/experiences", icon: Users },
+  { name: "Q&A", href: "/qa", icon: MessageSquare },
+  { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
+  { name: "Resources", href: "/resources", icon: BookOpen },
+  { name: "Jobs", href: "/jobs", icon: Briefcase },
+];
 
 const Header: React.FC = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [userPoints, setUserPoints] = useState<number | null>(null);
-  const [isPointsDropdownOpen, setIsPointsDropdownOpen] = useState<boolean>(false);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [userName, setUserName] = useState<string>("");
   const location = useLocation();
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -34,15 +41,15 @@ const Header: React.FC = () => {
         return;
       }
       const valid = await verifyToken(token);
-      console.log(valid)
       setIsLoggedIn(valid);
     };
 
     checkLogin();
 
-    const fetchUserPoints = async () => {
+    const fetchUserProfile = async () => {
       if (!token) {
         setUserPoints(null);
+        setUserName("");
         return;
       }
 
@@ -54,345 +61,250 @@ const Header: React.FC = () => {
           },
         });
         setUserPoints(response.data.points);
+        setUserName(response.data.name || "");
       } catch (error) {
         console.error('Failed to fetch user profile:', error);
         setUserPoints(null);
       }
     };
 
-    fetchUserPoints();
-  }, [location]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsPointsDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+    fetchUserProfile();
+  }, [location.pathname]);
 
   const handleLogout = (): void => {
     localStorage.clear();
     setIsLoggedIn(false);
     setUserPoints(null);
     navigate('/login');
+    setMobileMenuOpen(false);
   };
 
-  const navigation: NavigationItem[] = [
-    { name: 'Experiences', href: '/experiences', icon: Users },
-    { name: 'Q&A', href: '/qa', icon: MessageCircle },
-    { name: 'Resources', href: '/resources', icon: BookOpen },
-    { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
-    { name: 'Jobs', href: '/jobs', icon: Briefcase },
-    { name: 'Profile', href: '/profile', icon: User },
-  ];
-
-  const isActive = (path: string): boolean => location.pathname === path;
-
   return (
-    <motion.header
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={`sticky top-0 z-50 backdrop-blur-sm shadow-lg border-b transition-colors duration-300 ${theme === 'dark'
-        ? 'bg-blue-950/80 border-blue-800'
-        : 'bg-white/95 border-blue-100'
+    <header
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled
+        ? "border-b border-white/10 dark:border-white/5 bg-white/40 dark:bg-black/40 backdrop-blur-xl shadow-lg"
+        : "border-b border-transparent bg-transparent backdrop-blur-none"
         }`}
     >
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group flex-shrink-0">
-            <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 rounded-xl bg-gradient-to-tr from-brand-cyan via-brand-blue to-brand-purple opacity-20 blur-sm group-hover:opacity-40 transition-opacity"
-              />
-              <div className="relative w-10 h-10 bg-space-900 border border-white/10 rounded-xl flex items-center justify-center overflow-hidden group-hover:border-brand-cyan/50 transition-colors shadow-2xl">
-                <svg viewBox="0 0 24 24" className="w-6 h-6 fill-none stroke-2" style={{ stroke: 'url(#logo-grad)' }}>
-                  <defs>
-                    <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#00F0FF" />
-                      <stop offset="100%" stopColor="#9D4EDD" />
-                    </linearGradient>
-                  </defs>
-                  <motion.path
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
-                    d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                {/* Glint effect */}
-                <motion.div
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
-                />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 items-center justify-between">
+          {/* Logo Section */}
+          <div className="flex-shrink-0 flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg transition-transform group-hover:scale-105">
+                <span className="text-xl font-bold text-white">X</span>
+                <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-            </div>
-            <span className={`text-2xl font-black italic tracking-tighter whitespace-nowrap bg-clip-text text-transparent ${theme === 'dark'
-              ? 'bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-purple'
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600'
-              }`}>
-              X SHARE
-            </span>
-          </Link>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold tracking-tight text-foreground leading-none">
+                  Xshare
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest leading-none mt-1">
+                  Enterprise
+                </span>
+              </div>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <nav className="hidden lg:flex items-center gap-1">
             {navigation.map((item) => {
-              const Icon = item.icon;
+              const isActive = location.pathname === item.href;
               return (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 relative ${isActive(item.href)
-                    ? (theme === 'dark' ? 'text-brand-cyan bg-white/10' : 'text-blue-600 bg-blue-50')
-                    : (theme === 'dark' ? 'text-gray-300 hover:text-brand-cyan hover:bg-white/5' : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50')
+                  className={`relative px-4 py-2 text-sm font-medium transition-all rounded-full ${isActive
+                    ? (item.name === "Jobs" || item.name === "Q&A")
+                      ? "bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 px-5 shadow-sm"
+                      : "text-primary font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                     }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                  {isActive(item.href) && (
+                  <span className="relative z-10 flex items-center gap-2">
+                    <item.icon className={`h-4 w-4 ${isActive && (item.name === "Jobs" || item.name === "Q&A") ? "text-blue-600 dark:text-blue-400" : ""}`} />
+                    {item.name}
+                  </span>
+                  {isActive && item.name !== "Jobs" && item.name !== "Q&A" && (
                     <motion.div
-                      layoutId="activeTab"
-                      className={`absolute inset-0 rounded-lg -z-10 ${theme === 'dark' ? 'bg-brand-blue/20' : 'bg-blue-100'
-                        }`}
+                      layoutId="navbar-indicator"
+                      className="absolute inset-x-0 bottom-[-4px] h-[2px] bg-primary mx-4"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
                 </Link>
               );
             })}
-          </div>
+          </nav>
 
-          {/* Auth Buttons (Desktop) */}
-          <div className="hidden md:flex items-center space-x-4">
-            {!isLoggedIn ? (
-              <>
-                <Link
-                  to="/login"
-                  className={`px-4 py-2 font-medium transition-colors duration-200 whitespace-nowrap ${theme === 'dark'
-                    ? 'text-gray-300 hover:text-brand-cyan'
-                    : 'text-gray-600 hover:text-blue-600'
-                    }`}
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className={`px-6 py-2 text-white rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 hover:-translate-y-1 whitespace-nowrap ${theme === 'dark'
-                    ? 'bg-gradient-to-r from-brand-cyan to-brand-blue hover:from-brand-cyan hover:to-brand-purple'
-                    : 'bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500'
-                    }`}
-                >
-                  Sign Up
-                </Link>
-              </>
-            ) : (
-              <>
-                {userPoints !== null && (
-                  <div className="relative" ref={dropdownRef}>
-                    <button
-                      onClick={() => setIsPointsDropdownOpen(!isPointsDropdownOpen)}
-                      className={`flex items-center space-x-2 px-4 py-2 font-medium transition-colors duration-200 rounded-lg ${theme === 'dark'
-                        ? 'text-gray-300 hover:text-brand-cyan hover:bg-white/10'
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                        }`}
-                    >
-                      <Award className="w-5 h-5" />
-                      <span>{userPoints}</span>
-                    </button>
-                    <AnimatePresence>
-                      {isPointsDropdownOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className={`absolute right-0 mt-2 w-48 rounded-lg shadow-xl py-2 z-50 border ${theme === 'dark'
-                            ? 'bg-space-900 border-space-800'
-                            : 'bg-white border-gray-100'
-                            }`}
-                        >
-                          <Link
-                            to="/rewards"
-                            onClick={() => setIsPointsDropdownOpen(false)}
-                            className={`flex items-center space-x-2 w-full text-left px-4 py-2 transition-colors duration-200 ${theme === 'dark'
-                              ? 'text-gray-200 hover:bg-white/10'
-                              : 'text-gray-700 hover:bg-gray-100'
-                              }`}
-                          >
-                            <Trophy className="w-4 h-4" />
-                            <span>Rewards</span>
-                          </Link>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+          {/* Desktop Actions */}
+          <div className="hidden lg:flex items-center gap-4">
+            <div className="h-6 w-px bg-border/60" /> {/* Divider */}
+            {isLoggedIn && userPoints !== null && (
+              <Link to="/rewards" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 text-primary border border-primary/10 hover:bg-primary/10 transition-colors">
+                <Award className="h-4 w-4" />
+                <span className="text-sm font-bold">{userPoints}</span>
+              </Link>
+            )}
+            <ModeToggle />
+            {isLoggedIn ? (
+              <div className="flex items-center gap-3">
+                <Link to="/profile">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold shadow-md hover:shadow-lg transition-transform hover:scale-105">
+                    {userName?.charAt(0) || "U"}
                   </div>
-                )}
-                <button
+                </Link>
+                <Button
+                  variant="ghost"
                   onClick={handleLogout}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-medium
-                    hover:from-red-600 hover:to-red-700
-                    transform hover:scale-105 hover:-translate-y-1
-                    transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="font-medium text-muted-foreground hover:text-foreground"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </button>
-              </>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Log Out
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link to="/login">
+                  <Button variant="ghost" className="font-medium text-muted-foreground hover:text-foreground">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button variant="hero" className="rounded-full px-6 shadow-primary/25 hover:shadow-primary/40">
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
 
-          {/* Theme Toggle (Desktop) */}
-          <button
-            onClick={toggleTheme}
-            className={`hidden md:ml-4 md:flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${theme === 'dark'
-              ? 'text-gray-400 hover:bg-white/10'
-              : 'text-gray-500 hover:bg-gray-100'
-              }`}
-            aria-label="Toggle theme"
-          >
-            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-          </button>
-
           {/* Mobile Menu Button */}
           <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-300 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200"
+            className="lg:hidden p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
           >
-            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
+      </div>
 
-        {/* Mobile Navigation */}
-        <AnimatePresence>
-          {isMenuOpen && (
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className={`md:hidden border-t ${theme === 'dark' ? 'border-space-800 bg-space-950' : 'border-blue-100 bg-white'
-                }`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-background border-l border-border shadow-2xl lg:hidden flex flex-col"
             >
-              <div className="px-2 pt-2 pb-3 space-y-1">
-                {navigation.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`flex items-center space-x-3 px-3 py-3 rounded-lg font-medium transition-all duration-200 ${isActive(item.href)
-                        ? (theme === 'dark' ? 'text-brand-cyan bg-white/10' : 'text-blue-600 bg-blue-50')
-                        : (theme === 'dark' ? 'text-gray-300 hover:text-brand-cyan hover:bg-white/5' : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50')
-                        }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span>{item.name}</span>
-                    </Link>
-                  );
-                })}
-
-                {/* Auth Buttons (Mobile) */}
-                <div className="pt-4 space-y-2">
-                  {!isLoggedIn ? (
-                    <>
-                      <Link
-                        to="/login"
-                        onClick={() => setIsMenuOpen(false)}
-                        className={`block w-full text-center px-4 py-2 font-medium transition-colors duration-200 ${theme === 'dark'
-                          ? 'text-gray-300 hover:text-brand-cyan'
-                          : 'text-gray-600 hover:text-blue-600'
-                          }`}
-                      >
-                        Login
-                      </Link>
-                      <Link
-                        to="/signup"
-                        onClick={() => setIsMenuOpen(false)}
-                        className={`block w-full text-center px-4 py-2 text-white rounded-lg font-medium transition-all duration-300 ${theme === 'dark'
-                          ? 'bg-gradient-to-r from-brand-cyan to-brand-blue hover:from-brand-cyan hover:to-brand-purple'
-                          : 'bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500'
-                          }`}
-                      >
-                        Sign Up
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      {userPoints !== null && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setIsPointsDropdownOpen(!isPointsDropdownOpen)}
-                            className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 rounded-lg hover:bg-blue-50"
-                          >
-                            <Award className="w-5 h-5" />
-                            <span>{userPoints} Points</span>
-                          </button>
-                          <AnimatePresence>
-                            {isPointsDropdownOpen && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="mt-2 w-full bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100"
-                              >
-                                <Link
-                                  to="/rewards"
-                                  onClick={() => {
-                                    setIsPointsDropdownOpen(false);
-                                    setIsMenuOpen(false);
-                                  }}
-                                  className="flex items-center space-x-2 w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors duration-200"
-                                >
-                                  <Trophy className="w-4 h-4" />
-                                  <span>Rewards</span>
-                                </Link>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      )}
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-300"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>Logout</span>
-                      </button>
-                    </>
-                  )}
+              {/* Mobile Header */}
+              <div className="flex items-center justify-between p-6 border-b border-border/50">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
+                    X
+                  </div>
+                  <span className="text-lg font-bold">Menu</span>
                 </div>
-
-                {/* Theme Toggle (Mobile) */}
                 <button
-                  onClick={toggleTheme}
-                  className={`w-full flex items-center justify-center space-x-2 px-4 py-2 mt-2 font-medium rounded-lg ${theme === 'dark'
-                    ? 'text-gray-400 hover:bg-white/10'
-                    : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 rounded-full hover:bg-accent transition-colors"
                 >
-                  {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-                  <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                  <X className="h-5 w-5" />
                 </button>
               </div>
+
+              {/* Mobile Links */}
+              <div className="flex-1 overflow-y-auto py-6 px-6">
+                <div className="space-y-2">
+                  {navigation.map((item) => {
+                    const isActive = location.pathname === item.href;
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`group flex items-center justify-between p-4 rounded-xl transition-all ${isActive
+                          ? "bg-primary/5 border border-primary/10"
+                          : "hover:bg-accent hover:pl-5"
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${isActive ? "bg-primary/10 text-primary" : "bg-accent/50 text-muted-foreground group-hover:text-foreground"}`}>
+                            <item.icon className="h-5 w-5" />
+                          </div>
+                          <span className={`font-medium ${isActive ? "text-primary" : "text-foreground"}`}>
+                            {item.name}
+                          </span>
+                        </div>
+                        <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`} />
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-8 pt-8 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-6">
+                    <span className="text-sm font-medium text-muted-foreground">Appearance</span>
+                    <ModeToggle />
+                  </div>
+                  {isLoggedIn && userPoints !== null && (
+                    <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Award className="h-5 w-5 text-primary" />
+                        <span className="font-bold text-foreground">Tokens</span>
+                      </div>
+                      <span className="text-lg font-black text-primary">{userPoints}</span>
+                    </div>
+                  )}
+                  <div className="grid gap-3">
+                    {isLoggedIn ? (
+                      <>
+                        <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="outline" className="w-full justify-center h-12 text-base font-medium">
+                            My Profile
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          onClick={handleLogout}
+                          className="w-full justify-center h-12 text-base font-medium text-red-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          Log Out
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="outline" className="w-full justify-center h-12 text-base font-medium">
+                            Sign In
+                          </Button>
+                        </Link>
+                        <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="hero" className="w-full justify-center h-12 text-base font-medium shadow-lg">
+                            Get Started Now
+                          </Button>
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
-    </motion.header>
+          </>
+        )}
+      </AnimatePresence>
+    </header>
   );
 };
 

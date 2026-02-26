@@ -7,10 +7,39 @@ import {
   Draggable,
   DropResult,
 } from 'react-beautiful-dnd';
-import { GripVertical, ChevronDown, ChevronUp, ArrowRight, Rocket, CheckCircle } from 'lucide-react';
+import {
+  GripVertical,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
+  Rocket,
+  CheckCircle,
+  Building,
+  User,
+  MapPin,
+  Calendar,
+  Info,
+  Trash2,
+  Plus,
+  ArrowLeft,
+  Sparkles,
+  Layout
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { verifyToken } from '../components/verifyLogin';
-import { useTheme } from '../context/ThemeContext';
+import { toast } from 'sonner';
+
+// Shadcn UI Components
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 const roundOptions = [
   'Online Assessment',
@@ -25,7 +54,7 @@ const roundOptions = [
 ];
 
 type RoundQ = { question: string; answer: string };
-type Section = { key: string; title: string; isDraggable: boolean };
+type Section = { key: string; title: string; isDraggable: boolean; icon: React.ReactNode };
 
 interface FormData {
   company: string;
@@ -40,14 +69,13 @@ interface FormData {
 }
 
 const initialSections: Section[] = [
-  { key: 'companyInfo', title: 'Company Info', isDraggable: false },
-  { key: 'selectionProcess', title: 'Selection Process', isDraggable: true },
-  { key: 'preparationTips', title: 'Preparation Tips', isDraggable: false },
-  { key: 'finalReview', title: 'Final Review', isDraggable: false },
+  { key: 'companyInfo', title: 'Context', isDraggable: false, icon: <Building className="w-4 h-4" /> },
+  { key: 'selectionProcess', title: 'Process', isDraggable: true, icon: <Layout className="w-4 h-4" /> },
+  { key: 'preparationTips', title: 'Preparation', isDraggable: false, icon: <Sparkles className="w-4 h-4" /> },
+  { key: 'finalReview', title: 'Review', isDraggable: false, icon: <CheckCircle className="w-4 h-4" /> },
 ];
 
-export default function ShareExperiencePage(): JSX.Element {
-  const { theme } = useTheme();
+export default function ShareExperiencePage(): React.ReactNode {
   const [formData, setFormData] = useState<FormData>({
     company: '',
     role: '',
@@ -60,15 +88,13 @@ export default function ShareExperiencePage(): JSX.Element {
     rounds_data: {},
   });
 
-  const [sections, setSections] = useState<Section[]>(initialSections);
+  const [sections] = useState<Section[]>(initialSections);
   const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedRounds, setExpandedRounds] = useState<string[]>([]);
-  const [expandedPreview, setExpandedPreview] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true); // Initial loading true for auth check
-  const [submissionStatus, setSubmissionStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -77,8 +103,6 @@ export default function ShareExperiencePage(): JSX.Element {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          setError('User not authenticated.');
-          setLoading(false);
           navigate('/login');
           return;
         }
@@ -89,130 +113,14 @@ export default function ShareExperiencePage(): JSX.Element {
           return;
         }
       } catch (err) {
-        console.error('Failed to verify logic:', err);
-        setError('Failed to load profile data.');
+        console.error('Auth check error:', err);
+        navigate('/login');
       } finally {
         setLoading(false);
       }
     };
-
     checkAuth();
   }, [navigate]);
-
-  const handleSubmit = async () => {
-    if (!validateCurrentStep()) {
-      return;
-    }
-    setLoading(true);
-    setSubmissionStatus(null);
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found.');
-      }
-
-      const response = await axios.post('/api/experiences/share', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setLoading(false);
-      setSubmissionStatus(response.data.message);
-
-      if (response.status === 200 || response.status === 201) {
-        setShowSuccessAnimation(true);
-        setTimeout(() => {
-          setShowSuccessAnimation(false);
-          navigate('/experiences');
-        }, 5000);
-      }
-    } catch (error: any) {
-      setLoading(false);
-      const errorMessage = error.response?.data?.message || 'Submission failed due to an unknown error.';
-      setSubmissionStatus(`Error: ${errorMessage}`);
-      console.error('Submission error:', error);
-    }
-  };
-
-  function onDragEnd(result: DropResult) {
-    if (!result.destination) return;
-    if (result.source.droppableId === 'selectedRounds-droppable') {
-      const reorderedRounds = Array.from(formData.selection_rounds);
-      const [removed] = reorderedRounds.splice(result.source.index, 1);
-      reorderedRounds.splice(result.destination.index, 0, removed);
-      setFormData((f) => ({
-        ...f,
-        selection_rounds: reorderedRounds,
-      }));
-    }
-  }
-
-  function handleRoundToggle(round: string) {
-    let updated = formData.selection_rounds.includes(round)
-      ? formData.selection_rounds.filter((r) => r !== round)
-      : [...formData.selection_rounds, round];
-    let newRoundsData = { ...formData.rounds_data };
-    if (!formData.selection_rounds.includes(round)) {
-      newRoundsData[round] = newRoundsData[round] || [{ question: '', answer: '' }];
-    } else {
-      delete newRoundsData[round];
-    }
-    setFormData(f => ({
-      ...f,
-      selection_rounds: updated,
-      rounds_data: newRoundsData,
-    }));
-  }
-
-  function addQuestion(round: string) {
-    setFormData(f => ({
-      ...f,
-      rounds_data: {
-        ...f.rounds_data,
-        [round]: [...(f.rounds_data[round] || []), { question: '', answer: '' }],
-      }
-    }));
-  }
-
-  function updateRoundQA(round: string, i: number, field: keyof RoundQ, value: string) {
-    setFormData(f => {
-      const updated = [...f.rounds_data[round]];
-      updated[i][field] = value;
-      return {
-        ...f,
-        rounds_data: {
-          ...f.rounds_data,
-          [round]: updated,
-        }
-      };
-    });
-  }
-
-  function removeRoundQA(round: string, i: number) {
-    setFormData(f => {
-      const updated = [...f.rounds_data[round]];
-      updated.splice(i, 1);
-      return {
-        ...f,
-        rounds_data: {
-          ...f.rounds_data,
-          [round]: updated,
-        },
-      };
-    });
-  }
-
-  const handleTabClick = (idx: number) => {
-    if (idx < currentStep) {
-      setCurrentStep(idx);
-      return;
-    }
-
-    if (validateCurrentStep()) {
-      setCurrentStep(idx);
-    }
-  };
 
   const validateCurrentStep = () => {
     const newErrors: Record<string, string> = {};
@@ -220,580 +128,530 @@ export default function ShareExperiencePage(): JSX.Element {
 
     switch (currentSection.key) {
       case 'companyInfo':
-        if (!formData.company.trim()) newErrors.company = "Company Name is required.";
-        if (!formData.role.trim()) newErrors.role = "Role is required.";
-        if (!formData.location.trim()) newErrors.location = "Location is required.";
-        if (!formData.date.trim()) newErrors.date = "Date is required.";
+        if (!formData.company.trim()) newErrors.company = "Company is required";
+        if (!formData.role.trim()) newErrors.role = "Role is required";
+        if (!formData.location.trim()) newErrors.location = "Location is required";
+        if (!formData.date.trim()) newErrors.date = "Date is required";
         break;
       case 'selectionProcess':
         if (formData.selection_rounds.length === 0) {
-          newErrors.selection_rounds = "Please select at least one round.";
+          newErrors.selection_rounds = "Select at least one round";
         }
         formData.selection_rounds.forEach(round => {
           if (!formData.rounds_data[round] || formData.rounds_data[round].length === 0) {
-            newErrors[`round_${round}`] = `Please add at least one question for this round.`;
+            newErrors[`round_${round}`] = "Add at least one question";
           } else {
             formData.rounds_data[round].forEach((qa, i) => {
               if (!qa.question.trim()) {
-                newErrors[`${round}_question_${i}`] = "Question is required.";
+                newErrors[`${round}_question_${i}`] = "Question is required";
               }
             });
           }
         });
         break;
       case 'preparationTips':
-        if (!formData.preparation_tips.trim()) newErrors.preparation_tips = "Preparation Summary is required.";
+        if (!formData.preparation_tips.trim()) newErrors.preparation_tips = "Preparation details required";
         break;
       case 'finalReview':
-        if (!formData.overall_experience.trim()) newErrors.overall_experience = "Overall Experience Summary is required.";
-        break;
-      default:
+        if (!formData.overall_experience.trim()) newErrors.overall_experience = "Overall summary required";
         break;
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (!validateCurrentStep()) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
     if (currentStep === sections.length - 1) {
       handleSubmit();
     } else {
-      if (validateCurrentStep()) {
-        setCurrentStep(s => Math.min(sections.length - 1, s + 1));
-      }
+      setCurrentStep(s => s + 1);
+      window.scrollTo(0, 0);
     }
   };
 
-  const toggleAccordion = (round: string) => {
-    setExpandedPreview(prev =>
-      prev.includes(round) ? prev.filter(r => r !== round) : [...prev, round]
-    );
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/experiences/share', formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setShowSuccessAnimation(true);
+      toast.success("Experience published successfully!");
+      setTimeout(() => navigate('/experiences'), 3000);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Submission failed.';
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const toggleAccordionRound = (round: string) => {
-    setExpandedRounds(prev =>
-      prev.includes(round) ? prev.filter(r => r !== round) : [...prev, round]
-    );
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const reordered = Array.from(formData.selection_rounds);
+    const [removed] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, removed);
+    setFormData(f => ({ ...f, selection_rounds: reordered }));
   };
 
-  function renderSection(section: Section) {
-    switch (section.key) {
-      case 'companyInfo':
-        return (
-          <div className="space-y-6">
-            <h2 className={`text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent`}>
-              Company Info
-            </h2>
-            <GlassInput label="Company Name *" value={formData.company}
-              onChange={v => setFormData(f => ({ ...f, company: v }))}
-              error={errors.company} />
-            <GlassInput label="Role *" value={formData.role}
-              onChange={v => setFormData(f => ({ ...f, role: v }))}
-              error={errors.role} />
-            <GlassSelect label="Experience Type *" value={formData.type}
-              options={[
-                { value: 'internship', label: 'Internship' },
-                { value: 'job', label: 'Full-time Job' },
-                { value: 'hackathon', label: 'Hackathon' },
-              ]}
-              onChange={v => setFormData(f => ({ ...f, type: v }))} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <GlassInput label="Location *" value={formData.location}
-                onChange={v => setFormData(f => ({ ...f, location: v }))}
-                error={errors.location} />
-              <GlassInput label="Date *" value={formData.date} type="date"
-                onChange={v => setFormData(f => ({ ...f, date: v }))}
-                error={errors.date} />
-            </div>
-          </div>
-        );
-      case 'selectionProcess':
-        return (
-          <div>
-            <h2 className={`text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent`}>
-              Selection Process
-            </h2>
-            <p className={`mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Select the process rounds you want, then reorder as desired and add questions/answers:</p>
-            <div className="flex flex-wrap gap-2 mb-5">
-              {roundOptions.map((round) => (
-                <button
-                  key={round}
-                  type="button"
-                  onClick={() => handleRoundToggle(round)}
-                  className={`rounded-full border font-semibold px-4 py-2 select-none transition ${formData.selection_rounds.includes(round)
-                    ? theme === 'dark'
-                      ? 'bg-gradient-to-r from-brand-cyan to-brand-blue text-black border-none shadow-lg'
-                      : 'bg-gradient-to-r from-blue-600 to-blue-400 text-white border-none shadow-lg'
-                    : theme === 'dark'
-                      ? 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
-                      : 'bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-100'
-                    }`}
+  const handleRoundToggle = (round: string) => {
+    const exists = formData.selection_rounds.includes(round);
+    let updatedRounds = exists
+      ? formData.selection_rounds.filter(r => r !== round)
+      : [...formData.selection_rounds, round];
+
+    let updatedData = { ...formData.rounds_data };
+    if (!exists) {
+      updatedData[round] = [{ question: '', answer: '' }];
+      if (!expandedRounds.includes(round)) setExpandedRounds(p => [...p, round]);
+    } else {
+      delete updatedData[round];
+    }
+
+    setFormData(f => ({ ...f, selection_rounds: updatedRounds, rounds_data: updatedData }));
+  };
+
+  const addQuestion = (round: string) => {
+    setFormData(f => ({
+      ...f,
+      rounds_data: {
+        ...f.rounds_data,
+        [round]: [...(f.rounds_data[round] || []), { question: '', answer: '' }]
+      }
+    }));
+  };
+
+  const updateRoundQA = (round: string, i: number, field: keyof RoundQ, value: string) => {
+    setFormData(f => {
+      const updated = [...f.rounds_data[round]];
+      updated[i] = { ...updated[i], [field]: value };
+      return { ...f, rounds_data: { ...f.rounds_data, [round]: updated } };
+    });
+  };
+
+  const removeRoundQA = (round: string, i: number) => {
+    setFormData(f => {
+      const updated = [...f.rounds_data[round]];
+      updated.splice(i, 1);
+      return { ...f, rounds_data: { ...f.rounds_data, [round]: updated } };
+    });
+  };
+
+  if (loading) return null;
+
+  const progressPercent = ((currentStep + 1) / sections.length) * 100;
+
+  return (
+    <div className="min-h-screen pt-24 pb-20 bg-background relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="container max-w-4xl mx-auto px-4 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <Badge variant="outline" className="mb-4 px-4 py-1.5 rounded-full bg-primary/5 border-primary/20 text-primary uppercase font-black tracking-widest text-[10px]">
+            <Rocket className="w-3.5 h-3.5 mr-2" />
+            Contribution Protocol
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
+            Share Your <span className="text-primary italic">Trajectory</span>
+          </h1>
+          <p className="text-muted-foreground font-medium italic">
+            "Your insights bridge the gap between ambition and achievement for thousands."
+          </p>
+        </motion.div>
+
+        {/* Stepper Header */}
+        <div className="mb-12">
+          <div className="flex justify-between mb-4 px-2">
+            {sections.map((s, i) => (
+              <button
+                key={s.key}
+                disabled={i > currentStep && !validateCurrentStep()}
+                onClick={() => setCurrentStep(i)}
+                className={`flex flex-col items-center gap-2 group transition-all ${i <= currentStep ? 'text-primary' : 'text-muted-foreground opacity-50'}`}
+              >
+                <div className={`h-10 w-10 rounded-xl flex items-center justify-center border-2 transition-all 
+                  ${i === currentStep ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20' :
+                    i < currentStep ? 'bg-primary/10 border-primary/30' : 'bg-muted border-border'}`}
                 >
-                  {round}
-                </button>
-              ))}
-            </div>
-            {errors.selection_rounds && <p className="text-sm mt-1 mb-4 text-red-500">{errors.selection_rounds}</p>}
-            <Droppable droppableId="selectedRounds-droppable" direction="vertical">
-              {(provided) => (
-                <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-6 min-h-[100px]">
-                  {(formData.selection_rounds.length === 0) ? (
-                    <div className={`italic select-none py-4 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>No rounds selected</div>
-                  ) : (
-                    formData.selection_rounds.map((round, idx) => (
-                      <Draggable key={round} draggableId={round} index={idx}>
-                        {(prov) => (
-                          <div
-                            ref={prov.innerRef}
-                            {...prov.draggableProps}
-                            className={`rounded-xl shadow p-5 mb-2 border transition-colors ${theme === 'dark'
-                              ? 'glass border-white/10'
-                              : 'bg-white border-gray-100'
-                              }`}
-                            style={{ ...prov.draggableProps.style }}
+                  {i < currentStep ? <CheckCircle className="w-5 h-5" /> : s.icon}
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{s.title}</span>
+              </button>
+            ))}
+          </div>
+          <Progress value={progressPercent} className="h-1.5 rounded-full bg-muted border border-border/20" />
+        </div>
+
+        <Card className="rounded-[40px] border-border/60 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden border-none shadow-black/5 ring-1 ring-border/20">
+          <CardContent className="p-8 md:p-12">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={sections[currentStep].key}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-8"
+              >
+                {currentStep === 0 && (
+                  <div className="grid gap-8">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Company *</Label>
+                        <div className="relative">
+                          <Building className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="e.g. Google, Microsoft"
+                            className="h-12 pl-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20"
+                            value={formData.company}
+                            onChange={e => setFormData(f => ({ ...f, company: e.target.value }))}
+                          />
+                        </div>
+                        {errors.company && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.company}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Role *</Label>
+                        <div className="relative">
+                          <User className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="e.g. SDE-1, UX Designer"
+                            className="h-12 pl-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20"
+                            value={formData.role}
+                            onChange={e => setFormData(f => ({ ...f, role: e.target.value }))}
+                          />
+                        </div>
+                        {errors.role && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.role}</p>}
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Context Type *</Label>
+                        <Select value={formData.type} onValueChange={v => setFormData(f => ({ ...f, type: v }))}>
+                          <SelectTrigger className="h-12 rounded-2xl bg-background/50 border-border/50">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl">
+                            <SelectItem value="internship">Internship</SelectItem>
+                            <SelectItem value="job">Full-time Job</SelectItem>
+                            <SelectItem value="hackathon">Hackathon</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Location *</Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="City, State"
+                            className="h-12 pl-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20"
+                            value={formData.location}
+                            onChange={e => setFormData(f => ({ ...f, location: e.target.value }))}
+                          />
+                        </div>
+                        {errors.location && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.location}</p>}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Interview Date *</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          type="date"
+                          className="h-12 pl-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20"
+                          value={formData.date}
+                          onChange={e => setFormData(f => ({ ...f, date: e.target.value }))}
+                        />
+                      </div>
+                      {errors.date && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.date}</p>}
+                    </div>
+                  </div>
+                )}
+
+                {currentStep === 1 && (
+                  <div className="space-y-8">
+                    <div className="space-y-4">
+                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Select Interfacing Rounds</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {roundOptions.map(r => (
+                          <Badge
+                            key={r}
+                            variant={formData.selection_rounds.includes(r) ? "default" : "outline"}
+                            className={`cursor-pointer px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                              ${formData.selection_rounds.includes(r) ? 'shadow-lg shadow-primary/20' : 'hover:bg-primary/5 hover:border-primary/20'}`}
+                            onClick={() => handleRoundToggle(r)}
                           >
-                            <div className="flex items-start gap-2">
-                              <span
-                                {...prov.dragHandleProps}
-                                aria-label="Drag to reorder round"
-                                className={`mt-1 mr-2 cursor-grab active:cursor-grabbing ${theme === 'dark' ? 'text-gray-500 hover:text-brand-cyan' : 'text-gray-400 hover:text-blue-500'}`}
-                                style={{ padding: 3 }}
-                              >
-                                <GripVertical size={22} />
-                              </span>
-                              <div className="flex-1">
-                                <button type="button" onClick={() => toggleAccordionRound(round)} className={`flex justify-between items-center w-full text-left font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                                  <span>
-                                    <span className={`text-sm font-bold mr-2 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>{idx + 1}.</span> {round}
-                                  </span>
-                                  {expandedRounds.includes(round) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                </button>
-                                {errors[`round_${round}`] && <p className="text-sm mt-1 text-red-500">{errors[`round_${round}`]}</p>}
-                                {expandedRounds.includes(round) && (
-                                  <div className="mt-4 space-y-4">
-                                    {(formData.rounds_data[round] || []).map((qa, i) => (
-                                      <div className={`p-4 rounded-lg border shadow-sm ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200'}`} key={i}>
-                                        <div className="flex justify-between items-center mb-2">
-                                          <label className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Question {i + 1}</label>
-                                          <button type="button"
-                                            onClick={() => removeRoundQA(round, i)}
-                                            className="text-red-500 font-bold px-1 hover:opacity-80 rounded"
-                                          >✕</button>
+                            {r}
+                          </Badge>
+                        ))}
+                      </div>
+                      {errors.selection_rounds && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.selection_rounds}</p>}
+                    </div>
+
+                    <Separator className="bg-border/40" />
+
+                    <div className="space-y-4">
+                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Process Sequence (Drag to Reorder)</Label>
+                      <DragDropContext onDragEnd={onDragEnd}>
+                        <Droppable droppableId="selectedRounds-droppable">
+                          {(provided: any) => (
+                            <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+                              {formData.selection_rounds.map((round, idx) => (
+                                <Draggable key={round} draggableId={round} index={idx}>
+                                  {(prov: any) => (
+                                    <div ref={prov.innerRef} {...prov.draggableProps} className="rounded-3xl border border-border/40 bg-background/40 backdrop-blur-md overflow-hidden group">
+                                      <div className="p-5 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                          <div {...prov.dragHandleProps} className="text-muted-foreground hover:text-primary transition-colors">
+                                            <GripVertical className="w-5 h-5" />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Step 0{idx + 1}</span>
+                                            <h4 className="text-lg font-black italic">{round}</h4>
+                                          </div>
                                         </div>
-                                        <textarea
-                                          placeholder="Question *"
-                                          value={qa.question}
-                                          rows={3}
-                                          className={`w-full border rounded-md px-2 py-1 focus:outline-none focus:ring-2 
-                                            ${errors[`${round}_question_${i}`]
-                                              ? 'border-red-500 focus:ring-red-500'
-                                              : theme === 'dark'
-                                                ? 'bg-black/20 border-white/20 text-white focus:ring-brand-cyan'
-                                                : 'bg-white border-gray-300 focus:ring-blue-400'}`}
-                                          onChange={e => updateRoundQA(round, i, 'question', e.target.value)}
-                                        />
-                                        {errors[`${round}_question_${i}`] && <p className="text-sm mt-1 text-red-500">{errors[`${round}_question_${i}`]}</p>}
-                                        <div className="mt-4">
-                                          <label className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Answer (optional)</label>
-                                          <textarea
-                                            placeholder="Answer"
-                                            value={qa.answer}
-                                            rows={3}
-                                            className={`w-full border rounded-md px-2 py-1 mt-1 focus:outline-none focus:ring-2 
-                                              ${theme === 'dark'
-                                                ? 'bg-black/20 border-white/20 text-white focus:ring-brand-cyan'
-                                                : 'bg-white border-gray-300 focus:ring-blue-400'}`}
-                                            onChange={e => updateRoundQA(round, i, 'answer', e.target.value)}
-                                          />
-                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-10 w-10 p-0 rounded-xl"
+                                          onClick={() => setExpandedRounds(p => p.includes(round) ? p.filter(r => r !== round) : [...p, round])}
+                                        >
+                                          {expandedRounds.includes(round) ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                        </Button>
                                       </div>
-                                    ))}
-                                    <button
-                                      type="button"
-                                      className={`mt-1 text-sm rounded-full px-3 py-1 font-medium border transition-all duration-200 ${theme === 'dark'
-                                        ? 'border-brand-cyan text-brand-cyan hover:bg-brand-cyan/10'
-                                        : 'border-blue-500 text-blue-600 hover:bg-blue-50'
-                                        }`}
-                                      onClick={() => addQuestion(round)}
-                                    >+ Add Question</button>
-                                  </div>
-                                )}
-                              </div>
+
+                                      <AnimatePresence>
+                                        {expandedRounds.includes(round) && (
+                                          <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            className="overflow-hidden border-t border-border/20 px-6 py-8 space-y-6"
+                                          >
+                                            {formData.rounds_data[round]?.map((qa, i) => (
+                                              <div key={i} className="space-y-4 relative p-6 bg-muted/20 rounded-2xl border border-border/20 group/qa">
+                                                <div className="flex justify-between items-center mb-2">
+                                                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Intelligence Unit {i + 1}</Label>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg opacity-0 group-hover/qa:opacity-100 transition-opacity"
+                                                    onClick={() => removeRoundQA(round, i)}
+                                                  >
+                                                    <Trash2 className="w-4 h-4" />
+                                                  </Button>
+                                                </div>
+                                                <div className="space-y-4">
+                                                  <Textarea
+                                                    placeholder="The Query Interfaced..."
+                                                    className="min-h-[80px] rounded-xl bg-background/50 border-border/40"
+                                                    value={qa.question}
+                                                    onChange={e => updateRoundQA(round, i, 'question', e.target.value)}
+                                                  />
+                                                  {errors[`${round}_question_${i}`] && <p className="text-[10px] text-destructive font-bold uppercase">{errors[`${round}_question_${i}`]}</p>}
+                                                  <Textarea
+                                                    placeholder="The Response Strategy (Optional)..."
+                                                    className="min-h-[80px] rounded-xl bg-background/50 border-border/40"
+                                                    value={qa.answer}
+                                                    onChange={e => updateRoundQA(round, i, 'answer', e.target.value)}
+                                                  />
+                                                </div>
+                                              </div>
+                                            ))}
+                                            <Button
+                                              variant="outline"
+                                              className="w-full h-12 rounded-xl bg-primary/5 border-dashed border-primary/20 text-primary uppercase font-black tracking-widest text-[10px]"
+                                              onClick={() => addQuestion(round)}
+                                            >
+                                              <Plus className="w-4 h-4 mr-2" /> Add Intel Core
+                                            </Button>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))}
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </Droppable>
+                      </DragDropContext>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep === 2 && (
+                  <div className="space-y-6">
+                    <div className="p-8 rounded-[32px] bg-primary/5 border border-primary/10 flex flex-col items-center text-center space-y-4 mb-8">
+                      <div className="h-14 w-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                        <Sparkles className="w-7 h-7" />
+                      </div>
+                      <h3 className="text-xl font-bold">Preparation Strategy</h3>
+                      <p className="text-sm text-muted-foreground max-w-md font-medium italic">"Decrypt the methods, resources, and frameworks that empowered your success."</p>
+                    </div>
+                    <div className="space-y-4">
+                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Preparation Intelligence *</Label>
+                      <Textarea
+                        placeholder="Detailed breakdown of your roadmap, resources used, and key focus areas..."
+                        className="min-h-[300px] rounded-[32px] p-8 bg-background/50 border-border/50 text-base leading-relaxed"
+                        value={formData.preparation_tips}
+                        onChange={e => setFormData(f => ({ ...f, preparation_tips: e.target.value }))}
+                      />
+                      {errors.preparation_tips && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.preparation_tips}</p>}
+                    </div>
+                  </div>
+                )}
+
+                {currentStep === 3 && (
+                  <div className="space-y-8">
+                    <div className="grid md:grid-cols-2 gap-8">
+                      <div className="space-y-6">
+                        <div className="space-y-1">
+                          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Intelligence Header</h3>
+                          <div className="p-6 rounded-[24px] bg-muted/30 border border-border/20 space-y-3">
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground font-medium">Domain</span>
+                              <span className="font-black italic">{formData.company}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground font-medium">Capacity</span>
+                              <span className="font-black italic">{formData.role}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground font-medium">Execution</span>
+                              <span className="font-black italic">{formData.type}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground font-medium">Registry</span>
+                              <span className="font-black italic">{formData.date}</span>
                             </div>
                           </div>
-                        )}
-                      </Draggable>
-                    ))
-                  )}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </div>
-        );
-      case 'preparationTips':
-        return (
-          <div className="space-y-6">
-            <h2 className={`text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent`}>
-              Preparation Tips
-            </h2>
-            <p className={`mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              Share a summary of how you prepared for this interview. What resources did you use? What was most helpful?
-            </p>
-            <GlassInput label="Preparation Summary *" value={formData.preparation_tips} type="textarea"
-              onChange={v => setFormData(f => ({ ...f, preparation_tips: v }))}
-              error={errors.preparation_tips} />
-          </div>
-        );
-      case 'finalReview':
-        return (
-          <div className={`rounded-xl shadow-lg p-6 border ${theme === 'dark' ? 'glass border-white/10' : 'bg-white border-gray-100'}`}>
-            <h2 className={`text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent`}>
-              Final Review
-            </h2>
-            <div className={`space-y-1 mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-              <p><strong>Company:</strong> {formData.company}</p>
-              <p><strong>Role:</strong> {formData.role}</p>
-              <p><strong>Type:</strong> {formData.type}</p>
-              <p><strong>Location:</strong> {formData.location}</p>
-              <p><strong>Date:</strong> {formData.date}</p>
-            </div>
-            <div className="space-y-4">
-              <h4 className={`font-semibold text-lg ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Rounds Data</h4>
-              {formData.selection_rounds.length > 0 ? (
-                formData.selection_rounds.map((round, idx) => (
-                  <div key={round} className="border-b border-gray-200/20 pb-2">
-                    <button
-                      onClick={() => toggleAccordion(round)}
-                      className={`flex justify-between items-center w-full text-left font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
-                    >
-                      <span>
-                        <span className={`text-sm font-bold mr-2 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>{idx + 1}.</span> {round}
-                      </span>
-                      {expandedPreview.includes(round) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </button>
-                    {expandedPreview.includes(round) && (
-                      <div className="mt-2 pl-6">
-                        {formData.rounds_data[round]?.length > 0 ? (
-                          formData.rounds_data[round].map((qa, i) => (
-                            <div key={i} className={`mb-2 p-2 rounded-md ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`}>
-                              <p className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Q: {qa.question}</p>
-                              {qa.answer && <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>A: {qa.answer}</p>}
-                            </div>
-                          ))
-                        ) : (
-                          <p className={`italic ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>No questions added for this round.</p>
-                        )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Process Map</h3>
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            {formData.selection_rounds.map((r, i) => (
+                              <Badge key={r} variant="outline" className="h-8 rounded-lg px-3 bg-background font-bold text-[9px] uppercase tracking-widest border-border/40">
+                                0{i + 1} : {r}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    )}
+
+                      <div className="space-y-4">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Overall Trajectory Summary *</Label>
+                        <Textarea
+                          placeholder="Your final reflections and the 'Human Element' of the experience..."
+                          className="min-h-[200px] rounded-[32px] p-6 bg-background/50 border-border/50"
+                          value={formData.overall_experience}
+                          onChange={e => setFormData(f => ({ ...f, overall_experience: e.target.value }))}
+                        />
+                        {errors.overall_experience && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.overall_experience}</p>}
+                      </div>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-primary/5 border border-primary/20 flex items-start gap-4">
+                      <Info className="w-5 h-5 text-primary mt-1" />
+                      <div>
+                        <p className="text-sm font-black uppercase tracking-widest mb-1">Final Clearance</p>
+                        <p className="text-[11px] text-muted-foreground font-medium italic">By publishing, you confirm that this intelligence is verified and intends to empower the community.</p>
+                      </div>
+                    </div>
                   </div>
-                ))
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </CardContent>
+
+          <CardFooter className="p-8 bg-muted/20 border-t border-border/20 flex justify-between gap-4">
+            <Button
+              variant="ghost"
+              className="h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] border border-transparent hover:border-border/60 hover:bg-background/40"
+              onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
+              disabled={currentStep === 0 || isSubmitting}
+            >
+              <ArrowLeft className="w-3.5 h-3.5 mr-2" /> Abort Phase
+            </Button>
+
+            <Button
+              className="h-14 rounded-2xl px-12 font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 group"
+              onClick={handleNext}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <div className="h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2" />
+              ) : currentStep === sections.length - 1 ? (
+                <Rocket className="w-3.5 h-3.5 mr-2 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
               ) : (
-                <p className={`italic ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>No rounds selected.</p>
+                <ArrowRight className="w-3.5 h-3.5 mr-2 group-hover:translate-x-1 transition-transform" />
               )}
-            </div>
-            <div className="mt-6">
-              <h4 className={`font-semibold text-lg mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Preparation Tips</h4>
-              <p className={`p-4 rounded-xl border white-space: pre-wrap; ${theme === 'dark' ? 'bg-white/5 border-white/10 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-700'}`}>
-                {formData.preparation_tips || <span className="italic opacity-60">Not provided.</span>}
-              </p>
-            </div>
-            <div className="mt-6">
-              <h4 className={`font-semibold text-lg mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Overall Experience Summary</h4>
-              <GlassInput label="" value={formData.overall_experience} type="textarea"
-                onChange={v => setFormData(f => ({ ...f, overall_experience: v }))}
-                error={errors.overall_experience} />
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  }
+              {isSubmitting ? "Interfacing..." : currentStep === sections.length - 1 ? "Initialize Publication" : "Next Phase"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
 
-  const CoinAnimation = () => {
-    const coinVariants = {
-      hidden: { opacity: 0, scale: 0.5, y: 0, rotate: 0 },
-      visible: {
-        opacity: 1,
-        scale: [1, 1.2, 1],
-        y: [0, -20, 0],
-        rotate: [0, 360],
-        transition: {
-          type: 'tween',
-          duration: 0.8,
-          ease: 'easeInOut',
-        },
-      },
-      burst: (i: number) => ({
-        opacity: [1, 0],
-        scale: [1, 2],
-        y: [0, Math.random() * -150 - 50],
-        x: [0, Math.random() * 100 - 50],
-        rotate: [0, Math.random() * 720 - 360],
-        transition: {
-          duration: 0.8,
-          ease: 'easeOut',
-          delay: i * 0.05,
-        },
-      }),
-    };
-
-    return (
       <AnimatePresence>
         {showSuccessAnimation && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none bg-black bg-opacity-75 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md"
           >
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className={`relative p-8 rounded-2xl shadow-2xl flex flex-col items-center justify-center text-center max-w-sm mx-auto ${theme === 'dark' ? 'glass border border-white/10 text-white' : 'bg-white text-gray-800'}`}
+              className="bg-card w-full max-w-sm rounded-[40px] p-12 text-center border border-border shadow-2xl space-y-6"
             >
-              <h3 className={`text-3xl font-bold mb-4 ${theme === 'dark' ? 'text-brand-cyan' : 'text-blue-600'}`}>Experience Shared!</h3>
-              <div className="text-4xl font-extrabold text-gray-800">
-                <span className="text-6xl font-extrabold text-yellow-500">+50</span> <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>Coins pending approval</span>
+              <div className="h-20 w-20 bg-primary/10 text-primary rounded-[28px] flex items-center justify-center mx-auto shadow-lg shadow-primary/5">
+                <Sparkles className="w-10 h-10 animate-pulse" />
               </div>
-              <p className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                Thank you for your valuable contribution.
-              </p>
-              <div className={`mt-4 flex items-center animate-pulse ${theme === 'dark' ? 'text-brand-cyan' : 'text-blue-600'}`}>
-                <CheckCircle size={24} className="mr-2" />
-                <span className="font-semibold">Redirecting...</span>
+              <div className="space-y-2">
+                <h2 className="text-3xl font-black italic">Publication <span className="text-primary italic">Live</span></h2>
+                <p className="text-sm text-muted-foreground font-medium">Trajectory successfully archived in the repository.</p>
               </div>
-
-              {[...Array(25)].map((_, i) => (
-                <motion.span
-                  key={i}
-                  variants={coinVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="burst"
-                  custom={i}
-                  className="absolute text-3xl"
-                  style={{
-                    top: '50%',
-                    left: '50%',
-                    filter: `drop-shadow(0 0 5px rgba(255,215,0,0.8))`,
-                  }}
-                >
-                  🪙
-                </motion.span>
-              ))}
-
+              <div className="flex items-center justify-center gap-3 py-4">
+                <div className="h-10 w-10 rounded-xl bg-yellow-500/10 text-yellow-500 flex items-center justify-center font-black">🪙</div>
+                <div className="text-left font-black tracking-tight leading-none">
+                  <p className="text-2xl italic text-yellow-500">+50</p>
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Reputation Credits</p>
+                </div>
+              </div>
+              <LoaderDots />
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    );
-  };
-
-  return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <main className={`min-h-screen pt-20 transition-colors duration-300 ${theme === 'dark' ? 'bg-transparent' : 'bg-gray-50'}`}>
-
-        {/* Deep Space Background Decor */}
-        {theme === 'dark' ? (
-          <>
-            <div className="fixed top-0 left-0 w-96 h-96 bg-brand-blue/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-[100px] pointer-events-none"></div>
-            <div className="fixed bottom-0 right-0 w-96 h-96 bg-brand-purple/10 rounded-full translate-x-1/3 translate-y-1/3 blur-[100px] pointer-events-none"></div>
-          </>
-        ) : (
-          <>
-            <div className="absolute top-0 -left-10 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl opacity-70 pointer-events-none"></div>
-            <div className="absolute bottom-0 -right-10 w-80 h-80 bg-cyan-200/20 rounded-full blur-3xl opacity-70 pointer-events-none"></div>
-          </>
-        )}
-
-        <div className="max-w-4xl mx-auto py-7 px-4 relative z-10">
-          <nav className="flex gap-3 items-center mb-6 overflow-x-auto pb-2 scrollbar-hide">
-            {sections.map((section, idx) => {
-              const isActive = currentStep === idx;
-              const tabContent = (
-                <div
-                  className={`flex items-center rounded-xl px-4 py-2 border font-semibold select-none transition-all duration-300 shadow-sm whitespace-nowrap
-                    ${isActive
-                      ? theme === 'dark'
-                        ? 'bg-gradient-to-r from-brand-cyan to-brand-blue text-black border-none shadow-lg'
-                        : 'bg-gradient-to-r from-blue-600 to-blue-400 text-white border-none shadow-lg'
-                      : theme === 'dark'
-                        ? 'glass border-white/10 text-gray-300 hover:bg-white/10'
-                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
-                    }
-                  `}
-                  style={{ userSelect: 'none', cursor: 'pointer' }}
-                  onClick={() => handleTabClick(idx)}
-                >
-                  {section.isDraggable && (
-                    <span className="mr-2 cursor-grab active:cursor-grabbing">
-                    </span>
-                  )}
-                  {section.title}
-                </div>
-              );
-              return section.isDraggable ? (
-                <Droppable droppableId="sections-tabs" direction="horizontal" key={section.key}>
-                  {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps}>
-                      <Draggable key={section.key} draggableId={section.key} index={0}>
-                        {(prov) => (
-                          <div
-                            ref={prov.innerRef}
-                            {...prov.draggableProps}
-                            {...prov.dragHandleProps}
-                            style={{ ...prov.draggableProps.style }}
-                          >
-                            {tabContent}
-                          </div>
-                        )}
-                      </Draggable>
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              ) : (
-                <div key={section.key}>{tabContent}</div>
-              );
-            })}
-          </nav>
-
-          <TricolorProgressBar current={currentStep} total={sections.length} />
-
-          <section className="mb-10">{renderSection(sections[currentStep])}</section>
-
-          {submissionStatus && (
-            <div className={`p-4 rounded-md mb-4 font-semibold ${submissionStatus.startsWith('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-              {submissionStatus}
-            </div>
-          )}
-
-          <div className="flex justify-between">
-            <button
-              onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-              disabled={currentStep === 0 || loading}
-              className={`px-6 py-3 rounded-xl border-2 font-semibold transition-all duration-300
-                ${currentStep === 0 || loading
-                  ? theme === 'dark' ? 'border-white/10 text-gray-600 cursor-not-allowed' : 'border-gray-300 text-gray-400 cursor-not-allowed'
-                  : theme === 'dark' ? 'glass border-white/20 text-white hover:bg-white/10' : 'bg-white border-blue-500 text-blue-600 hover:bg-blue-50'
-                }`}
-            >
-              Previous
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={loading}
-              className={`px-8 py-4 text-white shadow-lg disabled:opacity-50 rounded-xl font-semibold text-lg transition-all duration-300 ease-in-out hover:transform hover:scale-105 hover:-translate-y-1 ${theme === 'dark'
-                ? 'bg-gradient-to-r from-brand-cyan to-brand-blue hover:shadow-brand-cyan/20 text-black'
-                : 'bg-gradient-to-r from-blue-600 to-blue-400 hover:shadow-blue-500/20'
-                }`}
-
-            >
-              {loading ? 'Publishing...' : currentStep === sections.length - 1 ? 'Publish Experience' : 'Next'}
-              {currentStep === sections.length - 1 ? <Rocket className="inline w-5 h-5 ml-2" /> : <ArrowRight className="inline w-5 h-5 ml-2" />}
-            </button>
-          </div>
-        </div>
-
-        <CoinAnimation />
-
-      </main>
-    </DragDropContext>
-  );
-}
-
-function GlassInput(props: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  error?: string;
-}) {
-  const { theme } = useTheme();
-  return (
-    <div>
-      <label className={`block mb-2 font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>{props.label}</label>
-      {props.type === 'textarea' ? (
-        <textarea
-          className={`w-full px-4 py-2 rounded-md border shadow-sm focus:outline-none focus:ring-2 
-            ${props.error
-              ? 'border-red-500 focus:ring-red-500'
-              : theme === 'dark'
-                ? 'bg-white/5 border-white/10 text-white focus:ring-brand-cyan'
-                : 'bg-white border-gray-200 focus:ring-blue-400'}`}
-          value={props.value}
-          onChange={e => props.onChange(e.target.value)}
-          rows={5}
-        />
-      ) : (
-        <input
-          type={props.type || 'text'}
-          className={`w-full px-4 py-2 rounded-md border shadow-sm focus:outline-none focus:ring-2 
-            ${props.error
-              ? 'border-red-500 focus:ring-red-500'
-              : theme === 'dark'
-                ? 'bg-white/5 border-white/10 text-white focus:ring-brand-cyan'
-                : 'bg-white border-gray-200 focus:ring-blue-400'}`}
-          value={props.value}
-          onChange={e => props.onChange(e.target.value)}
-        />
-      )}
-      {props.error && <p className="text-sm mt-1 text-red-500">{props.error}</p>}
     </div>
   );
 }
 
-function GlassSelect(props: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  const { theme } = useTheme();
-  return (
-    <div>
-      <label className={`block mb-2 font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>{props.label}</label>
-      <select
-        className={`w-full px-4 py-2 rounded-md border shadow-sm focus:outline-none focus:ring-2 
-          ${theme === 'dark'
-            ? 'bg-white/5 border-white/10 text-white focus:ring-brand-cyan'
-            : 'bg-white border-gray-200 focus:ring-blue-400'}`}
-        value={props.value}
-        onChange={e => props.onChange(e.target.value)}
-      >
-        {props.options.map(opt => (
-          <option key={opt.value} value={opt.value} className={theme === 'dark' ? 'bg-zinc-900 text-white' : ''}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-const TricolorProgressBar: React.FC<{ current: number; total: number }> = ({
-  current,
-  total,
-}) => {
-  const { theme } = useTheme();
-  const percent = ((current + 1) / total) * 100;
-  return (
-    <div className="w-full py-3 mb-2 select-none">
-      <div className="flex justify-between mb-1">
-        <span className={`font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{`Step ${current + 1} of ${total}`}</span>
-        <span className={`font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{`${Math.round(percent)}% Complete`}</span>
-      </div>
-      <div className={`w-full h-3 rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`}>
-        <div
-          className="h-3 rounded-2xl"
-          style={{
-            width: `${percent}%`,
-            background: 'linear-gradient(90deg, #32a5d4 0%, #3b82f6 50%, #a855f7 100%)',
-            transition: 'width 0.3s cubic-bezier(.65,.05,.36,1)',
-          }}
-        />
-      </div>
-    </div>
-  );
-};
+const LoaderDots = () => (
+  <div className="flex justify-center gap-1">
+    {[0, 1, 2].map(i => (
+      <motion.div
+        key={i}
+        animate={{ opacity: [0.2, 1, 0.2] }}
+        transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+        className="h-1.5 w-1.5 rounded-full bg-primary"
+      />
+    ))}
+  </div>
+);

@@ -1,45 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
-  User, Mail, MapPin, Building, Calendar, Edit3, Star, Trophy, Clock,
-  BookOpen, MessageCircle, Heart, Upload, Save, X, LogOut, HeartHandshake, Users, ThumbsUp, Bookmark, FileText,
-  Award, TrendingUp, Zap, Crown, Sparkles, Share2, ChevronDown, ChevronUp
+  MapPin, Building, Calendar, Trophy, Clock,
+  MessageCircle, Bookmark,
+  Award, TrendingUp, Zap, Share2Info
 } from 'lucide-react';
 import PublicActivityHeatmap from '../components/PublicActivityHeatmap';
 import axios from '../api';
 import Loader from '../components/Loader';
-import { useTheme } from '../context/ThemeContext';
+import { toast } from 'sonner';
 
-// ✅ Icon map
-const iconMap: { [key: string]: React.ComponentType<any> } = {
-  User,
-  Mail,
-  MapPin,
-  Building,
-  Calendar,
-  Edit3,
-  Star,
-  Trophy,
-  BookOpen,
-  MessageCircle,
-  Heart,
-  Upload,
-  Save,
-  X,
-  LogOut,
-  HeartHandshake,
-  Users,
-  ThumbsUp,
-  Bookmark,
-  FileText,
-  Clock,
-  Zap,
-  Crown,
-  Sparkles,
-  Award,
-  TrendingUp
-};
+// Shadcn UI Components
+import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 // Profile data interface
 interface ProfileData {
@@ -75,15 +65,14 @@ interface ProfileData {
   };
 }
 
-// Helper function to format date
 const formatDate = (dateString: string | undefined) => {
-  if (!dateString) return 'Date not available';
+  if (!dateString) return 'Registry unknown';
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
   return date.toLocaleDateString('en-US', options);
 };
 
-// Helper function for Level Calculation
+// Level Calculation
 const calculateLevelAndProgress = (points: number) => {
   const levels = [
     { name: 'Beginner', icon: 'User', minPoints: 0, maxPoints: 199 },
@@ -118,498 +107,251 @@ const calculateLevelAndProgress = (points: number) => {
     }
   }
 
-  const progressText = nextLevel
-    ? `Need ${nextLevel.minPoints - points} more points to reach ${nextLevel.name}!`
-    : "This user has reached the highest level! 🏆";
-
   return {
     name: currentLevel.name,
     icon: currentLevel.icon,
     percentage: Math.min(100, Math.max(0, Math.floor(progress))),
-    progressText: progressText,
+    progressText: nextLevel ? `Need ${nextLevel.minPoints - points} more to reach ${nextLevel.name}` : "Max Level Reached",
     remaining: nextLevel ? `${points} / ${nextLevel.minPoints}` : `${points} / ∞`
   };
 };
 
-// --- Custom Components ---
-
-const EngagementChart = ({ contributions, likesReceived }: { contributions: number; likesReceived: number }) => {
-  const { theme } = useTheme();
-  const maxValue = Math.max(contributions, likesReceived, 10);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Contributions</span>
-        <span className={`font-bold px-2 py-1 rounded-lg text-xs ${theme === 'dark' ? 'text-blue-400 bg-blue-500/10' : 'text-blue-600 bg-blue-50'}`}>
-          {contributions}
-        </span>
-      </div>
-      <div className={`w-full rounded-full h-2.5 border ${theme === 'dark' ? 'bg-white/10 border-white/5' : 'bg-white/60 border-white/30 backdrop-blur-sm'}`}>
-        <div
-          className="bg-gradient-to-r from-blue-400 to-blue-600 h-2.5 rounded-full transition-all duration-700 shadow-lg shadow-blue-500/25"
-          style={{ width: `${(contributions / maxValue) * 100}%` }}
-        ></div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Likes Received</span>
-        <span className={`font-bold px-2 py-1 rounded-lg text-xs ${theme === 'dark' ? 'text-green-400 bg-green-500/10' : 'text-green-600 bg-green-50'}`}>
-          {likesReceived}
-        </span>
-      </div>
-      <div className={`w-full rounded-full h-2.5 border ${theme === 'dark' ? 'bg-white/10 border-white/5' : 'bg-white/60 border-white/30 backdrop-blur-sm'}`}>
-        <div
-          className="bg-gradient-to-r from-green-400 to-green-600 h-2.5 rounded-full transition-all duration-700 shadow-lg shadow-green-500/25"
-          style={{ width: `${(likesReceived / maxValue) * 100}%` }}
-        ></div>
-      </div>
-    </div>
-  );
-};
-
-const AchievementBadges = () => {
-  const { theme } = useTheme();
-  const badges = [
-    { icon: Star, color: 'from-blue-400 to-indigo-500', label: 'First Post', earned: true },
-    { icon: Trophy, color: 'from-cyan-500 to-blue-500', label: 'Top Contributor', earned: true },
-    { icon: Heart, color: 'from-purple-400 to-indigo-500', label: 'Community Helper', earned: true },
-    { icon: Zap, color: 'from-blue-300 to-cyan-400', label: 'Fast Riser', earned: false },
-    { icon: Crown, color: 'from-indigo-400 to-purple-500', label: 'Expert', earned: false },
-    { icon: Sparkles, color: 'from-cyan-400 to-blue-400', label: 'Innovator', earned: false },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        {badges.map((badge, index) => {
-          const IconComponent = badge.icon;
-          return (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className={`relative group ${badge.earned ? 'opacity-100' : 'opacity-40 grayscale'
-                }`}
-            >
-              <div className={`w-16 h-16 bg-gradient-to-br ${badge.color} rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-sm border ${theme === 'dark' ? 'border-white/10' : 'border-white/30'}`}>
-                <IconComponent className="w-6 h-6 text-white" />
-              </div>
-              <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg border ${theme === 'dark' ? 'bg-space-900/90 border-white/20 text-white' : 'bg-white/90 border-white/20 text-gray-800'}`}>
-                {badge.label}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-      <div className="text-center">
-        <p className={`text-xs p-2 rounded-lg backdrop-blur-sm ${theme === 'dark' ? 'text-gray-400 bg-white/5' : 'text-gray-500 bg-white/30'}`}>
-          This user has unlocked {badges.filter(b => b.earned).length} achievements.
-        </p>
-      </div>
-    </div>
-  );
-};
-
-const ExpandedRecentActivity = ({ activities, onClose }: { activities: ProfileData['recentActivity'], onClose: () => void }) => {
-  const { theme } = useTheme();
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`rounded-3xl shadow-xl p-6 border lg:col-span-2 ${theme === 'dark' ? 'glass border-white/10' : 'bg-white/60 backdrop-blur-xl border-white/30'}`}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h3 className={`text-xl font-semibold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-          <Zap className="w-6 h-6 mr-2 text-yellow-500" />
-          Recent Activity
-        </h3>
-        <button
-          onClick={onClose}
-          className={`p-2 rounded-full transition-colors backdrop-blur-sm ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10' : 'text-gray-500 hover:bg-white/50'}`}
-        >
-          <ChevronUp className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="space-y-4 max-h-96 overflow-y-auto">
-        {activities?.map((activity) => {
-          const IconComponent = iconMap[activity.icon] || User;
-          return (
-            <motion.div
-              key={activity.id}
-              whileHover={{ scale: 1.02 }}
-              className={`flex items-center justify-between p-4 rounded-xl transition-all duration-200 border ${theme === 'dark' ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-white/50 backdrop-blur-sm border-white/30 hover:bg-white/70'}`}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center shadow-md">
-                  <IconComponent className="w-6 h-6 text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>{activity.title}</p>
-                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{activity.timeAgo}</p>
-                </div>
-              </div>
-              <div className={`text-lg font-bold whitespace-nowrap px-3 py-2 rounded-lg ${theme === 'dark' ? 'text-brand-cyan bg-brand-cyan/10' : 'text-blue-600 bg-blue-50'}`}>
-                +{activity.points}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-};
-
-const ExpandedAchievements = ({ onClose }: { onClose: () => void }) => {
-  const { theme } = useTheme();
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`rounded-3xl shadow-xl p-6 border lg:col-span-2 ${theme === 'dark' ? 'glass border-white/10' : 'bg-white/60 backdrop-blur-xl border-white/30'}`}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h3 className={`text-xl font-semibold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-          <Trophy className="w-6 h-6 mr-2 text-yellow-500" />
-          Achievements
-        </h3>
-        <button
-          onClick={onClose}
-          className={`p-2 rounded-full transition-colors backdrop-blur-sm ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10' : 'text-gray-500 hover:bg-white/50'}`}
-        >
-          <ChevronUp className="w-5 h-5" />
-        </button>
-      </div>
-      <AchievementBadges />
-    </motion.div>
-  );
-};
-
-const ExpandedLevelProgress = ({ levelData, onClose }: { levelData: ProfileData['level'], onClose: () => void }) => {
-  const { theme } = useTheme();
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`rounded-3xl shadow-xl p-6 border lg:col-span-2 ${theme === 'dark' ? 'glass border-white/10' : 'bg-white/60 backdrop-blur-xl border-white/30'}`}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <Crown className="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Level Progress</h3>
-            <p className={`text-lg font-medium bg-gradient-to-r ${theme === 'dark' ? 'from-brand-cyan to-brand-blue' : 'from-blue-600 to-indigo-600'} bg-clip-text text-transparent`}>
-              {levelData.name}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className={`p-2 rounded-full transition-colors backdrop-blur-sm ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10' : 'text-gray-500 hover:bg-white/50'}`}
-        >
-          <ChevronUp className="w-5 h-5" />
-        </button>
-      </div>
-
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <span className={`text-lg font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Progress</span>
-          <span className={`text-2xl font-bold bg-gradient-to-r ${theme === 'dark' ? 'from-brand-cyan to-brand-blue' : 'from-blue-600 to-indigo-600'} bg-clip-text text-transparent`}>
-            {levelData.percentage}%
-          </span>
-        </div>
-        <div className={`w-full rounded-full h-4 border ${theme === 'dark' ? 'bg-white/10 border-white/5' : 'bg-white/60 border-white/30 backdrop-blur-sm'}`}>
-          <div
-            className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 h-4 rounded-full transition-all duration-700 shadow-lg shadow-blue-500/25"
-            style={{ width: `${levelData.percentage}%` }}
-          ></div>
-        </div>
-        <div className={`text-center p-4 rounded-xl backdrop-blur-sm ${theme === 'dark' ? 'bg-white/5 text-gray-300' : 'bg-white/30 text-gray-600'}`}>
-          <p className="text-lg font-medium">{levelData.progressText}</p>
-          <p className={`text-sm mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Current Progress: {levelData.remaining}</p>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// --- Main Page Component ---
-
 const PublicUserProfilePage = () => {
-  const { theme } = useTheme();
   const { userId } = useParams<{ userId: string }>();
-
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
-
-  const engagementData = {
-    contributions: 47,
-    likesReceived: 128
-  };
-
-  const handleShare = () => {
-    if (!userId) return;
-    const profileUrl = `${window.location.origin}/profile/${userId}`;
-    navigator.clipboard.writeText(profileUrl).then(() => {
-      alert('Profile URL copied to clipboard!');
-    }).catch((err) => {
-      console.error('Failed to copy profile URL:', err);
-    });
-  }
 
   useEffect(() => {
     const fetchPublicProfile = async () => {
-      if (!userId) {
-        setError('User ID not provided in the URL.');
-        setLoading(false);
-        return;
-      }
-
       try {
         const profileRes = await axios.get(`/api/profile/public/${userId}`);
         const totalPoints = profileRes.data.stats?.find((stat: any) => stat.label === 'Total Points')?.value || 0;
-        const levelData = calculateLevelAndProgress(totalPoints);
-
-        setProfileData({
-          ...profileRes.data,
-          email: '',
-          level: levelData
-        });
+        setProfileData({ ...profileRes.data, level: calculateLevelAndProgress(totalPoints) });
       } catch (err) {
-        console.error(`Failed to fetch public profile for ${userId}:`, err);
-        setError('Failed to load this user\'s profile data.');
+        toast.error('Failed to intercept profile data.');
       } finally {
         setLoading(false);
       }
     };
-
     fetchPublicProfile();
   }, [userId]);
 
-  const handleExpandSection = (section: string) => {
-    setExpandedSection(section);
-  };
-
-  const handleCloseExpanded = () => {
-    setExpandedSection(null);
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('Profile link archived to clipboard.');
   };
 
   if (loading) return <Loader />;
-
-  if (error || !profileData) {
-    return (
-      <div className={`min-h-screen pt-20 flex items-center justify-center ${theme === 'dark' ? 'bg-transparent text-red-400' : 'bg-gradient-to-br from-blue-50 to-cyan-50 text-red-600'}`}>
-        <div className={`p-6 rounded-2xl shadow-lg border backdrop-blur-lg ${theme === 'dark' ? 'glass border-white/10' : 'bg-white/80 border-white/20'}`}>
-          <p>{error || 'No profile data available for this user.'}</p>
-        </div>
+  if (!profileData) return (
+    <div className="min-h-screen flex items-center justify-center pt-20">
+      <div className="text-center space-y-4">
+        <X className="w-12 h-12 text-destructive mx-auto opacity-20" />
+        <p className="font-black uppercase tracking-widest text-xs opacity-50">Profile Core Not Found</p>
+        <Link to="/"><Button variant="ghost" className="text-xs uppercase font-black">Return to HQ</Button></Link>
       </div>
-    );
-  }
-
-  const totalPointsStat = profileData.stats.find(s => s.label === 'Total Points');
-  const contributionsStat = profileData.stats.find(s => s.label === 'Contributions');
-  const questionsAskedStat = profileData.stats.find(s => s.label === 'Questions Asked');
-  const likesReceivedStat = profileData.stats.find(s => s.label === 'Likes Received');
+    </div>
+  );
 
   return (
-    <div className={`min-h-screen pt-20 pb-16 relative overflow-hidden transition-colors duration-300 ${theme === 'dark'
-      ? 'bg-transparent'
-      : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50'
-      }`}>
+    <div className="min-h-screen pt-24 pb-20 bg-background relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-200/30 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-200/20 rounded-full translate-x-1/3 translate-y-1/3 blur-3xl"></div>
+      <div className="container max-w-6xl mx-auto px-4 relative z-10">
+        <div className="grid lg:grid-cols-12 gap-8">
+          {/* Sidebar - Profile Header Area */}
+          <div className="lg:col-span-4 space-y-8">
+            <Card className="rounded-[40px] border-none bg-card/40 backdrop-blur-xl shadow-2xl shadow-black/5 ring-1 ring-border/20 p-8 space-y-8 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2" />
 
-      <div className={`relative border-b shadow-sm ${theme === 'dark' ? 'bg-space-900/40 backdrop-blur-xl border-white/10' : 'bg-white/60 backdrop-blur-xl border-white/30'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-            <div className="flex items-center space-x-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-3xl blur-md opacity-50"></div>
-                <img
-                  src={profileData.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${profileData.name}&backgroundColor=000000,ffffff&fontFamily=Arial&radius=50`}
-                  alt={profileData.name}
-                  className="relative w-24 h-24 rounded-2xl object-cover border-4 border-white/80 shadow-2xl"
-                />
-                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg border-2 border-white">
-                  {profileData.level.percentage}%
+              <div className="flex flex-col items-center text-center space-y-6 pt-4">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <Avatar className="h-40 w-40 rounded-[48px] border-4 border-background shadow-2xl relative z-10">
+                    <AvatarFallback className="bg-primary/5 text-primary text-5xl font-black italic">
+                      {profileData.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute -bottom-2 -right-2 h-10 w-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center font-black italic shadow-lg shadow-primary/20 border-2 border-background z-20">
+                    {Math.floor(profileData.level.percentage / 10)}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-black italic tracking-tight">{profileData.name}</h1>
+                  <p className="text-primary font-bold italic uppercase tracking-widest text-xs">{profileData.role} <span className="text-muted-foreground opacity-40 not-italic">•</span> {profileData.company}</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button onClick={handleShare} className="h-10 rounded-xl px-6 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
+                    <Share2 className="w-3.5 h-3.5 mr-2" /> Share Profile
+                  </Button>
+                  <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-border/60">
+                    <Bookmark className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </div>
-              <div className="min-w-0">
-                <h1 className={`text-4xl font-extrabold truncate bg-gradient-to-r ${theme === 'dark' ? 'from-white to-gray-400' : 'from-blue-600 to-indigo-600'} bg-clip-text text-transparent`}>
-                  {profileData.name}
-                </h1>
-                <p className={`text-xl font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} truncate`}>{profileData.role} • {profileData.company}</p>
+
+              <Separator className="bg-border/40" />
+
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Registry Context</h3>
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/20 border border-border/10">
+                      <div className="h-8 w-8 rounded-lg bg-background flex items-center justify-center text-blue-500"><MapPin className="w-4 h-4" /></div>
+                      <div className="space-y-0.5"><p className="text-[9px] font-black uppercase text-muted-foreground">Location</p><p className="text-xs font-bold italic">{profileData.location || "Undisclosed"}</p></div>
+                    </div>
+                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/20 border border-border/10">
+                      <div className="h-8 w-8 rounded-lg bg-background flex items-center justify-center text-emerald-500"><Calendar className="w-4 h-4" /></div>
+                      <div className="space-y-0.5"><p className="text-[9px] font-black uppercase text-muted-foreground">Commenced</p><p className="text-xs font-bold italic">{formatDate(profileData.joined_date)}</p></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Intellectual Core</h3>
+                  <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10">
+                    <p className="text-xs font-medium italic text-muted-foreground leading-relaxed">
+                      "{profileData.bio || "No summary synchronized with this profile core."}"
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            </Card>
 
-            <button className="flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-bold hover:shadow-green-500/25 shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <Share2 className="w-5 h-5" />
-              <span onClick={handleShare}>Share Profile</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
-          {[
-            { stat: totalPointsStat, icon: Star, color: 'blue' },
-            { stat: contributionsStat, icon: BookOpen, color: 'yellow' },
-            { stat: questionsAskedStat, icon: MessageCircle, color: 'red' },
-            { stat: likesReceivedStat, icon: Heart, color: 'green' }
-          ].map((item, idx) => (
-            <div key={idx} className={`rounded-3xl p-6 shadow-xl border text-center backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] ${theme === 'dark' ? 'glass border-white/10' : 'bg-white/60 border-white/30'}`}>
-              <div className={`p-4 rounded-2xl mx-auto mb-4 w-fit bg-gradient-to-br from-${item.color}-100 to-${item.color}-50 ${theme === 'dark' ? 'opacity-20' : ''}`}>
-                <item.icon className={`w-6 h-6 text-${item.color}-600`} />
+            <Card className="rounded-[40px] border-none bg-primary/5 p-8 space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-8 w-8 rounded-xl bg-primary text-white flex items-center justify-center"><Zap className="w-4 h-4" /></div>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em]">Reputation Tier</h4>
               </div>
-              <p className={`text-3xl font-black ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{item.stat?.value.toLocaleString() || 0}</p>
-              <p className={`text-sm font-bold uppercase tracking-wider mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{item.stat?.label}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-          <div className="lg:col-span-1 space-y-8">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className={`rounded-3xl shadow-xl p-8 border ${theme === 'dark' ? 'glass border-white/10 shadow-brand-blue/5' : 'bg-white/60 border-white/30 backdrop-blur-xl'}`}>
-              <h3 className={`text-xl font-black mb-6 flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                <User className="w-6 h-6 mr-3 text-blue-500" />
-                Information
-              </h3>
-
               <div className="space-y-4">
-                {[
-                  { label: 'Location', val: profileData.location, icon: MapPin, color: 'blue' },
-                  { label: 'Company', val: profileData.company, icon: Building, color: 'indigo' },
-                  { label: 'Joined', val: formatDate(profileData.joined_date), icon: Calendar, color: 'cyan' }
-                ].map((info, i) => (
-                  <div key={i} className={`flex items-start space-x-4 p-4 rounded-2xl border transition-all duration-300 ${theme === 'dark' ? 'bg-space-800/10 border-white/5 hover:border-white/20' : 'bg-white/40 border-white/20 hover:border-white/50'}`}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${theme === 'dark' ? 'bg-space-800/30' : 'bg-gray-100'}`}>
-                      <info.icon className={`w-5 h-5 ${theme === 'dark' ? 'text-brand-cyan' : 'text-gray-600'}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className={`text-xs font-black uppercase tracking-widest ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>{info.label}</p>
-                      <p className={`text-sm font-bold truncate ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{info.val || 'Not specified'}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 pt-8 border-t border-white/10">
-                <h4 className={`text-sm font-black uppercase tracking-widest mb-4 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>About</h4>
-                <div className={`rounded-2xl p-5 border ${theme === 'dark' ? 'bg-space-800/20 border-white/10' : 'bg-white/40 border-white/20'}`}>
-                  <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {profileData.bio || 'This user has not provided a public bio.'}
-                  </p>
+                <div className="flex justify-between items-end">
+                  <span className="text-2xl font-black italic">{profileData.level.name}</span>
+                  <span className="text-xs font-bold text-primary">{profileData.level.percentage}%</span>
                 </div>
+                <Progress value={profileData.level.percentage} className="h-2 rounded-full border border-primary/10 bg-background" />
+                <p className="text-[10px] font-medium text-muted-foreground opacity-60 italic">{profileData.level.progressText}</p>
               </div>
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className={`rounded-3xl shadow-xl p-8 border ${theme === 'dark' ? 'glass border-white/10 shadow-green-500/5' : 'bg-white/60 border-white/30 backdrop-blur-xl'}`}>
-              <div className="flex items-center space-x-3 mb-6">
-                <TrendingUp className="w-6 h-6 text-green-500" />
-                <h3 className={`text-xl font-black ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Metrics</h3>
-              </div>
-              <EngagementChart contributions={engagementData.contributions} likesReceived={engagementData.likesReceived} />
-            </motion.div>
+            </Card>
           </div>
 
-          <div className="lg:col-span-3">
-            <AnimatePresence mode="wait">
-              {expandedSection === 'RecentActivity' && profileData.recentActivity ? (
-                <ExpandedRecentActivity key="ExpandedActivity" activities={profileData.recentActivity} onClose={handleCloseExpanded} />
-              ) : expandedSection === 'Achievements' ? (
-                <ExpandedAchievements key="ExpandedAchievements" onClose={handleCloseExpanded} />
-              ) : expandedSection === 'LevelProgress' ? (
-                <ExpandedLevelProgress key="ExpandedLevelProgress" levelData={profileData.level} onClose={handleCloseExpanded} />
-              ) : (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
-                  <div onClick={() => handleExpandSection('LevelProgress')} className={`rounded-3xl shadow-xl p-8 border cursor-pointer group transition-all duration-500 ${theme === 'dark' ? 'glass border-white/10 hover:border-brand-cyan/30' : 'bg-white/60 border-white/30 backdrop-blur-xl hover:shadow-2xl'}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-6">
-                        <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl transform group-hover:rotate-6 transition-transform">
-                          <Crown className="w-8 h-8 text-white" />
-                        </div>
-                        <div>
-                          <h3 className={`text-2xl font-black ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Level Progress</h3>
-                          <p className={`text-lg font-bold ${theme === 'dark' ? 'text-brand-cyan' : 'text-blue-600'}`}>{profileData.level.name}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-6">
-                        <span className={`text-4xl font-black bg-gradient-to-r ${theme === 'dark' ? 'from-brand-cyan to-brand-blue' : 'from-blue-600 to-indigo-600'} bg-clip-text text-transparent`}>
-                          {profileData.level.percentage}%
-                        </span>
-                        <ChevronDown className="w-6 h-6 text-gray-400 group-hover:translate-y-1 transition-transform" />
-                      </div>
-                    </div>
-                    <div className={`w-full rounded-full h-3.5 mt-8 border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white/40 border-white/20'}`}>
-                      <div
-                        className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 h-3.5 rounded-full shadow-lg shadow-blue-500/20"
-                        style={{ width: `${profileData.level.percentage}%` }}
-                      ></div>
-                    </div>
+          {/* Main Content Area */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {profileData.stats.map((stat, i) => (
+                <Card key={i} className="rounded-3xl border-none bg-card/40 backdrop-blur-xl p-5 ring-1 ring-border/20 shadow-xl shadow-black/5 flex flex-col items-center text-center space-y-2">
+                  <div className={`h-10 w-10 rounded-xl bg-muted/40 flex items-center justify-center mb-1`}>
+                    <TrendingUp className="w-4 h-4 text-primary" />
                   </div>
+                  <p className="text-xl font-black italic">{stat.value}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{stat.label}</p>
+                </Card>
+              ))}
+            </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div onClick={() => handleExpandSection('RecentActivity')} className={`rounded-3xl shadow-xl p-8 border cursor-pointer group transition-all duration-500 ${theme === 'dark' ? 'glass border-white/10 hover:border-yellow-500/30' : 'bg-white/60 border-white/30 backdrop-blur-xl hover:shadow-2xl'}`}>
-                      <div className="flex items-center justify-between mb-8">
-                        <h3 className={`text-xl font-black flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          <Zap className="w-6 h-6 mr-3 text-yellow-500 group-hover:animate-pulse" />
-                          Recent Activity
-                        </h3>
-                        <ChevronDown className="w-6 h-6 text-gray-400 group-hover:translate-y-1 transition-transform" />
-                      </div>
-                      <div className="space-y-4">
-                        {profileData.recentActivity.slice(0, 3).map((activity, index) => {
-                          const IconComponent = iconMap[activity.icon] || User;
-                          return (
-                            <div key={index} className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-white/40 border-white/20'}`}>
-                              <div className="flex items-center space-x-4">
-                                <IconComponent className={`w-5 h-5 ${theme === 'dark' ? 'text-brand-cyan' : 'text-blue-600'}`} />
-                                <p className={`text-sm font-bold truncate ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>{activity.title}</p>
-                              </div>
-                              <span className={`text-sm font-black ${theme === 'dark' ? 'text-brand-cyan' : 'text-green-600'}`}>
-                                +{activity.points}
-                              </span>
+            <Tabs defaultValue="activity" className="space-y-8">
+              <TabsList className="bg-muted/40 backdrop-blur-xl border border-border/40 p-1 rounded-2xl h-14">
+                <TabsTrigger value="activity" className="rounded-xl px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-card data-[state=active]:shadow-lg">Intelligence Feed</TabsTrigger>
+                <TabsTrigger value="heatmap" className="rounded-xl px-8 font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-card data-[state=active]:shadow-lg">Energy Matrix</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="activity">
+                <Card className="rounded-[40px] border-none bg-card/40 backdrop-blur-xl ring-1 ring-border/20 shadow-2xl shadow-black/5 p-8">
+                  <h3 className="text-xl font-black italic mb-8 px-2 flex items-center justify-between">
+                    Recent Interfacing
+                    <Clock className="w-4 h-4 opacity-30" />
+                  </h3>
+                  <div className="space-y-4">
+                    {profileData.recentActivity.map((activity, i) => (
+                      <motion.div
+                        key={activity.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="p-5 rounded-2xl bg-muted/20 border border-border/10 hover:bg-muted/30 transition-colors flex items-center justify-between group"
+                      >
+                        <div className="flex items-center gap-5">
+                          <div className="h-12 w-12 rounded-xl bg-background border border-border/20 flex items-center justify-center text-primary shadow-sm">
+                            {activity.type === 'experience' ? <Briefcase className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="font-bold text-sm italic group-hover:text-primary transition-colors">{activity.title}</p>
+                            <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground italic opacity-60">
+                              <Clock className="w-3 h-3" /> {activity.timeAgo}
                             </div>
-                          );
-                        })}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-black text-primary italic">+{activity.points}</span>
+                          <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mt-1">Gained</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                    {profileData.recentActivity.length === 0 && (
+                      <div className="py-20 text-center opacity-30 border border-dashed border-border/40 rounded-3xl">
+                        <Zap className="w-8 h-8 mx-auto mb-4" />
+                        <p className="font-black uppercase tracking-[0.2em] text-[10px]">No recent telemetry detected</p>
                       </div>
-                      <p className={`text-xs font-black uppercase tracking-widest mt-6 text-right ${theme === 'dark' ? 'text-brand-cyan' : 'text-blue-600'}`}>View All</p>
-                    </div>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
 
-                    <div onClick={() => handleExpandSection('Achievements')} className={`rounded-3xl shadow-xl p-8 border cursor-pointer group transition-all duration-500 ${theme === 'dark' ? 'glass border-white/10 hover:border-brand-purple/30' : 'bg-white/60 border-white/30 backdrop-blur-xl hover:shadow-2xl'} flex flex-col justify-between`}>
-                      <div className="flex items-center justify-between mb-8">
-                        <h3 className={`text-xl font-black flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          <Trophy className="w-6 h-6 mr-3 text-brand-purple group-hover:scale-110 transition-transform" />
-                          Achievements
-                        </h3>
-                        <ChevronDown className="w-6 h-6 text-gray-400 group-hover:translate-y-1 transition-transform" />
-                      </div>
-                      <div className="flex space-x-6 justify-center py-6">
-                        <Star className="w-12 h-12 text-yellow-400 drop-shadow-lg" />
-                        <Trophy className="w-12 h-12 text-blue-400 drop-shadow-lg" />
-                        <Heart className="w-12 h-12 text-rose-400 drop-shadow-lg" />
-                      </div>
-                      <p className={`text-xs font-black uppercase tracking-widest mt-6 text-center ${theme === 'dark' ? 'text-brand-purple' : 'text-indigo-600'}`}>Reveal All</p>
+              <TabsContent value="heatmap">
+                <Card className="rounded-[40px] border-none bg-card/40 backdrop-blur-xl ring-1 ring-border/20 shadow-2xl shadow-black/5 p-8 pt-10">
+                  <div className="flex items-center justify-between mb-8 px-2">
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-black italic">Contribution Intensity</h3>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Yearly heatmap overlay</p>
+                    </div>
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center"><TrendingUp className="w-4 h-4" /></div>
+                  </div>
+                  <div className="p-4 bg-muted/20 rounded-3xl border border-border/10 overflow-x-auto">
+                    <PublicActivityHeatmap userId={profileData.id} />
+                  </div>
+                  <div className="mt-8 flex items-start gap-4 p-6 bg-primary/5 rounded-2xl border border-primary/10">
+                    <Info className="w-5 h-5 text-primary mt-1" />
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-widest mb-1">Matrix Legend</p>
+                      <p className="text-[11px] text-muted-foreground font-medium italic leading-relaxed">Intensity correlates with number of experiences shared, questions resolved, and community feedback received.</p>
                     </div>
                   </div>
+                </Card>
+              </TabsContent>
+            </Tabs>
 
-                  <div className={`rounded-3xl shadow-xl p-8 border ${theme === 'dark' ? 'glass border-white/10' : 'bg-white/60 border-white/30 backdrop-blur-xl'}`}>
-                    <h3 className={`text-xl font-black mb-6 flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      <Sparkles className="w-6 h-6 mr-3 text-brand-cyan" />
-                      Activity Heatmap
-                    </h3>
-                    {userId && <PublicActivityHeatmap userId={userId} />}
+            {/* Achievements Snippet */}
+            <div className="grid md:grid-cols-2 gap-8">
+              <Card className="rounded-[40px] border-none bg-card/40 backdrop-blur-xl ring-1 ring-border/20 p-8 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Top Accolades</h3>
+                  <Trophy className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex gap-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-14 w-14 rounded-2xl bg-muted/30 border border-border/20 flex items-center justify-center relative group">
+                      <Award className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+                      <div className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full ring-2 ring-background" />
+                    </div>
+                  ))}
+                  <div className="h-14 w-14 rounded-2xl border-2 border-dashed border-border/40 flex items-center justify-center text-muted-foreground opacity-30">
+                    <Plus className="w-4 h-4" />
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </Card>
+
+              <Card className="rounded-[40px] border-none bg-gradient-to-br from-primary/10 to-blue-500/10 backdrop-blur-xl p-8 flex flex-col justify-center items-center text-center space-y-4">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Verified Community Status</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black italic">TOP 5%</span>
+                  <span className="text-xs font-bold text-primary italic">Global</span>
+                </div>
+                <Badge className="bg-background/80 text-primary border-none rounded-lg px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em]">Elite Peer Network</Badge>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

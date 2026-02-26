@@ -11,7 +11,7 @@ import {
   startOfWeek
 } from 'date-fns';
 import { Clock2 } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '@/components/theme-provider';
 
 const getSquareColor = (count: number, theme: string) => {
   if (count === 0) return theme === 'dark' ? 'bg-white/5' : 'bg-gray-200';

@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import axios from "../api";
-import { useTheme } from "../context/ThemeContext";
-
+import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin,
   Briefcase,
@@ -9,14 +7,37 @@ import {
   Star,
   Search,
   Filter,
-  X,
   ChevronLeft,
   ChevronRight,
-  FilterX
+  Bookmark,
+  Clock,
+  Users,
+  TrendingUp
 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import axios from "../api";
 
-// --- Type Definitions (omitted for brevity) ---
-type JobType = "Full-time" | "Internship";
+// --- Type Definitions ---
+type JobType = "Full-time" | "Part-time" | "Internship" | "Contract";
 type JobMode = "On-site" | "Remote" | "Hybrid";
 
 interface JobListing {
@@ -26,325 +47,283 @@ interface JobListing {
   location: string;
   type: JobType;
   mode: JobMode;
-  experienceYears: number;
-  salaryLPA: number;
+  experienceYears: number | string;
+  salaryLPA: number | string;
   rating: number;
   description: string;
   url: string;
+  postedAt?: string;
+  applicants?: number;
+  skills?: string[];
+  isFeatured?: boolean;
 }
+
+const DUMMY_JOBS: JobListing[] = [
+  {
+    id: 101,
+    title: "Senior Software Engineer",
+    company: "Google",
+    location: "Bangalore, Karnataka",
+    type: "Full-time",
+    mode: "Hybrid",
+    experienceYears: "3-5 years",
+    salaryLPA: "25-35 LPA",
+    rating: 4.5,
+    description: "Lead the development of next-gen cloud infrastructure.",
+    url: "#",
+    postedAt: "2 days ago",
+    applicants: 234,
+    skills: ["React", "TypeScript", "Node.js", "GCP"],
+    isFeatured: true
+  },
+  {
+    id: 102,
+    title: "Product Manager",
+    company: "Microsoft",
+    location: "Hyderabad, Telangana",
+    type: "Full-time",
+    mode: "On-site",
+    experienceYears: "5-8 years",
+    salaryLPA: "30-45 LPA",
+    rating: 4.8,
+    description: "Drive product strategy for Azure cloud services.",
+    url: "#",
+    postedAt: "1 day ago",
+    applicants: 156,
+    skills: ["Strategy", "Azure", "SQL", "Agile"],
+    isFeatured: true
+  },
+  {
+    id: 103,
+    title: "Frontend Developer",
+    company: "Amazon",
+    location: "Gurgaon, Haryana",
+    type: "Full-time",
+    mode: "Remote",
+    experienceYears: "2-4 years",
+    salaryLPA: "18-28 LPA",
+    rating: 4.3,
+    description: "Build high-performance web applications for AWS.",
+    url: "#",
+    postedAt: "4 days ago",
+    applicants: 412,
+    skills: ["React", "Next.js", "Tailwind", "AWS"],
+    isFeatured: false
+  }
+];
 
 interface Filters {
-  type: JobType | "All";
+  types: JobType[];
   modes: JobMode[];
-  experience: number;
+  experiences: string[];
   minSalary: number;
 }
-
-
-// --- Filter Components (omitted for brevity) ---
-const FilterButton = ({
-  text,
-  onClick,
-  isActive,
-}: {
-  text: string;
-  onClick: () => void;
-  isActive: boolean;
-}) => (
-  <button
-    onClick={onClick}
-    className={`px-3 py-1 text-sm font-semibold rounded-full transition-all duration-200 ${isActive
-      ? "bg-[#32a5d4] text-white shadow-md"
-      : `bg-white/10 text-brand-cyan hover:bg-white/20 shadow-none`
-      }`}
-  >
-    {text}
-  </button>
-);
-
-const Checkbox = ({
-  label,
-  checked,
-  onChange,
-}: {
-  label: JobMode;
-  checked: boolean;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) => (
-  <label className="flex items-center space-x-3 cursor-pointer">
-    <input
-      type="checkbox"
-      name={label}
-      checked={checked}
-      onChange={onChange}
-      className="h-4 w-4 rounded border-zinc-300 text-[#32a5d4] focus:ring-[#32a5d4]/50"
-    />
-    <span className="text-zinc-800 text-sm">{label}</span>
-  </label>
-);
 
 const FilterSidebar = ({
   filters,
   setFilters,
-  onClose,
 }: {
   filters: Filters;
   setFilters: React.Dispatch<React.SetStateAction<Filters>>;
-  onClose?: () => void;
 }) => {
-  const { theme } = useTheme();
   const handleClearFilters = () =>
-    setFilters({ type: "All", modes: [], experience: 0, minSalary: 0 });
+    setFilters({ types: [], modes: [], experiences: [], minSalary: 0 });
+
+  const experienceOptions = ["Fresher", "1-3 years", "3-5 years", "5-10 years", "10+ years"];
+  const typeOptions = ["Full-time", "Part-time", "Internship", "Contract"];
 
   return (
-    <aside className={`w-full p-5 rounded-3xl border shadow-lg h-fit transition-colors duration-300 ${theme === 'dark'
-      ? 'glass border-white/10'
-      : 'bg-white/80 backdrop-blur-xl border-white/60'
-      }`}>
-      <div className="flex justify-between items-center mb-5">
-        <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Filters</h3>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleClearFilters}
-            className={`text-xs font-semibold flex items-center transition-colors ${theme === 'dark' ? 'text-brand-cyan hover:text-white' : 'text-blue-600 hover:text-black'}`}
-          >
-            <FilterX className="w-4 h-4 mr-1" /> Clear
-          </button>
-          {onClose && (
-            <button onClick={onClose} className={`p-1 rounded-full transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10 hover:text-white' : 'text-zinc-600 hover:bg-zinc-100'}`}>
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
+    <div className="space-y-8">
+      <div className="flex justify-between items-center px-1">
+        <h3 className="text-lg font-bold text-foreground tracking-tight">Filters</h3>
+        <button
+          onClick={handleClearFilters}
+          className="text-blue-600 text-xs font-bold hover:underline transition-all"
+        >
+          Clear all
+        </button>
       </div>
 
-      <div className="space-y-6">
-        <div>
-          <h4 className={`font-semibold mb-2 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-zinc-800'}`}>Role Type</h4>
-          <div className="flex flex-wrap gap-2">
-            <FilterButton
-              text="All"
-              onClick={() => setFilters((p) => ({ ...p, type: "All" }))}
-              isActive={filters.type === "All"}
-            />
-            <FilterButton
-              text="Full-time"
-              onClick={() => setFilters((p) => ({ ...p, type: "Full-time" }))}
-              isActive={filters.type === "Full-time"}
-            />
-            <FilterButton
-              text="Internship"
-              onClick={() => setFilters((p) => ({ ...p, type: "Internship" }))}
-              isActive={filters.type === "Internship"}
-            />
-          </div>
-        </div>
+      <Accordion type="multiple" defaultValue={["experience", "type"]} className="w-full">
+        {/* Experience Filter */}
+        <AccordionItem value="experience" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-4 text-[11px] font-black text-foreground uppercase tracking-[0.2em] opacity-80">
+            Experience
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-3.5 pt-2 px-1">
+              {experienceOptions.map((exp) => (
+                <div key={exp} className="flex items-center gap-3 group">
+                  <Checkbox
+                    id={`exp-${exp}`}
+                    checked={filters.experiences.includes(exp)}
+                    onCheckedChange={(checked) => {
+                      if (checked) setFilters({ ...filters, experiences: [...filters.experiences, exp] });
+                      else setFilters({ ...filters, experiences: filters.experiences.filter(e => e !== exp) });
+                    }}
+                    className="h-4.5 w-4.5 rounded border-slate-300 dark:border-slate-700 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 transition-colors"
+                  />
+                  <label htmlFor={`exp-${exp}`} className="text-sm font-medium text-slate-600 dark:text-slate-400 group-hover:text-blue-600 cursor-pointer select-none transition-colors">
+                    {exp}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-        <div>
-          <h4 className={`font-semibold mb-2 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-zinc-800'}`}>Work Mode</h4>
-          <div className="space-y-2">
-            {(["On-site", "Remote", "Hybrid"] as JobMode[]).map((mode) => (
-              <Checkbox
-                key={mode}
-                label={mode}
-                checked={filters.modes.includes(mode)}
-                onChange={(e) => {
-                  const { name, checked } = e.target;
-                  setFilters((p) => ({
-                    ...p,
-                    modes: checked
-                      ? [...p.modes, name as JobMode]
-                      : p.modes.filter((m) => m !== name),
-                  }));
-                }}
-              />
+        <Separator className="bg-border/40 my-2" />
+
+        {/* Job Type Filter */}
+        <AccordionItem value="type" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-4 text-[11px] font-black text-foreground uppercase tracking-[0.2em] opacity-80">
+            Job Type
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-3.5 pt-2 px-1">
+              {typeOptions.map((type) => (
+                <div key={type} className="flex items-center gap-3 group">
+                  <Checkbox
+                    id={`type-${type}`}
+                    checked={filters.types.includes(type as JobType)}
+                    onCheckedChange={(checked) => {
+                      if (checked) setFilters({ ...filters, types: [...filters.types, type as JobType] });
+                      else setFilters({ ...filters, types: filters.types.filter(t => t !== type) });
+                    }}
+                    className="h-4.5 w-4.5 rounded border-slate-300 dark:border-slate-700 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 transition-colors"
+                  />
+                  <label htmlFor={`type-${type}`} className="text-sm font-medium text-slate-600 dark:text-slate-400 group-hover:text-blue-600 cursor-pointer select-none transition-colors">
+                    {type}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+};
+
+const JobCard = ({ job }: { job: JobListing }) => {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      whileHover={{ y: -4 }}
+      className="group"
+    >
+      <Card className="relative overflow-hidden border border-border/50 bg-card hover:bg-card/80 dark:bg-card/40 dark:backdrop-blur-xl hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/20 transition-all duration-500 rounded-[32px] p-8 shadow-xl dark:shadow-2xl dark:shadow-black/20">
+        <div className="flex flex-col gap-5">
+          {/* Featured Badge */}
+          {job.isFeatured && (
+            <div className="flex">
+              <Badge className="bg-blue-600/10 text-blue-600 dark:bg-blue-500/20 border-none rounded-full px-3 py-1 text-[10px] font-bold flex items-center gap-1.5 mb-2">
+                <TrendingUp className="w-3 h-3" />
+                Featured
+              </Badge>
+            </div>
+          )}
+
+          {/* Header Row: Company & Title */}
+          <div className="flex items-start gap-5">
+            <div className="h-10 w-10 min-w-[40px] rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
+              {job.company.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-start">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors truncate">
+                  {job.title}
+                </h3>
+                <div className="flex items-center gap-2 -mt-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600">
+                    <Bookmark className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  <Briefcase className="w-4 h-4 text-slate-400" />
+                  {job.company}
+                </span>
+                <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs font-semibold">
+                  <Star className="w-3.5 h-3.5 text-amber-400 fill-current" />
+                  {job.rating}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Info Row: Icons & Tags */}
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <MapPin className="w-4 h-4 text-slate-400" />
+              {job.location}
+            </div>
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <Briefcase className="w-4 h-4 text-slate-400" />
+              {typeof job.experienceYears === 'string' ? job.experienceYears : (job.experienceYears === 0 ? "Fresher" : `${job.experienceYears} years`)}
+            </div>
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <DollarSign className="w-4 h-4 text-slate-400" />
+              {typeof job.salaryLPA === 'string' ? `₹${job.salaryLPA}` : `₹${job.salaryLPA} LPA`}
+            </div>
+            <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-none px-2.5 py-0.5 text-[10px] font-bold">
+              {job.mode}
+            </Badge>
+          </div>
+
+          {/* Skills Row */}
+          <div className="flex flex-wrap gap-2">
+            {(job.skills || ["React", "TypeScript", "Node.js", "GCP"]).map(skill => (
+              <Badge key={skill} variant="outline" className="px-3 py-1 rounded-full border-slate-200 dark:border-slate-700 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                {skill}
+              </Badge>
             ))}
           </div>
-        </div>
 
-        <div>
-          <label
-            htmlFor="experience"
-            className={`block font-semibold mb-1 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-zinc-800'}`}
-          >
-            Min Experience
-          </label>
-          <select
-            id="experience"
-            value={filters.experience}
-            onChange={(e) =>
-              setFilters((p) => ({ ...p, experience: parseInt(e.target.value) }))
-            }
-            className={`w-full p-2 text-sm border rounded-lg outline-none transition ${theme === 'dark'
-              ? 'bg-white/5 border-white/10 text-white focus:ring-2 focus:ring-brand-cyan'
-              : 'bg-[#fcfcfc]/80 border-zinc-300 text-zinc-800 focus:ring-2 focus:ring-blue-500'
-              }`}
-          >
-            <option value="0" className={theme === 'dark' ? 'bg-space-900' : ''}>Any</option>
-            <option value="1" className={theme === 'dark' ? 'bg-space-900' : ''}>1+ years</option>
-            <option value="3" className={theme === 'dark' ? 'bg-space-900' : ''}>3+ years</option>
-            <option value="5" className={theme === 'dark' ? 'bg-space-900' : ''}>5+ years</option>
-            <option value="7" className={theme === 'dark' ? 'bg-space-900' : ''}>7+ years</option>
-          </select>
-        </div>
+          <Separator className="bg-slate-100 dark:bg-slate-800" />
 
-        <div>
-          <label
-            htmlFor="salary"
-            className={`block font-semibold mb-1 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-zinc-800'}`}
-          >
-            Minimum Salary (LPA)
-          </label>
-          <input
-            type="range"
-            id="salary"
-            min="0"
-            max="60"
-            step="5"
-            value={filters.minSalary}
-            onChange={(e) =>
-              setFilters((p) => ({
-                ...p,
-                minSalary: parseInt(e.target.value),
-              }))
-            }
-            className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${theme === 'dark' ? 'bg-white/10' : 'bg-zinc-200'}`}
-          />
-          <div className={`text-right text-xs font-medium mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-zinc-700'}`}>
-            {filters.minSalary > 0
-              ? `₹${filters.minSalary} LPA+`
-              : "Any Salary"}
+          {/* Bottom Row: Actions */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-500 font-semibold whitespace-nowrap">
+                <Clock className="w-4 h-4" />
+                {job.postedAt || "2 days ago"}
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-500 font-semibold whitespace-nowrap">
+                <Users className="w-4 h-4" />
+                {job.applicants || 234} applicants
+              </div>
+            </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Button variant="ghost" className="flex-1 sm:flex-none h-10 px-6 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600">
+                View Details
+              </Button>
+              <Button className="flex-1 sm:flex-none h-10 px-8 rounded-lg text-xs font-bold bg-[#3b82f6] hover:bg-[#2563eb] text-white border-none transition-all duration-200 shadow-sm">
+                Apply Now
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </Card>
+    </motion.div>
   );
 };
 
-// --- Job Card (omitted for brevity) ---
-const JobCard = ({ job }: { job: JobListing }) => {
-  const { theme } = useTheme();
-  return (
-    <div className={`p-4 rounded-3xl border flex flex-col transition-all duration-300 transform hover:-translate-y-1 ${theme === 'dark'
-      ? 'glass border-white/10 hover:shadow-2xl hover:shadow-brand-cyan/10 hover:border-brand-cyan/30'
-      : 'bg-[#fcfcfc]/50 backdrop-blur-xl border-white/60 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/20'
-      }`}>
-      <h2 className={`text-base font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{job.title}</h2>
-      <div className={`flex items-center gap-1.5 mb-3 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-zinc-600'}`}>
-        <p>{job.company}</p>
-        <span className="flex items-center gap-1">
-          <Star className="w-3 h-3 text-amber-500 fill-current" />
-          {job.rating}
-        </span>
-      </div>
-
-      <div className={`flex flex-col gap-2 text-xs mb-4 pb-4 border-b ${theme === 'dark' ? 'border-white/10 text-gray-300' : 'border-black/5 text-zinc-700'}`}>
-        <span className="flex items-center gap-2">
-          <MapPin className={`w-4 h-4 ${theme === 'dark' ? 'text-brand-cyan' : 'text-zinc-500'}`} />
-          {job.location} ({job.mode})
-        </span>
-        <span className="flex items-center gap-2">
-          <Briefcase className={`w-4 h-4 ${theme === 'dark' ? 'text-brand-purple' : 'text-zinc-500'}`} />{" "}
-          {job.experienceYears === 0 ? "Fresher" : `${job.experienceYears}+ years`}
-        </span>
-        <span className="flex items-center gap-2">
-          <DollarSign className={`w-4 h-4 ${theme === 'dark' ? 'text-green-400' : 'text-zinc-500'}`} />
-          {job.salaryLPA} LPA
-        </span>
-      </div>
-
-      <p className={`flex-grow text-xs line-clamp-3 mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-zinc-700/90'}`}>
-        {job.description}
-      </p>
-
-      <div className="mt-auto flex justify-between items-center">
-        <a
-          href="#"
-          className={`text-xs font-semibold transition flex items-center ${theme === 'dark' ? 'text-brand-cyan hover:text-white' : 'text-blue-600 hover:text-black'}`}
-        >
-          View details
-        </a>
-        <a
-          href={job.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`font-semibold py-2 px-5 rounded-xl transition-all duration-300 text-xs text-center shadow-lg hover:shadow-xl ${theme === 'dark'
-            ? 'bg-gradient-to-r from-brand-cyan to-brand-blue text-white hover:from-brand-cyan hover:to-brand-purple'
-            : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700'
-            }`}
-        >
-          Apply Now
-        </a>
-      </div>
-    </div>
-  );
-};
-
-
-// --- Updated Minimalist Pagination Component ---
-const PaginationControls = ({ page, totalPages, setPage }: {
-  page: number;
-  totalPages: number;
-  setPage: React.Dispatch<React.SetStateAction<number>>;
-}) => {
-  const { theme } = useTheme();
-  // Only show pagination if there are actual pages to navigate
-  if (totalPages <= 1) return null;
-
-  return (
-    // Wrapper for fixed, smaller width and centered content
-    <div className="flex items-center space-x-2">
-      {/* Previous Button */}
-      <button
-        onClick={() => setPage((p) => Math.max(1, p - 1))}
-        disabled={page === 1}
-        className={`p-1 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center justify-center text-sm font-semibold ${theme === 'dark'
-          ? 'text-gray-300 bg-white/5 hover:bg-white/10'
-          : 'text-zinc-700 bg-black/5 hover:bg-black/10'
-          }`}
-        aria-label="Previous Page"
-      >
-        <ChevronLeft className="w-4 h-4" />
-      </button>
-
-      {/* Page Indicator */}
-      <span className={`text-sm font-semibold px-3 py-1 rounded-lg border shadow-inner ${theme === 'dark'
-        ? 'text-white bg-white/5 border-white/10'
-        : 'text-zinc-800 bg-white border-zinc-200'
-        }`}>
-        Page {page} of {totalPages}
-      </span>
-
-      {/* Next Button */}
-      <button
-        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-        disabled={page === totalPages}
-        className={`p-1 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center justify-center text-sm font-semibold ${theme === 'dark'
-          ? 'text-gray-300 bg-white/5 hover:bg-white/10'
-          : 'text-zinc-700 bg-black/5 hover:bg-black/10'
-          }`}
-        aria-label="Next Page"
-      >
-        <ChevronRight className="w-4 h-4" />
-      </button>
-    </div>
-  );
-};
-
-
-// --- Main Job Portal ---
 const JobPortal = () => {
-  const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
+  const [locationTerm, setLocationTerm] = useState("");
   const [filters, setFilters] = useState<Filters>({
-    type: "All",
+    types: [],
     modes: [],
-    experience: 0,
+    experiences: [],
     minSalary: 0,
   });
-  const [jobs, setJobs] = useState<JobListing[]>([]);
+  const [jobs, setJobs] = useState<JobListing[]>(DUMMY_JOBS);
   const [loading, setLoading] = useState(true);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -354,9 +333,9 @@ const JobPortal = () => {
       setLoading(true);
       try {
         const res = await axios.get("/api/jobs", {
-          params: { page, limit: 9, search: searchTerm },
+          params: { page, limit: 10, search: searchTerm, location: locationTerm },
         });
-        setJobs(res.data.jobs);
+        setJobs([...DUMMY_JOBS, ...res.data.jobs]);
         setTotalPages(res.data.pagination.totalPages);
       } catch (err) {
         console.error("Error fetching jobs:", err);
@@ -365,155 +344,188 @@ const JobPortal = () => {
       }
     };
     fetchJobs();
-  }, [page, searchTerm]);
+  }, [page, searchTerm, locationTerm]);
 
-  // Reset page to 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [filters]);
-
+  }, [filters, searchTerm, locationTerm]);
 
   const filteredJobs = useMemo(
     () =>
-      jobs.filter(
-        (job) =>
-          (filters.type === "All" || job.type === filters.type) &&
-          (filters.modes.length === 0 || filters.modes.includes(job.mode)) &&
-          job.experienceYears >= filters.experience &&
-          job.salaryLPA >= filters.minSalary
-      ),
+      jobs.filter((job) => {
+        const matchesType = filters.types.length === 0 || filters.types.includes(job.type);
+        const matchesMode = filters.modes.length === 0 || filters.modes.includes(job.mode);
+
+        // Handle potential string values for numeric filters
+        const salary = typeof job.salaryLPA === 'string' ? parseFloat(job.salaryLPA) : job.salaryLPA;
+        const experience = typeof job.experienceYears === 'string' ? parseFloat(job.experienceYears) : job.experienceYears;
+
+        const matchesSalary = isNaN(salary) || salary >= filters.minSalary;
+
+        const matchesExp = filters.experiences.length === 0 || filters.experiences.some(e => {
+          if (isNaN(experience)) return true; // Dummy string ranges always show if no more specific logic
+          if (e === "Fresher") return experience === 0;
+          if (e === "1-3 years") return experience >= 1 && experience <= 3;
+          if (e === "3-5 years") return experience >= 3 && experience <= 5;
+          if (e === "5-10 years") return experience >= 5 && experience <= 10;
+          if (e === "10+ years") return experience >= 10;
+          return true;
+        });
+        return matchesType && matchesMode && matchesSalary && matchesExp;
+      }),
     [jobs, filters]
   );
 
   return (
-    <div className={`relative p-4 md:p-8 min-h-screen font-sans overflow-hidden transition-colors duration-300 ${theme === 'dark'
-      ? 'bg-transparent text-white'
-      : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 text-zinc-900'
-      }`}>
-      {/* Background decorative elements */}
-      {theme === 'dark' ? (
-        <>
-          <div className="absolute top-0 left-0 w-96 h-96 bg-brand-blue/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-[100px] pointer-events-none"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-brand-purple/10 rounded-full translate-x-1/3 translate-y-1/3 blur-[100px] pointer-events-none"></div>
-        </>
-      ) : (
-        <>
-          <div className="absolute top-0 -left-10 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl opacity-70"></div>
-          <div className="absolute top-10 -right-10 w-80 h-80 bg-cyan-200/20 rounded-full blur-3xl opacity-70"></div>
-          <div className="absolute -bottom-16 left-20 w-80 h-80 bg-indigo-200/20 rounded-full blur-3xl opacity-70"></div>
-        </>
-      )}
-
-
-      <div className="relative max-w-screen-xl mx-auto z-10">
-        <header className="text-center mb-8">
-          <h1 className={`text-4xl md:text-5xl font-extrabold ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>
-            Find Your <span className={`bg-gradient-to-r bg-clip-text text-transparent ${theme === 'dark' ? 'from-brand-cyan to-brand-blue' : 'from-blue-600 to-indigo-600'}`}>Dream Job</span>
-          </h1>
-          <p className={`mt-2 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-zinc-600'}`}>
-            Explore thousands of opportunities in one place.
-          </p>
-        </header>
-
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* 1. Desktop Filter Sidebar */}
-          <div className="hidden md:block md:w-1/4 lg:w-1/5 h-fit sticky top-6">
-            <FilterSidebar filters={filters} setFilters={setFilters} />
-          </div>
-
-          <main className="flex-1">
-
-            {/* ⭐️ START: Updated Search/Pagination Layout ⭐️ */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-              <div className="flex-1 w-full sm:w-auto relative">
-                <input
-                  type="text"
-                  placeholder="Search by title, company, or location..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(1);
-                  }}
-                  className={`w-full py-3 px-6 pr-12 text-sm rounded-full border shadow-lg focus:outline-none focus:ring-2 transition-all duration-300 ${theme === 'dark'
-                    ? 'bg-white/5 border-white/10 text-white placeholder-gray-500 focus:ring-brand-cyan glass'
-                    : 'bg-[#fcfcfc]/50 backdrop-blur-xl border-white/50 text-zinc-900 focus:ring-blue-500'
-                    }`}
-                />
-                <div className={`absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none ${theme === 'dark' ? 'text-gray-400' : 'text-zinc-500'}`}>
-                  <Search className="w-5 h-5" />
-                </div>
-              </div>
-
-              {/* 2. Minimal Pagination to the right of the search bar */}
-              <PaginationControls
-                page={page}
-                totalPages={totalPages}
-                setPage={setPage}
-              />
-            </div>
-            {/* ⭐️ END: Updated Search/Pagination Layout ⭐️ */}
-
-            {/* Minimal Result Count (Moved below the search/pagination row for clarity) */}
-            <p className={`text-xs font-medium border-b pb-2 mb-6 ${theme === 'dark' ? 'text-gray-400 border-white/10' : 'text-zinc-600 border-black/10'}`}>
-              Showing {filteredJobs.length} results
-            </p>
-
-            {/* 3. Mobile Filter Button */}
-            <div className="md:hidden mt-4 mb-6">
-              <button
-                onClick={() => setIsFilterOpen(true)}
-                className={`w-full py-2 flex items-center justify-center gap-2 font-semibold rounded-full shadow-lg transition-all ${theme === 'dark'
-                  ? 'bg-brand-cyan text-black hover:bg-white'
-                  : 'bg-[#32a5d4] text-white hover:bg-black'
-                  }`}
-              >
-                <Filter className="w-4 h-4" /> Show Filters
-              </button>
+    <div className="min-h-screen pb-32">
+      {/* --- Page Header / Hero --- */}
+      <div className="pt-24 pb-16 relative overflow-hidden">
+        <div className="container relative z-10 px-4 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-12 max-w-7xl mx-auto">
+            <div className="flex-1 text-left min-w-[320px]">
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-3 text-slate-900 dark:text-white leading-tight">
+                Find Your <span className="text-[#2563eb]">Dream Job</span>
+              </h1>
+              <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">
+                Discover 5000+ opportunities at top companies
+              </p>
             </div>
 
-            {/* 4. Mobile Filter Modal Overlay (remains the same) */}
-            {isFilterOpen && (
-              <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm md:hidden">
-                <div className="absolute inset-x-0 bottom-0 top-1/4 bg-white rounded-t-2xl p-5 overflow-y-auto">
-                  <FilterSidebar
-                    filters={filters}
-                    setFilters={setFilters}
-                    onClose={() => setIsFilterOpen(false)}
-                  />
-                  <div className="mt-4 flex justify-center">
-                    <button
-                      onClick={() => setIsFilterOpen(false)}
-                      className="w-full max-w-xs py-2 bg-black text-white font-semibold rounded-full hover:bg-zinc-700 transition"
-                    >
-                      Apply & Close
-                    </button>
+            {/* Search Bar Protocol */}
+            <div className="flex-1 w-full max-w-3xl">
+              <div className="relative group">
+                <div className="absolute inset-x-0 bottom-0 h-32 bg-blue-500/5 blur-[80px] opacity-20 pointer-events-none" />
+                <div className="relative flex flex-col md:flex-row items-stretch md:items-center bg-white dark:bg-slate-900/50 dark:backdrop-blur-2xl border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 gap-1 shadow-sm">
+                  <div className="flex-[1.5] flex items-center px-4 min-w-[240px]">
+                    <Search className="w-5 h-5 text-slate-400 mr-3" />
+                    <Input
+                      placeholder="Job title, skills, or company"
+                      className="border-none bg-transparent h-12 focus-visible:ring-0 text-slate-900 dark:text-white font-medium placeholder:text-slate-400 text-sm"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                   </div>
+                  <Separator orientation="vertical" className="hidden md:block h-6 bg-slate-200 dark:bg-slate-800" />
+                  <div className="flex-1 flex items-center px-4 min-w-[180px]">
+                    <MapPin className="w-5 h-5 text-slate-400 mr-3" />
+                    <Input
+                      placeholder="Location"
+                      className="border-none bg-transparent h-12 focus-visible:ring-0 text-slate-900 dark:text-white font-medium placeholder:text-slate-400 text-sm"
+                      value={locationTerm}
+                      onChange={(e) => setLocationTerm(e.target.value)}
+                    />
+                  </div>
+                  <Button className="h-12 px-6 rounded-lg font-bold text-sm bg-[#3b82f6] hover:bg-[#2563eb] text-white flex items-center gap-2 shadow-sm shadow-blue-500/20">
+                    <Search className="w-4 h-4" />
+                    Search Jobs
+                  </Button>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-            {/* 5. Job Listings */}
-            {loading && jobs.length === 0 ? (
-              <div className={`text-center py-16 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-zinc-600'}`}>
-                Loading jobs...
-              </div>
-            ) : filteredJobs.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredJobs.map((job) => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
-            ) : (
-              <div className={`text-center py-16 mt-6 rounded-2xl border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-[#fcfcfc]/40 backdrop-blur-xl border-white/50'}`}>
-                <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-zinc-800'}`}>
-                  No Jobs Found
-                </h3>
-                <p className={`mt-1 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-zinc-600'}`}>
-                  Try adjusting your search or filters.
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="flex flex-col lg:flex-row gap-12">
+          {/* Filters Sidebar */}
+          <aside className="hidden lg:block w-72 h-fit sticky top-32">
+            <div className="p-4">
+              <FilterSidebar filters={filters} setFilters={setFilters} />
+            </div>
+          </aside>
+
+          {/* Results Area */}
+          <div className="flex-1 space-y-8">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-4">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  <span className="text-blue-600">5000+</span> jobs found
                 </p>
               </div>
+
+              <div className="flex items-center gap-3">
+                <Select defaultValue="relevant">
+                  <SelectTrigger className="w-[180px] h-10 rounded-xl border-border/40 bg-card/40 backdrop-blur-md text-xs font-black uppercase tracking-widest">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="relevant">Most Relevant</SelectItem>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="salary">Highest Salary</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="lg:hidden h-10 rounded-xl px-4 font-black uppercase tracking-widest text-[10px]">
+                      <Filter className="w-3.5 h-3.5 mr-2" /> Filters
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] border-none bg-card/95 backdrop-blur-3xl">
+                    <SheetHeader className="mb-8">
+                      <SheetTitle className="text-xl font-black italic">Job Filters</SheetTitle>
+                    </SheetHeader>
+                    <FilterSidebar filters={filters} setFilters={setFilters} />
+                  </SheetContent>
+                </Sheet>
+              </div>
+            </div>
+
+            {loading && jobs.length === 0 ? (
+              <div className="space-y-6">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-64 rounded-[40px] bg-muted/20 animate-pulse border border-border/40" />
+                ))}
+              </div>
+            ) : filteredJobs.length > 0 ? (
+              <div className="flex flex-col gap-6">
+                <AnimatePresence mode="popLayout">
+                  {filteredJobs.map((job) => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="py-32 text-center bg-card/20 rounded-[48px] border-2 border-dashed border-border/40">
+                <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Search className="w-10 h-10 text-muted-foreground/50" />
+                </div>
+                <h3 className="text-2xl font-black italic mb-2">No matching intercept</h3>
+                <p className="text-muted-foreground font-medium italic mb-8">Try adjusting your filters or expansion terms.</p>
+                <Button variant="outline" onClick={() => { setSearchTerm(''); setLocationTerm(''); }} className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[10px]">
+                  Reset Registry
+                </Button>
+              </div>
             )}
-          </main>
+
+            {/* Pagination Protocol */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-8">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="rounded-xl h-12 w-12 border-border/60"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+                <div className="flex items-center gap-2 bg-card/40 backdrop-blur-md px-6 h-12 rounded-xl border border-border/40 font-black italic text-sm">
+                  {page} <span className="opacity-30">/</span> {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="rounded-xl h-12 w-12 border-border/60"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

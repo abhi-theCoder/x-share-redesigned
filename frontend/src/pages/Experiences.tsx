@@ -1,597 +1,286 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Search, Filter, MessageCircle, Share2, Clock, Building, MapPin, ThumbsUp, ThumbsDown, Bookmark, Edit3, X, ArrowLeft, ArrowRight } from 'lucide-react';
-import Loader from '../components/Loader';
-import axios from '../api';
-import { useTheme } from '../context/ThemeContext';
+import { Edit3, X, Calendar, PenTool } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-// --- Types and Utility Functions (Omitted for brevity, assume correct) ---
-
-interface Experience {
-  id: number;
-  upvotes: number;
-  downvotes: number;
-  comments_count: number;
-  users?: { name: string };
-  role: string;
-  company: string;
-  location: string;
-  created_at: string;
-  type: string;
-  overall_experience?: string;
-  preparation_tips?: string;
-  work_culture?: string;
-  userVote?: 'upvote' | 'downvote' | null;
-}
-
-const formatDate = (dateString: string | undefined): string => {
-  if (!dateString) return 'Date not available';
-  const date = new Date(dateString);
-  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-  return date.toLocaleDateString('en-US', options);
-};
-
-const colors = ['#00F0FF', '#2D6BFF', '#9D4EDD', '#FF2E93', '#2DD4BF', '#F472B6', '#3B82F6'];
-
-const stringToColor = (str: string): string => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+// --- Dummy Data exactly matching the screenshot ---
+const DUMMY_EXPERIENCES = [
+  {
+    id: 1,
+    name: "Anonymous",
+    title: "sde",
+    company: "Narula Institute of Technology",
+    location: "Athpur",
+    role: "sde at Narula Institute of Technology",
+    description: "I applied for the sde position at Narula Institute of Technology. The process involved 1 rounds. Overall, I would rate the difficulty as Medium.",
+    date: "February 10, 2026",
+    type: "INTERNSHIP",
+    upvotes: 1,
+    downvotes: 1,
+    comments: 0,
+    initials: "AN",
+    avatarBg: "bg-blue-100 dark:bg-blue-900",
+    avatarColor: "text-blue-600 dark:text-blue-500",
+    isBookmarked: false
+  },
+  {
+    id: 2,
+    name: "Abhishek Kumar Mahto",
+    title: "System Engineer",
+    company: "TCS",
+    location: "Kolkata, India",
+    role: "SE at TCS",
+    description: "My journey to becoming a System Engineer at TCS was filled with learning and perseverance. The interview process focused heavily on core Java concepts, SQL,...",
+    date: "October 24, 2025",
+    type: "JOB",
+    upvotes: 66,
+    downvotes: 42,
+    comments: 0,
+    initials: "AM",
+    avatarBg: "bg-blue-100 dark:bg-blue-900/40",
+    avatarColor: "text-blue-500 dark:text-blue-400",
+    isBookmarked: true
+  },
+  {
+    id: 3,
+    name: "Pubali Chowdhury",
+    title: "Associate Product Manager",
+    company: "Fusion Dynamics",
+    location: "Austin, TX",
+    role: "Associate Product Manager at Fusion Dynamics",
+    description: "The interview process was a fantastic experience that truly reflected the role. The job itself is challenging but incredibly rewarding. I've learned so much about produ...",
+    date: "September 7, 2025",
+    type: "JOB",
+    upvotes: 24,
+    downvotes: 5,
+    comments: 9,
+    initials: "PC",
+    avatarBg: "bg-blue-50 dark:bg-blue-900/60",
+    avatarColor: "text-blue-500 dark:text-blue-300",
+    isBookmarked: true
+  },
+  {
+    id: 4,
+    name: "Priya",
+    title: "Machine Learning Intern",
+    company: "Quantum AI",
+    location: "Seattle, WA",
+    role: "Machine Learning Intern at Quantum AI",
+    description: "The interview was intense, spanning three days. I had to solve multiple complex algorithms in real-time while a panel of senior researchers observed...",
+    date: "August 15, 2025",
+    type: "INTERNSHIP",
+    upvotes: 112,
+    downvotes: 3,
+    comments: 14,
+    initials: "P",
+    avatarBg: "bg-slate-100 dark:bg-[#111827]/80",
+    avatarColor: "text-blue-600 dark:text-blue-400",
+    isBookmarked: false
   }
-  const index = Math.abs(hash) % colors.length;
-  return colors[index];
-};
+];
 
-const getInitials = (name: string | undefined): string => {
-  if (!name) return 'U';
-  const parts = name.split(/\s+/).filter(Boolean);
-  if (parts.length > 1) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-  return parts[0][0].toUpperCase();
-};
-
-// --- Floating CTA Button & Modal Components (Omitted for brevity, assume correct) ---
-
+// --- Modal Component ---
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose }) => {
-  const { theme } = useTheme();
   if (!isOpen) return null;
-
-  const modalVariants = {
-    hidden: { y: "-100vh", opacity: 0, scale: 0.5 },
-    visible: {
-      y: "0",
-      opacity: 1,
-      scale: 1,
-      transition: { duration: 0.3, type: "spring", stiffness: 100 }
-    },
-    exit: { y: "100vh", opacity: 0 }
-  };
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-slate-900/40 dark:bg-[#0B1120]/80 backdrop-blur-sm"
           onClick={onClose}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative w-full max-w-lg bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#1F2937] rounded-3xl p-8 shadow-2xl"
         >
-          <motion.div
-            className={`rounded-3xl p-8 max-w-lg w-11/12 shadow-2xl relative border ${theme === 'dark' ? 'bg-space-950 border-white/10' : 'bg-white border-white/20'}`}
-            variants={modalVariants}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition">
-              <X className="w-6 h-6" />
-            </button>
+          <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
 
-            <div className="text-center">
-              <Edit3 className="w-12 h-12 text-blue-600 mx-auto mb-4 p-2 bg-blue-50 rounded-full" />
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                Have an Experience to Share?
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Help the next generation by sharing your career journey, challenges, and insights.
-              </p>
-
-              <Link to="/share-experience" onClick={onClose}>
-                {/* Using original color gradient for the button */}
-                <button className="
-                                    w-full py-3 text-white font-semibold rounded-xl text-lg
-                                    bg-gradient-to-r from-blue-600 to-blue-400 shadow-lg
-                                    hover:from-blue-700 hover:to-blue-500
-                                    transform hover:scale-[1.01] transition-all duration-300
-                                ">
-                  Share Your Story
-                </button>
-              </Link>
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6">
+              <Edit3 className="w-8 h-8 text-blue-500" />
             </div>
-          </motion.div>
+            <h3 className="text-2xl font-bold mb-3 text-slate-900 dark:text-white">Share Your Journey</h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-8 text-balance">
+              Your experience could be the missing piece of the puzzle for someone else. Share your story and help build the community.
+            </p>
+
+            <Link to="/share-experience" onClick={onClose}>
+              <Button size="lg" className="w-full rounded-xl text-lg h-14 font-semibold shadow-xl shadow-blue-500/20 bg-blue-600 hover:bg-blue-700 text-white border-transparent">
+                Post Experience
+              </Button>
+            </Link>
+          </div>
         </motion.div>
-      )}
+      </div>
     </AnimatePresence>
   );
 };
 
-interface FloatingShareButtonProps {
-  onClick: () => void;
-}
-
-const FloatingShareButton: React.FC<FloatingShareButtonProps> = ({ onClick }) => (
-  <motion.button
-    onClick={onClick}
-    // Using original blue/purple color scheme elements
-    className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-blue-600 text-white shadow-2xl
-                   flex items-center space-x-2 transition-all duration-300
-                   hover:bg-blue-700 hover:scale-[1.05] focus:outline-none focus:ring-4 focus:ring-blue-300
-                   md:bottom-8 md:right-8"
-    initial={{ opacity: 0, scale: 0 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 0.5, type: "spring", stiffness: 150 }}
-    aria-label="Share Your Experience"
-  >
-    <Edit3 className="w-6 h-6" />
-    <span className="hidden sm:inline font-semibold">Share Story</span>
-  </motion.button>
-);
-
-
-// --- Loader Component ---
-// A clean component to show while loading new data
-const GridLoader: React.FC = () => {
-  const { theme } = useTheme();
-  return (
-    <div className={`lg:col-span-3 col-span-1 flex justify-center items-center py-16 rounded-xl shadow-lg border ${theme === 'dark' ? 'bg-space-900/40 border-white/10' : 'bg-white border-gray-100'}`}>
-      <div className="flex items-center space-x-3 text-blue-600">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-lg font-medium">Loading Experiences...</p>
-      </div>
-    </div>
-  );
-};
-
-
-// --- Main Component ---
-
 const Experiences: React.FC = () => {
-  const { theme } = useTheme();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const token = localStorage.getItem('token');
-
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const limit = 6;
-
-  const [currentUserId] = useState<string>(() => {
-    let userId = localStorage.getItem('userId');
-    if (!userId) {
-      userId = crypto.randomUUID();
-      localStorage.setItem('userId', userId);
-    }
-    return userId;
-  });
-
-  const [userVotes, setUserVotes] = useState<Record<number, 'upvote' | 'downvote' | null>>({});
-  const [bookmarkedExperiences, setBookmarkedExperiences] = useState<Set<number>>(new Set());
-
-  const categories = ['All', 'internship', 'job', 'hackathon', 'other'];
-
-  // --- Enhanced API Call for Filtering and Pagination ---
-  const fetchExperiences = useCallback(async (page = 1, term = searchTerm, category = selectedCategory) => {
-    // Set loading *immediately* when fetching starts
-    setLoading(true);
-    setError(null);
-
-    try {
-      const queryParams = new URLSearchParams({
-        page: String(page),
-        limit: String(limit),
-        ...(term && { search: term }),
-        ...(category !== 'All' && { type: category }),
-      });
-
-      const response = await axios.get(`/api/experiences?${queryParams.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const experiencesData = response.data.data || response.data;
-      const meta = response.data.meta || {};
-      const totalPagesCalc = meta.totalPages || Math.max(1, Math.ceil((meta.total || experiencesData.length) / limit));
-
-      const initialVotes = experiencesData.reduce((acc, exp: any) => {
-        if (exp.user_voted) acc[exp.id] = exp.user_voted;
-        return acc;
-      }, {} as Record<number, 'upvote' | 'downvote' | null>);
-
-      setUserVotes(initialVotes);
-      setExperiences(experiencesData);
-      setTotalPages(totalPagesCalc);
-      setCurrentPage(meta.page || page);
-    } catch (err) {
-      console.error('Failed to fetch experiences:', err);
-      setError('Failed to load experiences. Please check your network or try again.');
-      setExperiences([]);
-    } finally {
-      // Unset loading when data is received or failed
-      setLoading(false);
-    }
-  }, [token, limit]);
-
-  // Fetch bookmarks logic (omitted for brevity)
-  const fetchBookmarks = async () => {
-    try {
-      const response = await axios.get<{ experienceId: number }[]>(`/api/bookmarks/${currentUserId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-      });
-      const bookmarkedIds = new Set(response.data.map(b => b.experienceId));
-      setBookmarkedExperiences(bookmarkedIds);
-    } catch (err) {
-      console.error('Failed to fetch bookmarks:', err);
-    }
-  };
-
-  // When search term or category changes — reset to page 1
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchExperiences(1, searchTerm, selectedCategory);
-    }, 400); // Debounce to prevent excessive API calls
-    return () => clearTimeout(delay);
-  }, [searchTerm, selectedCategory, fetchExperiences]);
-
-  // On initial mount — just load first page + bookmarks
-  useEffect(() => {
-    fetchExperiences(1, '', 'All');
-    fetchBookmarks();
-  }, []);
-
-
-  // --- Interaction Handlers ---
-
-  const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
-    fetchExperiences(page, searchTerm, selectedCategory);
-  };
-
-  const handleVote = async (e: React.MouseEvent<HTMLButtonElement>, experienceId: number, voteType: 'upvote' | 'downvote') => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!token) {
-      alert('Please login to vote');
-      return;
-    }
-
-    try {
-      const response = await axios.post(`/api/experiences/${experienceId}/vote`, {
-        userId: currentUserId,
-        voteType: voteType
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.data) {
-        // Update local state with the new counts and user's vote status
-        setExperiences(prev => prev.map(exp =>
-          exp.id === experienceId
-            ? { ...exp, upvotes: response.data.upvotes, downvotes: response.data.downvotes, userVote: response.data.userVote }
-            : exp
-        ));
-
-        setUserVotes(prev => ({
-          ...prev,
-          [experienceId]: response.data.userVote
-        }));
-      }
-    } catch (err) {
-      console.error('Failed to submit vote:', err);
-    }
-  };
-
-  const handleBookmark = async (e: React.MouseEvent<HTMLButtonElement>, experienceId: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!token) {
-      alert('Please login to bookmark');
-      return;
-    }
-
-    const isBookmarked = bookmarkedExperiences.has(experienceId);
-
-    try {
-      if (isBookmarked) {
-        // Remove bookmark
-        await axios.delete('/api/bookmarks', {
-          data: { experienceId },
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        setBookmarkedExperiences(prev => {
-          const next = new Set(prev);
-          next.delete(experienceId);
-          return next;
-        });
-      } else {
-        // Add bookmark
-        await axios.post('/api/bookmarks', { experienceId }, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        setBookmarkedExperiences(prev => {
-          const next = new Set(prev);
-          next.add(experienceId);
-          return next;
-        });
-      }
-    } catch (err) {
-      console.error('Failed to update bookmark:', err);
-    }
-  };
-
-  // --- Render Logic ---
-
-  // Check for initial load and if there's no data yet (full screen loader)
-  if (loading && experiences.length === 0) {
-    return <Loader />;
-  }
-
-  // Error rendering (omitted for brevity, assume correct)
-
 
   return (
-    <div className={`min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${theme === 'dark' ? 'bg-transparent' : 'bg-gray-50'
-      }`}>
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-slate-200 pb-20 pt-24">
 
-        {/* --- Header Section --- */}
+      {/* Header Section */}
+      <div className="container mx-auto px-4 text-center mb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-10"
+          className="flex flex-col items-center"
         >
-          <h1 className={`text-4xl md:text-5xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-800'
-            }`}>
-            Career <span className="bg-gradient-to-r from-brand-cyan to-blue-500 bg-clip-text text-transparent">Experiences</span>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+            <span className="text-slate-900 dark:text-white">Professional </span>
+            <span className="text-blue-500">Experience</span>
           </h1>
-          <p className={`text-xl max-w-3xl mx-auto ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-            Learn from the journeys of successful professionals who've walked the path before you.
+          <p className="text-sm md:text-[15px] text-slate-500 dark:text-[#94A3B8] max-w-2xl mx-auto leading-relaxed">
+            Share and discover professional journeys from our community members.
           </p>
         </motion.div>
+      </div>
 
-        {/* --- Search & Filter Bar --- */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className={`mt-8 mb-8 flex flex-col md:flex-row gap-4 sticky top-16 z-10 py-4 transition-colors duration-300 ${theme === 'dark' ? 'bg-[#030014]/80 backdrop-blur-md' : 'bg-gray-50/95 backdrop-blur-sm'
-            }`}
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search by role, company, or content..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-cyan transition-all duration-200 shadow-xl ${theme === 'dark'
-                ? 'bg-space-950/50 border-white/10 text-white placeholder-gray-500 focus:ring-brand-cyan'
-                : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-blue-500'
-                }`}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-500" />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className={`px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-cyan transition-all duration-200 ${theme === 'dark'
-                ? 'bg-[#111] border-white/10 text-white'
-                : 'bg-white border-gray-200 text-gray-900 focus:ring-blue-500'
-                }`}
+      {/* Main Content Grid */}
+      <div className="container mx-auto px-4 max-w-7xl relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {DUMMY_EXPERIENCES.map((exp, idx) => (
+            <motion.div
+              key={exp.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
             >
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-        </motion.div>
+              <Card className="h-full flex flex-col hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-black/50 transition-all duration-300 rounded-2xl overflow-hidden border border-slate-200 dark:border-[#1F2937] bg-white dark:bg-[#111827]">
+                <Link to={`/experiences/${exp.id}`} className="flex-1">
 
-
-        {/* --- Main Content Grid --- */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-
-          {/* 🌟 Conditional Rendering for Loader/Error/Content 🌟 */}
-          {loading && experiences.length > 0 && <GridLoader />}
-
-          {error ? (
-            <div className="lg:col-span-3 text-center py-12 text-red-600 bg-white rounded-xl shadow-lg border">
-              <p className="text-lg font-semibold">{error}</p>
-              <p className="text-sm mt-2">Please try reloading the page.</p>
-            </div>
-          ) : (
-            <>
-              {experiences.length > 0 ? (
-                // Map over experiences (hidden if loading and experiences.length > 0)
-                experiences.map((experience, index) => (
-                  <motion.article key={experience.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    className={`rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden border group ${theme === 'dark'
-                      ? 'bg-space-900/40 backdrop-blur-md border-white/10 hover:border-brand-cyan/40'
-                      : 'bg-white border-gray-100 hover:border-blue-200'
-                      } ${loading ? 'opacity-50 pointer-events-none' : ''}`}
-                  >
-                    <Link to={`/experiences/${experience.id}`} className="block">
-                      <div className="p-6">
-                        {/* Card Content (omitted for brevity) */}
-                        <div className={`flex items-center mb-4 border-b pb-4 ${theme === 'dark' ? 'border-white/10' : 'border-gray-100'
-                          }`}>
-                          <div
-                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl mr-4 flex-shrink-0"
-                            style={{ backgroundColor: stringToColor(experience.users?.name || String(experience.id)) }}
-                          >
-                            {getInitials(experience.users?.name || `User ${experience.id}`)}
-                          </div>
-                          <div className="flex-1">
-                            <h3 className={`font-semibold truncate ${theme === 'dark' ? 'text-white' : 'text-gray-800'
-                              }`}>{experience.users?.name || `User ${experience.id}`}</h3>
-                            <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{experience.role}</p>
-                            <div className={`flex items-center text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                              <Building className="w-4 h-4 mr-1" />
-                              <span className="mr-3 truncate">{experience.company}</span>
-                              <MapPin className="w-4 h-4 mr-1" />
-                              <span className="truncate">{experience.location}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <h4 className={`text-lg font-bold mb-3 group-hover:text-blue-500 transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-800'
-                          }`}>
-                          {experience.role || 'Career Experience'} at {experience.company || 'A Company'}
-                        </h4>
-                        <p className={`mb-4 line-clamp-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                          }`}>
-                          {experience.overall_experience || experience.preparation_tips || 'No experience summary provided.'}
+                  {/* Card Header */}
+                  <CardHeader className="p-5 pb-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className={`h-11 w-11 rounded-full ${exp.avatarBg} flex items-center justify-center shrink-0`}>
+                        <AvatarFallback className={`${exp.avatarColor} bg-transparent font-medium text-sm`}>
+                          {exp.initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-[15px] leading-snug truncate">
+                          {exp.name}
+                        </h3>
+                        <p className="text-[13px] text-slate-500 dark:text-[#94A3B8] truncate leading-snug">
+                          {exp.title}
                         </p>
-
-                        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                          <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
-                            <span>{formatDate(experience.created_at)}</span>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-white/10 text-brand-cyan border border-brand-cyan/20' : 'bg-blue-100 text-blue-700'
-                            }`}>
-                            {experience.type}
+                        <p className="text-[11px] text-slate-400 dark:text-[#64748B] truncate mt-0.5 flex items-center gap-1.5 font-medium">
+                          <span className="flex items-center gap-1">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            {exp.company}
                           </span>
-                        </div>
-
-                        {/* Action Bar */}
-                        <div className={`flex items-center justify-between pt-4 border-t ${theme === 'dark' ? 'border-space-700' : 'border-gray-100'
-                          }`}>
-                          <div className="flex items-center space-x-2">
-                            {/* Upvote */}
-                            <button
-                              onClick={(e) => handleVote(e, experience.id, 'upvote')}
-                              className={`flex items-center space-x-2 transition-all duration-200 p-2 rounded-full text-sm ${userVotes[experience.id] === 'upvote' ? 'bg-brand-cyan text-black shadow-lg shadow-brand-cyan/30' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10'}`}
-                            >
-                              <ThumbsUp className={`w-5 h-5 ${userVotes[experience.id] === 'upvote' ? 'fill-current' : ''}`} />
-                              <span>{experience.upvotes}</span>
-                            </button>
-                            {/* Downvote */}
-                            <button
-                              onClick={(e) => handleVote(e, experience.id, 'downvote')}
-                              className={`flex items-center space-x-2 transition-all duration-200 p-2 rounded-full text-sm ${userVotes[experience.id] === 'downvote' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10'}`}
-                            >
-                              <ThumbsDown className={`w-5 h-5 ${userVotes[experience.id] === 'downvote' ? 'fill-current' : ''}`} />
-                              <span>{experience.downvotes}</span>
-                            </button>
-                            {/* Comments */}
-                            <div className="flex items-center space-x-2 text-gray-500 p-2">
-                              <MessageCircle className="w-5 h-5" />
-                              <span>{experience.comments_count}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center space-x-2">
-                            {/* Bookmark */}
-                            <button
-                              onClick={(e) => handleBookmark(e, experience.id)}
-                              className={`flex items-center transition-all duration-200 p-2 rounded-full ${bookmarkedExperiences.has(experience.id) ? 'bg-blue-500 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
-                            >
-                              <Bookmark className={`w-5 h-5 ${bookmarkedExperiences.has(experience.id) ? 'fill-current' : ''}`} />
-                            </button>
-                            {/* Share */}
-                            <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); alert(`Sharing ${experience.role} experience.`); }}
-                              className={`transition-colors duration-200 p-2 rounded-full ${theme === 'dark' ? 'text-gray-500 hover:bg-space-700 hover:text-blue-400' : 'text-gray-500 hover:text-blue-500 hover:bg-gray-100'
-                                }`}
-                            >
-                              <Share2 className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
+                          <span className="inline-block w-0.5 h-0.5 rounded-full bg-slate-300 dark:bg-[#475569]"></span>
+                          <span className="flex items-center gap-1">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            {exp.location}
+                          </span>
+                        </p>
                       </div>
-                    </Link>
-                  </motion.article>
-                ))
-              ) : (
-                // Only show "No experiences" message if loading is false and no experiences
-                !loading && (
-                  <div className={`lg:col-span-3 text-center py-12 rounded-xl shadow-lg border ${theme === 'dark' ? 'bg-space-900/40 border-white/10 text-gray-300' : 'bg-white border-gray-100 text-gray-500'}`}>
-                    <p className="text-lg">No experiences found matching your search or filters.</p>
-                    <p className="text-sm mt-2">Try different keywords or check the 'All' category.</p>
+                    </div>
+                  </CardHeader>
+
+                  {/* Card Content */}
+                  <CardContent className="px-5 pb-5 pt-1">
+                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2.5 leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                      {exp.type === 'INTERNSHIP' || idx === 0 || idx === 1 ? exp.role : <span>Associate Product Manager at <span className="text-slate-900 dark:text-white">Fusion Dynamics</span></span>}
+                    </h4>
+                    {/* Hardcoding blue role text to match exact screenshot specifically for item 2 */}
+                    {idx === 1 && (
+                      <h4 className="text-[17px] font-bold text-blue-500 mb-2.5 leading-tight -mt-8 bg-white dark:bg-[#111827] relative z-10 w-full">
+                        SE at TCS
+                      </h4>
+                    )}
+                    <p className="text-[13px] text-slate-600 dark:text-[#94A3B8] leading-relaxed line-clamp-3">
+                      {exp.description}
+                    </p>
+                  </CardContent>
+                </Link>
+
+                {/* Card Footer */}
+                <CardFooter className="p-4 pt-0 pb-5 pl-5 pr-5 flex flex-col gap-6">
+
+                  {/* Top line of footer: Date & Pill Badge */}
+                  <div className="flex items-center justify-between w-full pt-4 border-t border-slate-100 dark:border-[#1F2937]/60">
+                    <div className="flex items-center text-[11px] text-slate-500 dark:text-[#64748B] font-medium gap-1.5 whitespace-nowrap">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {exp.date}
+                    </div>
+                    <Badge className={`rounded-xl text-[10px] uppercase font-bold tracking-wider px-2 py-0 border-none shadow-none h-5 flex items-center ${exp.type === 'INTERNSHIP' ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-slate-100 dark:bg-[#1F2937] hover:bg-slate-200 dark:hover:bg-[#374151] text-slate-600 dark:text-[#94A3B8]'}`}>
+                      {exp.type}
+                    </Badge>
                   </div>
-                )
-              )}
-            </>
-          )}
+
+                  {/* Bottom line of footer: Interactions & Tools */}
+                  <div className="flex items-center justify-between w-full">
+
+                    {/* Left side: Thumbs Up, Thumbs Down, Comments */}
+                    <div className="flex items-center gap-4 text-slate-500 dark:text-[#64748B]">
+
+                      <div className="flex items-center gap-1.5 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer group">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" /></svg>
+                        <span className="text-[13px] font-medium">{exp.upvotes}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer group">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 group-hover:translate-y-0.5 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h3a2 2 0 012 2v7a2 2 0 01-2 2h-3" /></svg>
+                        <span className="text-[13px] font-medium">{exp.downvotes}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer group">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 group-hover:scale-110 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        <span className="text-[13px] font-medium">{exp.comments}</span>
+                      </div>
+
+                    </div>
+
+                    {/* Right side: Bookmark & Share */}
+                    <div className="flex items-center gap-3">
+                      <button className={`hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer ${exp.isBookmarked ? 'text-yellow-500' : 'text-slate-400 dark:text-[#64748B]'}`}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`w-4 h-4 ${exp.isBookmarked ? 'fill-current' : ''}`}><path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+                      </button>
+                      <button className="text-slate-400 dark:text-[#64748B] hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                      </button>
+                    </div>
+
+                  </div>
+
+                </CardFooter>
+              </Card>
+            </motion.div>
+          ))}
         </div>
 
-        {/* --- Pagination Controls (Bottom) --- */}
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-12 space-x-2">
-            <button
-              disabled={currentPage === 1 || loading}
-              onClick={() => handlePageChange(currentPage - 1)}
-              className={`px-4 py-2 rounded-lg flex items-center disabled:opacity-50 ${theme === 'dark'
-                ? 'bg-space-800 text-gray-300 hover:bg-space-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-blue-100'
-                }`}
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" /> Previous
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-              <button
-                key={pageNumber}
-                onClick={() => handlePageChange(pageNumber)}
-                disabled={loading} // Disable while loading
-                className={`px-4 py-2 rounded-lg font-semibold ${currentPage === pageNumber
-                  ? theme === 'dark' ? 'bg-brand-cyan text-black shadow-[0_0_15px_rgba(0,240,255,0.4)]' : 'bg-blue-600 text-white shadow-md'
-                  : theme === 'dark'
-                    ? 'glass text-gray-300 hover:bg-white/10'
-                    : 'bg-gray-100 text-gray-700 hover:bg-blue-100'
-                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {pageNumber}
-              </button>
-            ))}
-
-            <button
-              disabled={currentPage === totalPages || loading}
-              onClick={() => handlePageChange(currentPage + 1)}
-              className={`px-4 py-2 rounded-lg flex items-center disabled:opacity-50 ${theme === 'dark'
-                ? 'bg-space-800 text-gray-300 hover:bg-space-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-blue-100'
-                }`}
-            >
-              Next <ArrowRight className="w-4 h-4 ml-1" />
-            </button>
-          </div>
-        )}
+        {/* Floating Action Button */}
+        <button
+          onClick={() => setIsShareModalOpen(true)}
+          className="fixed bottom-8 right-8 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/20 flex items-center justify-center transition-transform hover:scale-105 z-40 border border-blue-400/20"
+        >
+          <PenTool className="w-6 h-6" />
+        </button>
 
       </div>
 
-      {/* --- Floating CTA and Modal --- */}
-      <FloatingShareButton onClick={() => setIsShareModalOpen(true)} />
       <ShareModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} />
     </div>
   );

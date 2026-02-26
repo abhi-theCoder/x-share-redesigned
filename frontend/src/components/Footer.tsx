@@ -1,83 +1,114 @@
 import React from 'react';
-import { Facebook, Instagram, Linkedin } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { Linkedin, Twitter, Github, Mail } from "lucide-react";
 
-function Footer() {
+const footerLinks = {
+  platform: [
+    { name: "Experiences", href: "/experiences" },
+    { name: "Q&A", href: "/qa" },
+    { name: "Resources", href: "/resources" },
+    { name: "Leaderboard", href: "/leaderboard" },
+    { name: "Jobs", href: "/jobs" },
+  ],
+  company: [
+    { name: "About Us", href: "#" },
+    { name: "Careers", href: "#" },
+    { name: "Blog", href: "#" },
+    { name: "Contact", href: "#" },
+  ],
+  legal: [
+    { name: "Privacy Policy", href: "#" },
+    { name: "Terms of Service", href: "#" },
+    { name: "Cookie Policy", href: "#" },
+  ],
+};
+
+const Footer: React.FC = () => {
   return (
-    // 1. Footer Background: Dark gray/black to match the screenshot
-    <footer className="bg-gray-900 text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        
-        {/* Main Content: Organized into 5 columns matching the screenshot */}
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-5 md:gap-4">
-          
-          {/* Column 1: x-share (Mission & Socials) */}
-          <div>
-            <span className="text-xl font-bold text-white mb-2 block">X Share</span>
-            <p className="text-gray-400 text-sm mb-4">Interview experience sharing for real growth.</p>
-            <div className="flex space-x-4">
-              {/* Social Icons matching the screenshot (FB, IG, LI) */}
-              <a href="#" className="text-gray-400 hover:text-[#4CAED8] transition-colors">
-                <Facebook className="w-5 h-5" />
+    <footer className="border-t border-border bg-card">
+      <div className="container mx-auto px-4 py-12 lg:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {/* Brand */}
+          <div className="col-span-2 md:col-span-1">
+            <Link to="/" className="flex items-center gap-3 mb-6 group">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+                <span className="text-xl italic">X</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl font-black text-foreground italic">Xshare</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">Intel Layer</span>
+              </div>
+            </Link>
+            <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+              Empowering professionals and students through verified interview intelligence and community insights.
+            </p>
+            <div className="flex gap-3">
+              <a href="#" className="p-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-all duration-300">
+                <Linkedin className="h-4 w-4" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-[#4CAED8] transition-colors">
-                <Instagram className="w-5 h-5" />
+              <a href="#" className="p-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-all duration-300">
+                <Twitter className="h-4 w-4" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-[#4CAED8] transition-colors">
-                <Linkedin className="w-5 h-5" />
+              <a href="#" className="p-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-all duration-300">
+                <Github className="h-4 w-4" />
+              </a>
+              <a href="#" className="p-2 rounded-lg bg-muted hover:bg-primary hover:text-primary-foreground transition-all duration-300">
+                <Mail className="h-4 w-4" />
               </a>
             </div>
           </div>
-          
-          {/* Column 2: Product (Matching screenshot links) */}
+
+          {/* Platform */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">Product</h3>
+            <h3 className="font-semibold text-foreground mb-4 uppercase tracking-wider text-xs">Platform</h3>
             <ul className="space-y-2">
-              <li><a href="/get-started" className="text-sm text-gray-400 hover:text-[#4CAED8] transition-colors">Get started</a></li>
-              <li><a href="/rewards" className="text-sm text-gray-400 hover:text-[#4CAED8] transition-colors">Rewards</a></li>
+              {footerLinks.platform.map((link) => (
+                <li key={link.name}>
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Column 3: Community (Matching screenshot links) */}
+          {/* Company */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">Community</h3>
+            <h3 className="font-semibold text-foreground mb-4 uppercase tracking-wider text-xs">Company</h3>
             <ul className="space-y-2">
-              <li><a href="/users" className="text-sm text-gray-400 hover:text-[#4CAED8] transition-colors">Users</a></li>
-              <li><a href="/guidelines" className="text-sm text-gray-400 hover:text-[#4CAED8] transition-colors">Guidelines</a></li>
-              <li><a href="/leaderboard" className="text-sm text-gray-400 hover:text-[#4CAED8] transition-colors">Leaderboard</a></li>
+              {footerLinks.company.map((link) => (
+                <li key={link.name}>
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Column 4: Company (Matching screenshot links) */}
+          {/* Legal */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">Company</h3>
+            <h3 className="font-semibold text-foreground mb-4 uppercase tracking-wider text-xs">Legal</h3>
             <ul className="space-y-2">
-              <li><a href="/about" className="text-sm text-gray-400 hover:text-[#4CAED8] transition-colors">About us</a></li>
-              <li><a href="/terms" className="text-sm text-gray-400 hover:text-[#4CAED8] transition-colors">Terms & Conditions</a></li>
+              {footerLinks.legal.map((link) => (
+                <li key={link.name}>
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
-          
-          {/* Column 5: Contact (Matching screenshot info) */}
-          <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">Contact</h3>
-            <ul className="space-y-2">
-              <li className="text-sm text-gray-400">hello@xshare.app</li>
-              <li><a href="/support" className="text-sm text-gray-400 hover:text-[#4CAED8] transition-colors">Support</a></li>
-            </ul>
-          </div>
-
         </div>
-      </div>
 
-      {/* Footer Bottom Strip: Copyright */}
-      <div className="border-t border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-xs text-gray-500">
-            © 2025 x-share. All rights reserved.
+        <div className="mt-12 pt-8 border-t border-border/50 flex items-center justify-center">
+          <p className="text-sm text-muted-foreground text-center font-medium">
+            © 2026 Xshare. All rights reserved.
           </p>
         </div>
       </div>
     </footer>
   );
-}
+};
 
 export default Footer;
