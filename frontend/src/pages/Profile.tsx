@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import {
   Mail, MapPin, Edit3, Star, Trophy, MessageCircle,
   BookOpen,
-  Users, Eye, Code, ShieldCheck, Linkedin, Github, Globe
+  Users, Eye, Code, ShieldCheck, Linkedin, Github, Globe,
+  Share2, Heart
 } from 'lucide-react';
 import { toast } from "sonner";
 import axios from '../api';
 import verifyToken from '../components/verifyLogin';
 import LoginRequired from '../components/LoginRequired';
 import Loader from '../components/Loader';
+import ActivityHeatmap from '../components/ActivityHeatmap';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,7 +122,7 @@ const Profile = () => {
         return;
       }
 
-      const profileRes = await axios.get('api/profile', {
+      const profileRes = await axios.get('/api/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -150,7 +152,7 @@ const Profile = () => {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put('api/profile', formData, {
+      await axios.put('/api/profile', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProfileData(prev => prev ? { ...prev, ...formData } : null);
@@ -194,7 +196,33 @@ const Profile = () => {
 
           <div className="absolute -bottom-16 left-6 md:left-12 flex flex-col md:flex-row md:items-end gap-6 w-[calc(100%-48px)]">
             <div className="relative flex-shrink-0 group">
-              <div className="absolute -inset-2 rounded-[36px] bg-blue-600 opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-500" />
+              {/* Circular Progress Ring */}
+              <div className="absolute -inset-4 z-0">
+                <svg className="h-40 w-40 md:h-[182px] md:w-[182px] -rotate-90">
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="40%"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="transparent"
+                    className="text-slate-200/20 dark:text-slate-800/40"
+                  />
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="40%"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="transparent"
+                    className="text-blue-500 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                    strokeDasharray={251}
+                    strokeDashoffset={251 - (251 * (profileData.level.percentage || 0) / 100)}
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+
               <div className="h-32 w-32 md:h-[150px] md:w-[150px] rounded-[32px] border-4 border-slate-50 dark:border-[#060B19] bg-[#0A101D] flex items-center justify-center relative shadow-2xl overflow-hidden z-10 transition-transform duration-500 group-hover:scale-[1.02]">
                 {profileData.avatar ? (
                   <img src={profileData.avatar} alt={profileData.name} className="w-full h-full object-cover" />
@@ -202,19 +230,34 @@ const Profile = () => {
                   <span className="text-5xl md:text-[64px] font-black text-blue-500 tracking-tighter">{getInitials(profileData.name)}</span>
                 )}
               </div>
+
+              {/* Level Badge */}
+              <div className="absolute -bottom-2 -right-2 z-20 h-10 w-10 md:h-12 md:w-12 rounded-full bg-blue-500 border-4 border-slate-50 dark:border-[#060B19] flex items-center justify-center shadow-lg">
+                <span className="text-[10px] md:text-xs font-black text-white">{profileData.level.percentage}%</span>
+              </div>
             </div>
 
             <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 z-10 relative">
               <div className="space-y-1">
-                <h1 className="text-3xl md:text-[40px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">
+                <h1 className="text-3xl md:text-[44px] font-black text-slate-900 dark:text-white tracking-tight leading-none uppercase">
                   {profileData.name || "Rahul Sharma"}
                 </h1>
+                <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-bold text-sm md:text-base uppercase tracking-wider">
+                  <span>{profileData.role || "Senior Software Engineer"}</span>
+                  <span className="h-1 w-1 rounded-full bg-slate-400" />
+                  <Mail className="h-4 w-4 inline mr-1" />
+                  <span className="lowercase">{profileData.email}</span>
+                </div>
               </div>
               <div className="flex items-center gap-3">
+                <Button variant="outline" className="rounded-xl px-4 border-slate-200 dark:border-slate-800/80 bg-white/50 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 font-bold gap-2">
+                  <Globe className="w-4 h-4" /> Share
+                </Button>
+
                 <Dialog open={isEditing} onOpenChange={setIsEditing}>
                   <DialogTrigger asChild>
-                    <Button className="rounded-xl px-6 bg-blue-500 hover:bg-blue-600 text-white shadow-[0_0_20px_rgba(59,130,246,0.25)] font-bold gap-2 transition-all">
-                      <Edit3 className="w-4 h-4" /> Optimize Resume
+                    <Button variant="outline" className="rounded-xl px-4 border-slate-200 dark:border-slate-800/80 bg-white/50 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 font-bold gap-2">
+                      <Users className="w-4 h-4" /> Edit Profile
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[500px] rounded-[32px] border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0B1221]">
@@ -255,8 +298,8 @@ const Profile = () => {
                   </DialogContent>
                 </Dialog>
 
-                <Button variant="outline" onClick={handleLogout} className="rounded-xl px-6 border-slate-200 dark:border-slate-700/80 bg-white dark:bg-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold transition-all">
-                  Sign Out
+                <Button className="rounded-xl px-6 bg-blue-500 hover:bg-blue-600 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)] font-bold gap-2 transition-all border-none">
+                  <Edit3 className="w-4 h-4" /> Resume Build
                 </Button>
               </div>
             </div>
@@ -354,28 +397,46 @@ const Profile = () => {
               </CardContent>
             </Card>
 
-            {/* Top Stats Grid */}
-            <div className="grid grid-cols-3 gap-3">
-              <Card className="rounded-[24px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0B1221] p-5 text-center flex flex-col items-center justify-center shadow-sm">
-                <div className="h-10 w-10 rounded-[14px] bg-blue-500/10 flex items-center justify-center text-blue-500 mb-3">
-                  <Eye className="h-5 w-5" />
+            {/* Stat Cards Grid - Matching Design */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+              <Card className="rounded-[24px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0B1221] p-6 shadow-sm flex items-center justify-between group hover:border-blue-500/50 transition-all duration-300">
+                <div className="space-y-1">
+                  <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">50</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Total Points</p>
                 </div>
-                <span className="text-xl font-black text-slate-900 dark:text-white">1.2k</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mt-0.5">Views</span>
-              </Card>
-              <Card className="rounded-[24px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0B1221] p-5 text-center flex flex-col items-center justify-center shadow-sm">
-                <div className="h-10 w-10 rounded-[14px] bg-orange-500/10 flex items-center justify-center text-orange-500 mb-3">
+                <div className="h-10 w-10 rounded-[14px] bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
                   <Star className="h-5 w-5" />
                 </div>
-                <span className="text-xl font-black text-slate-900 dark:text-white">{profileData.level.remaining ? profileData.level.remaining.split(' / ')[0] : '48'}</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mt-0.5">Points</span>
               </Card>
-              <Card className="rounded-[24px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0B1221] p-5 text-center flex flex-col items-center justify-center shadow-sm">
-                <div className="h-10 w-10 rounded-[14px] bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-3">
-                  <Users className="h-5 w-5" />
+
+              <Card className="rounded-[24px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0B1221] p-6 shadow-sm flex items-center justify-between group hover:border-blue-500/50 transition-all duration-300">
+                <div className="space-y-1">
+                  <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">0</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Contributions</p>
                 </div>
-                <span className="text-xl font-black text-slate-900 dark:text-white">234</span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mt-0.5">Network</span>
+                <div className="h-10 w-10 rounded-[14px] bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                  <BookOpen className="h-5 w-5" />
+                </div>
+              </Card>
+
+              <Card className="rounded-[24px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0B1221] p-6 shadow-sm flex items-center justify-between group hover:border-blue-500/50 transition-all duration-300">
+                <div className="space-y-1">
+                  <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">0</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Questions Asked</p>
+                </div>
+                <div className="h-10 w-10 rounded-[14px] bg-purple-500/10 flex items-center justify-center text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-all">
+                  <MessageCircle className="h-5 w-5" />
+                </div>
+              </Card>
+
+              <Card className="rounded-[24px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0B1221] p-6 shadow-sm flex items-center justify-between group hover:border-blue-500/50 transition-all duration-300">
+                <div className="space-y-1">
+                  <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">0</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Likes Received</p>
+                </div>
+                <div className="h-10 w-10 rounded-[14px] bg-pink-500/10 flex items-center justify-center text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
+                  <Heart className="h-5 w-5 fill-pink-500 group-hover:fill-white" />
+                </div>
               </Card>
             </div>
 
@@ -555,11 +616,15 @@ const Profile = () => {
                 </div>
               </CardContent>
             </Card>
-
           </div>
         </div>
+
+        {/* Activity Heatmap - Full Width */}
+        <div className="mt-8">
+          <ActivityHeatmap />
+        </div>
       </div>
-    </div>
+    </div >
   );
 };
 

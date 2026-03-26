@@ -1,45 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api';
+import './glass.css';
 import { useNavigate } from 'react-router-dom';
 import {
   DragDropContext,
   Droppable,
   Draggable,
   DropResult,
-} from 'react-beautiful-dnd';
+} from '@hello-pangea/dnd';
 import {
   GripVertical,
   ChevronDown,
-  ChevronUp,
-  ArrowRight,
   Rocket,
   CheckCircle,
   Building,
   User,
   MapPin,
   Calendar,
-  Info,
   Trash2,
   Plus,
   ArrowLeft,
-  Sparkles,
-  Layout
+  FileText,
+  Layers,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { verifyToken } from '../components/verifyLogin';
 import { toast } from 'sonner';
-
-// Shadcn UI Components
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 const roundOptions = [
   'Online Assessment',
@@ -53,8 +39,13 @@ const roundOptions = [
   'Final Panel',
 ];
 
+const experienceTypes = [
+  { value: 'internship', label: 'Internship' },
+  { value: 'job', label: 'Full-Time' },
+  { value: 'hackathon', label: 'Hackathon' },
+];
+
 type RoundQ = { question: string; answer: string };
-type Section = { key: string; title: string; isDraggable: boolean; icon: React.ReactNode };
 
 interface FormData {
   company: string;
@@ -63,17 +54,9 @@ interface FormData {
   location: string;
   date: string;
   overall_experience: string;
-  preparation_tips: string;
   selection_rounds: string[];
   rounds_data: Record<string, RoundQ[]>;
 }
-
-const initialSections: Section[] = [
-  { key: 'companyInfo', title: 'Context', isDraggable: false, icon: <Building className="w-4 h-4" /> },
-  { key: 'selectionProcess', title: 'Process', isDraggable: true, icon: <Layout className="w-4 h-4" /> },
-  { key: 'preparationTips', title: 'Preparation', isDraggable: false, icon: <Sparkles className="w-4 h-4" /> },
-  { key: 'finalReview', title: 'Review', isDraggable: false, icon: <CheckCircle className="w-4 h-4" /> },
-];
 
 export default function ShareExperiencePage(): React.ReactNode {
   const [formData, setFormData] = useState<FormData>({
@@ -83,18 +66,15 @@ export default function ShareExperiencePage(): React.ReactNode {
     location: '',
     date: '',
     overall_experience: '',
-    preparation_tips: '',
     selection_rounds: [],
     rounds_data: {},
   });
 
-  const [sections] = useState<Section[]>(initialSections);
-  const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedRounds, setExpandedRounds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const navigate = useNavigate();
 
@@ -102,18 +82,10 @@ export default function ShareExperiencePage(): React.ReactNode {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
+        if (!token) { navigate('/login'); return; }
         const valid = await verifyToken(token);
-        if (!valid) {
-          localStorage.removeItem('token');
-          navigate('/login');
-          return;
-        }
-      } catch (err) {
-        console.error('Auth check error:', err);
+        if (!valid) { localStorage.removeItem('token'); navigate('/login'); return; }
+      } catch {
         navigate('/login');
       } finally {
         setLoading(false);
@@ -122,71 +94,47 @@ export default function ShareExperiencePage(): React.ReactNode {
     checkAuth();
   }, [navigate]);
 
-  const validateCurrentStep = () => {
-    const newErrors: Record<string, string> = {};
-    const currentSection = sections[currentStep];
-
-    switch (currentSection.key) {
-      case 'companyInfo':
-        if (!formData.company.trim()) newErrors.company = "Company is required";
-        if (!formData.role.trim()) newErrors.role = "Role is required";
-        if (!formData.location.trim()) newErrors.location = "Location is required";
-        if (!formData.date.trim()) newErrors.date = "Date is required";
-        break;
-      case 'selectionProcess':
-        if (formData.selection_rounds.length === 0) {
-          newErrors.selection_rounds = "Select at least one round";
-        }
-        formData.selection_rounds.forEach(round => {
-          if (!formData.rounds_data[round] || formData.rounds_data[round].length === 0) {
-            newErrors[`round_${round}`] = "Add at least one question";
-          } else {
-            formData.rounds_data[round].forEach((qa, i) => {
-              if (!qa.question.trim()) {
-                newErrors[`${round}_question_${i}`] = "Question is required";
-              }
-            });
-          }
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!formData.company.trim()) e.company = 'Company is required';
+    if (!formData.role.trim()) e.role = 'Role is required';
+    if (!formData.location.trim()) e.location = 'Location is required';
+    if (!formData.date.trim()) e.date = 'Date is required';
+    if (formData.selection_rounds.length === 0) e.selection_rounds = 'Select at least one round';
+    formData.selection_rounds.forEach(round => {
+      if (!formData.rounds_data[round] || formData.rounds_data[round].length === 0) {
+        e[`round_${round}`] = 'Add at least one question';
+      } else {
+        formData.rounds_data[round].forEach((qa, i) => {
+          if (!qa.question.trim()) e[`${round}_q_${i}`] = 'Question is required';
         });
-        break;
-      case 'preparationTips':
-        if (!formData.preparation_tips.trim()) newErrors.preparation_tips = "Preparation details required";
-        break;
-      case 'finalReview':
-        if (!formData.overall_experience.trim()) newErrors.overall_experience = "Overall summary required";
-        break;
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+      }
+    });
+    if (!formData.overall_experience.trim()) e.overall_experience = 'Overall summary required';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const handleNext = async () => {
-    if (!validateCurrentStep()) {
-      toast.error("Please fill in all required fields.");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) {
+      toast.error('Please fill in all required fields.');
+      // Scroll to first error
+      const firstErrorEl = document.querySelector('[data-error="true"]');
+      firstErrorEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-
-    if (currentStep === sections.length - 1) {
-      handleSubmit();
-    } else {
-      setCurrentStep(s => s + 1);
-      window.scrollTo(0, 0);
-    }
-  };
-
-  const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
       await axios.post('/api/experiences/share', formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setShowSuccessAnimation(true);
-      toast.success("Experience published successfully!");
+      setShowSuccess(true);
+      toast.success('Experience published successfully!');
       setTimeout(() => navigate('/experiences'), 3000);
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Submission failed.';
-      toast.error(msg);
+      toast.error(error.response?.data?.message || 'Submission failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -202,18 +150,17 @@ export default function ShareExperiencePage(): React.ReactNode {
 
   const handleRoundToggle = (round: string) => {
     const exists = formData.selection_rounds.includes(round);
-    let updatedRounds = exists
+    const updatedRounds = exists
       ? formData.selection_rounds.filter(r => r !== round)
       : [...formData.selection_rounds, round];
-
-    let updatedData = { ...formData.rounds_data };
+    const updatedData = { ...formData.rounds_data };
     if (!exists) {
       updatedData[round] = [{ question: '', answer: '' }];
-      if (!expandedRounds.includes(round)) setExpandedRounds(p => [...p, round]);
+      setExpandedRounds(p => [...p, round]);
     } else {
       delete updatedData[round];
+      setExpandedRounds(p => p.filter(r => r !== round));
     }
-
     setFormData(f => ({ ...f, selection_rounds: updatedRounds, rounds_data: updatedData }));
   };
 
@@ -222,8 +169,8 @@ export default function ShareExperiencePage(): React.ReactNode {
       ...f,
       rounds_data: {
         ...f.rounds_data,
-        [round]: [...(f.rounds_data[round] || []), { question: '', answer: '' }]
-      }
+        [round]: [...(f.rounds_data[round] || []), { question: '', answer: '' }],
+      },
     }));
   };
 
@@ -243,395 +190,359 @@ export default function ShareExperiencePage(): React.ReactNode {
     });
   };
 
-  if (loading) return null;
-
-  const progressPercent = ((currentStep + 1) / sections.length) * 100;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen pt-24 pb-20 bg-background relative overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="container max-w-4xl mx-auto px-4 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <Badge variant="outline" className="mb-4 px-4 py-1.5 rounded-full bg-primary/5 border-primary/20 text-primary uppercase font-black tracking-widest text-[10px]">
-            <Rocket className="w-3.5 h-3.5 mr-2" />
-            Contribution Protocol
-          </Badge>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-            Share Your <span className="text-primary italic">Trajectory</span>
-          </h1>
-          <p className="text-muted-foreground font-medium italic">
-            "Your insights bridge the gap between ambition and achievement for thousands."
-          </p>
-        </motion.div>
-
-        {/* Stepper Header */}
-        <div className="mb-12">
-          <div className="flex justify-between mb-4 px-2">
-            {sections.map((s, i) => (
-              <button
-                key={s.key}
-                disabled={i > currentStep && !validateCurrentStep()}
-                onClick={() => setCurrentStep(i)}
-                className={`flex flex-col items-center gap-2 group transition-all ${i <= currentStep ? 'text-primary' : 'text-muted-foreground opacity-50'}`}
-              >
-                <div className={`h-10 w-10 rounded-xl flex items-center justify-center border-2 transition-all 
-                  ${i === currentStep ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20' :
-                    i < currentStep ? 'bg-primary/10 border-primary/30' : 'bg-muted border-border'}`}
-                >
-                  {i < currentStep ? <CheckCircle className="w-5 h-5" /> : s.icon}
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{s.title}</span>
-              </button>
-            ))}
-          </div>
-          <Progress value={progressPercent} className="h-1.5 rounded-full bg-muted border border-border/20" />
-        </div>
-
-        <Card className="rounded-[40px] border-border/60 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden border-none shadow-black/5 ring-1 ring-border/20">
-          <CardContent className="p-8 md:p-12">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={sections[currentStep].key}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-8"
-              >
-                {currentStep === 0 && (
-                  <div className="grid gap-8">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Company *</Label>
-                        <div className="relative">
-                          <Building className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            placeholder="e.g. Google, Microsoft"
-                            className="h-12 pl-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20"
-                            value={formData.company}
-                            onChange={e => setFormData(f => ({ ...f, company: e.target.value }))}
-                          />
-                        </div>
-                        {errors.company && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.company}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Role *</Label>
-                        <div className="relative">
-                          <User className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            placeholder="e.g. SDE-1, UX Designer"
-                            className="h-12 pl-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20"
-                            value={formData.role}
-                            onChange={e => setFormData(f => ({ ...f, role: e.target.value }))}
-                          />
-                        </div>
-                        {errors.role && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.role}</p>}
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Context Type *</Label>
-                        <Select value={formData.type} onValueChange={v => setFormData(f => ({ ...f, type: v }))}>
-                          <SelectTrigger className="h-12 rounded-2xl bg-background/50 border-border/50">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl">
-                            <SelectItem value="internship">Internship</SelectItem>
-                            <SelectItem value="job">Full-time Job</SelectItem>
-                            <SelectItem value="hackathon">Hackathon</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Location *</Label>
-                        <div className="relative">
-                          <MapPin className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            placeholder="City, State"
-                            className="h-12 pl-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20"
-                            value={formData.location}
-                            onChange={e => setFormData(f => ({ ...f, location: e.target.value }))}
-                          />
-                        </div>
-                        {errors.location && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.location}</p>}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Interview Date *</Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          type="date"
-                          className="h-12 pl-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20"
-                          value={formData.date}
-                          onChange={e => setFormData(f => ({ ...f, date: e.target.value }))}
-                        />
-                      </div>
-                      {errors.date && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.date}</p>}
-                    </div>
-                  </div>
-                )}
-
-                {currentStep === 1 && (
-                  <div className="space-y-8">
-                    <div className="space-y-4">
-                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Select Interfacing Rounds</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {roundOptions.map(r => (
-                          <Badge
-                            key={r}
-                            variant={formData.selection_rounds.includes(r) ? "default" : "outline"}
-                            className={`cursor-pointer px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
-                              ${formData.selection_rounds.includes(r) ? 'shadow-lg shadow-primary/20' : 'hover:bg-primary/5 hover:border-primary/20'}`}
-                            onClick={() => handleRoundToggle(r)}
-                          >
-                            {r}
-                          </Badge>
-                        ))}
-                      </div>
-                      {errors.selection_rounds && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.selection_rounds}</p>}
-                    </div>
-
-                    <Separator className="bg-border/40" />
-
-                    <div className="space-y-4">
-                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Process Sequence (Drag to Reorder)</Label>
-                      <DragDropContext onDragEnd={onDragEnd}>
-                        <Droppable droppableId="selectedRounds-droppable">
-                          {(provided: any) => (
-                            <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
-                              {formData.selection_rounds.map((round, idx) => (
-                                <Draggable key={round} draggableId={round} index={idx}>
-                                  {(prov: any) => (
-                                    <div ref={prov.innerRef} {...prov.draggableProps} className="rounded-3xl border border-border/40 bg-background/40 backdrop-blur-md overflow-hidden group">
-                                      <div className="p-5 flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                          <div {...prov.dragHandleProps} className="text-muted-foreground hover:text-primary transition-colors">
-                                            <GripVertical className="w-5 h-5" />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Step 0{idx + 1}</span>
-                                            <h4 className="text-lg font-black italic">{round}</h4>
-                                          </div>
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-10 w-10 p-0 rounded-xl"
-                                          onClick={() => setExpandedRounds(p => p.includes(round) ? p.filter(r => r !== round) : [...p, round])}
-                                        >
-                                          {expandedRounds.includes(round) ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                        </Button>
-                                      </div>
-
-                                      <AnimatePresence>
-                                        {expandedRounds.includes(round) && (
-                                          <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: "auto", opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="overflow-hidden border-t border-border/20 px-6 py-8 space-y-6"
-                                          >
-                                            {formData.rounds_data[round]?.map((qa, i) => (
-                                              <div key={i} className="space-y-4 relative p-6 bg-muted/20 rounded-2xl border border-border/20 group/qa">
-                                                <div className="flex justify-between items-center mb-2">
-                                                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Intelligence Unit {i + 1}</Label>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg opacity-0 group-hover/qa:opacity-100 transition-opacity"
-                                                    onClick={() => removeRoundQA(round, i)}
-                                                  >
-                                                    <Trash2 className="w-4 h-4" />
-                                                  </Button>
-                                                </div>
-                                                <div className="space-y-4">
-                                                  <Textarea
-                                                    placeholder="The Query Interfaced..."
-                                                    className="min-h-[80px] rounded-xl bg-background/50 border-border/40"
-                                                    value={qa.question}
-                                                    onChange={e => updateRoundQA(round, i, 'question', e.target.value)}
-                                                  />
-                                                  {errors[`${round}_question_${i}`] && <p className="text-[10px] text-destructive font-bold uppercase">{errors[`${round}_question_${i}`]}</p>}
-                                                  <Textarea
-                                                    placeholder="The Response Strategy (Optional)..."
-                                                    className="min-h-[80px] rounded-xl bg-background/50 border-border/40"
-                                                    value={qa.answer}
-                                                    onChange={e => updateRoundQA(round, i, 'answer', e.target.value)}
-                                                  />
-                                                </div>
-                                              </div>
-                                            ))}
-                                            <Button
-                                              variant="outline"
-                                              className="w-full h-12 rounded-xl bg-primary/5 border-dashed border-primary/20 text-primary uppercase font-black tracking-widest text-[10px]"
-                                              onClick={() => addQuestion(round)}
-                                            >
-                                              <Plus className="w-4 h-4 mr-2" /> Add Intel Core
-                                            </Button>
-                                          </motion.div>
-                                        )}
-                                      </AnimatePresence>
-                                    </div>
-                                  )}
-                                </Draggable>
-                              ))}
-                              {provided.placeholder}
-                            </div>
-                          )}
-                        </Droppable>
-                      </DragDropContext>
-                    </div>
-                  </div>
-                )}
-
-                {currentStep === 2 && (
-                  <div className="space-y-6">
-                    <div className="p-8 rounded-[32px] bg-primary/5 border border-primary/10 flex flex-col items-center text-center space-y-4 mb-8">
-                      <div className="h-14 w-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
-                        <Sparkles className="w-7 h-7" />
-                      </div>
-                      <h3 className="text-xl font-bold">Preparation Strategy</h3>
-                      <p className="text-sm text-muted-foreground max-w-md font-medium italic">"Decrypt the methods, resources, and frameworks that empowered your success."</p>
-                    </div>
-                    <div className="space-y-4">
-                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Preparation Intelligence *</Label>
-                      <Textarea
-                        placeholder="Detailed breakdown of your roadmap, resources used, and key focus areas..."
-                        className="min-h-[300px] rounded-[32px] p-8 bg-background/50 border-border/50 text-base leading-relaxed"
-                        value={formData.preparation_tips}
-                        onChange={e => setFormData(f => ({ ...f, preparation_tips: e.target.value }))}
-                      />
-                      {errors.preparation_tips && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.preparation_tips}</p>}
-                    </div>
-                  </div>
-                )}
-
-                {currentStep === 3 && (
-                  <div className="space-y-8">
-                    <div className="grid md:grid-cols-2 gap-8">
-                      <div className="space-y-6">
-                        <div className="space-y-1">
-                          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Intelligence Header</h3>
-                          <div className="p-6 rounded-[24px] bg-muted/30 border border-border/20 space-y-3">
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-muted-foreground font-medium">Domain</span>
-                              <span className="font-black italic">{formData.company}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-muted-foreground font-medium">Capacity</span>
-                              <span className="font-black italic">{formData.role}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-muted-foreground font-medium">Execution</span>
-                              <span className="font-black italic">{formData.type}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-muted-foreground font-medium">Registry</span>
-                              <span className="font-black italic">{formData.date}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Process Map</h3>
-                          <div className="flex flex-wrap gap-2 pt-2">
-                            {formData.selection_rounds.map((r, i) => (
-                              <Badge key={r} variant="outline" className="h-8 rounded-lg px-3 bg-background font-bold text-[9px] uppercase tracking-widest border-border/40">
-                                0{i + 1} : {r}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Overall Trajectory Summary *</Label>
-                        <Textarea
-                          placeholder="Your final reflections and the 'Human Element' of the experience..."
-                          className="min-h-[200px] rounded-[32px] p-6 bg-background/50 border-border/50"
-                          value={formData.overall_experience}
-                          onChange={e => setFormData(f => ({ ...f, overall_experience: e.target.value }))}
-                        />
-                        {errors.overall_experience && <p className="text-[10px] text-destructive font-bold uppercase ml-1">{errors.overall_experience}</p>}
-                      </div>
-                    </div>
-
-                    <div className="p-6 rounded-3xl bg-primary/5 border border-primary/20 flex items-start gap-4">
-                      <Info className="w-5 h-5 text-primary mt-1" />
-                      <div>
-                        <p className="text-sm font-black uppercase tracking-widest mb-1">Final Clearance</p>
-                        <p className="text-[11px] text-muted-foreground font-medium italic">By publishing, you confirm that this intelligence is verified and intends to empower the community.</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </CardContent>
-
-          <CardFooter className="p-8 bg-muted/20 border-t border-border/20 flex justify-between gap-4">
-            <Button
-              variant="ghost"
-              className="h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] border border-transparent hover:border-border/60 hover:bg-background/40"
-              onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
-              disabled={currentStep === 0 || isSubmitting}
-            >
-              <ArrowLeft className="w-3.5 h-3.5 mr-2" /> Abort Phase
-            </Button>
-
-            <Button
-              className="h-14 rounded-2xl px-12 font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 group"
-              onClick={handleNext}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <div className="h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2" />
-              ) : currentStep === sections.length - 1 ? (
-                <Rocket className="w-3.5 h-3.5 mr-2 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
-              ) : (
-                <ArrowRight className="w-3.5 h-3.5 mr-2 group-hover:translate-x-1 transition-transform" />
-              )}
-              {isSubmitting ? "Interfacing..." : currentStep === sections.length - 1 ? "Initialize Publication" : "Next Phase"}
-            </Button>
-          </CardFooter>
-        </Card>
+    <div className="min-h-screen pt-16 sm:pt-24 pb-20 sm:pb-16 bg-slate-50 dark:bg-[#0B1120]">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[10%] w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[120px] animate-pulse-soft" />
+        <div className="absolute bottom-[5%] right-[-5%] w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] animate-float" />
       </div>
 
+      <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6">
+
+        {/* Page Header */}
+        <div className="mb-8 mt-6">
+          <button
+            onClick={() => navigate('/experiences')}
+            className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors mb-6 group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Experiences
+          </button>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+            Share Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400">Trajectory</span>
+          </h1>
+          <p className="mt-3 text-slate-500 dark:text-slate-400 text-base sm:text-lg max-w-xl font-medium leading-relaxed">
+            "Your insights bridge the gap between ambition and achievement for thousands."
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+
+          {/* ─── SECTION 1: Context ─────────────────────────────── */}
+          <FormSection icon={<Building className="w-5 h-5" />} title="Context" subtitle="Basic information about the opportunity">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <FieldGroup label="Company" required error={errors.company}>
+                <InputField
+                  icon={<Building className="w-4 h-4" />}
+                  placeholder="e.g. Google, Microsoft"
+                  value={formData.company}
+                  onChange={v => setFormData(f => ({ ...f, company: v }))}
+                  hasError={!!errors.company}
+                  className="input-premium h-12"
+                />
+              </FieldGroup>
+              <FieldGroup label="Role" required error={errors.role}>
+                <InputField
+                  icon={<User className="w-4 h-4" />}
+                  placeholder="e.g. SDE-1, UX Designer"
+                  value={formData.role}
+                  onChange={v => setFormData(f => ({ ...f, role: v }))}
+                  hasError={!!errors.role}
+                  className="input-premium h-12"
+                />
+              </FieldGroup>
+              <FieldGroup label="Location" required error={errors.location}>
+                <InputField
+                  icon={<MapPin className="w-4 h-4" />}
+                  placeholder="City, State"
+                  value={formData.location}
+                  onChange={v => setFormData(f => ({ ...f, location: v }))}
+                  hasError={!!errors.location}
+                  className="input-premium h-12"
+                />
+              </FieldGroup>
+              <FieldGroup label="Interview Date" required error={errors.date}>
+                <InputField
+                  icon={<Calendar className="w-4 h-4" />}
+                  placeholder=""
+                  type="date"
+                  value={formData.date}
+                  onChange={v => setFormData(f => ({ ...f, date: v }))}
+                  hasError={!!errors.date}
+                  className="input-premium h-12"
+                />
+              </FieldGroup>
+            </div>
+
+            <FieldGroup label="Context Type" required>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {experienceTypes.map(t => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setFormData(f => ({ ...f, type: t.value }))}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-bold border transition-all duration-300 chip-premium ${
+                      formData.type === t.value ? 'selected' : ''
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </FieldGroup>
+          </FormSection>
+
+          <FormSection icon={<Layers className="w-5 h-5" />} title="Selection Process" subtitle="Document your interview stages">
+            <div className="space-y-6">
+              <div className="flex justify-between items-end border-b border-slate-100 dark:border-white/5 pb-2">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Available Rounds</span>
+                <span className="text-[10px] font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md leading-none">{formData.selection_rounds.length} Selected</span>
+              </div>
+              <div className="flex flex-wrap gap-2" data-error={!!errors.selection_rounds ? 'true' : undefined}>
+                {roundOptions.map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => handleRoundToggle(r)}
+                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold border transition-all duration-300 chip-premium ${
+                      formData.selection_rounds.includes(r) ? 'selected !bg-blue-600' : 'bg-slate-100 dark:bg-white/5 border-transparent'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              {errors.selection_rounds && <p className="text-[11px] text-red-500 font-medium pt-0.5">{errors.selection_rounds}</p>}
+            </div>
+
+            {/* Draggable Rounds with Q&A */}
+            {formData.selection_rounds.length > 0 && (
+              <div className="mt-12 space-y-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                    Workflow Sequence
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-blue-600 font-black text-[10px] uppercase tracking-widest">
+                    <GripVertical className="w-3.5 h-3.5" /> Reorder
+                  </div>
+                </div>
+
+                <DragDropContext onDragEnd={onDragEnd}>
+                  <Droppable droppableId="rounds-droppable">
+                    {provided => (
+                      <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-6">
+                        {formData.selection_rounds.map((round, idx) => (
+                          <Draggable key={round} draggableId={round} index={idx}>
+                            {prov => (
+                              <div
+                                ref={prov.innerRef}
+                                {...prov.draggableProps}
+                                className="glass-card-premium overflow-hidden border-glow-blue rounded-2xl shadow-xl relative"
+                              >
+                                {/* Round header */}
+                                <div className="p-6 pb-4">
+                                  <div className="mb-2">
+                                    <span className="bg-[#1E56FF] text-white text-[9px] font-black px-3.5 py-1.5 rounded-md uppercase tracking-tighter shadow-lg shadow-blue-500/20">Step {String(idx + 1).padStart(2, '0')}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between group/header">
+                                    <h4 className="text-2xl font-black text-[#0F172A] dark:text-white tracking-tight">{round}</h4>
+                                    <div {...prov.dragHandleProps} className="p-2 text-slate-300 hover:text-[#1E56FF] transition-colors cursor-grab active:cursor-grabbing">
+                                      <div className="grid grid-cols-2 gap-1 p-0.5 opacity-50 group-hover/header:opacity-100 transition-opacity">
+                                        {[...Array(6)].map((_, k) => (
+                                          <div key={k} className="w-1.5 h-1.5 rounded-full bg-current" />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="mt-2 flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-2">
+                                     <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Question Bank & Logic</span>
+                                     <button
+                                        type="button"
+                                        onClick={() => setExpandedRounds(p => p.includes(round) ? p.filter(r => r !== round) : [...p, round])}
+                                        className="p-1 rounded-lg text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all transform active:scale-95"
+                                      >
+                                        <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${expandedRounds.includes(round) ? 'rotate-180' : ''}`} />
+                                      </button>
+                                  </div>
+                                </div>
+
+                                {errors[`round_${round}`] && (
+                                  <p className="px-8 pb-4 text-[11px] text-red-500 font-medium">{errors[`round_${round}`]}</p>
+                                )}
+
+                                {/* Expanded Q&A */}
+                                <AnimatePresence>
+                                  {expandedRounds.includes(round) && (
+                                    <motion.div
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={{ duration: 0.22 }}
+                                      className="overflow-hidden"
+                                      data-round={round}
+                                    >
+                                      <div className="px-4 pb-6 pt-2 space-y-4">
+                                        <div className="space-y-0">
+                                          {formData.rounds_data[round]?.map((qa, i) => (
+                                            <React.Fragment key={i}>
+                                              {i > 0 && <div className="border-t border-slate-200 dark:border-white/10 my-6 mx-1" />}
+                                              <div className="relative group pl-0 py-2">
+                                              <div className="flex items-start gap-4">
+                                                <div className="flex-1 space-y-6">
+                                                  <div className="space-y-1">
+                                                    <textarea
+                                                      placeholder="Interview Approach / Primary Goal..."
+                                                      rows={1}
+                                                      value={qa.question}
+                                                      onChange={e => updateRoundQA(round, i, 'question', e.target.value)}
+                                                      className={`w-full px-0 py-1 text-[16px] font-black bg-transparent border-none outline-none ring-0 focus:ring-0 resize-none min-h-[32px] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 leading-snug ${
+                                                        errors[`${round}_q_${i}`] ? 'text-red-500' : 'text-[#0F172A] dark:text-slate-100'
+                                                      }`}
+                                                      onInput={(e) => {
+                                                        const target = e.target as HTMLTextAreaElement;
+                                                        target.style.height = 'auto';
+                                                        target.style.height = target.scrollHeight + 'px';
+                                                      }}
+                                                    />
+                                                    {errors[`${round}_q_${i}`] && (
+                                                      <p className="text-[10px] text-red-500 font-medium">{errors[`${round}_q_${i}`]}</p>
+                                                    )}
+                                                  </div>
+                                                  <textarea
+                                                    placeholder="Share your thoughts"
+                                                    rows={1}
+                                                    value={qa.answer}
+                                                    onChange={e => updateRoundQA(round, i, 'answer', e.target.value)}
+                                                    className="w-full px-0 py-1 text-[15px] bg-transparent border-none outline-none ring-0 focus:ring-0 resize-none min-h-[24px] transition-all text-slate-500 dark:text-slate-400 placeholder:text-slate-300 dark:placeholder:text-slate-700 leading-relaxed font-semibold animate-none"
+                                                    onInput={(e) => {
+                                                      const target = e.target as HTMLTextAreaElement;
+                                                      target.style.height = 'auto';
+                                                      target.style.height = target.scrollHeight + 'px';
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        if (i === (formData.rounds_data[round]?.length || 0) - 1) {
+                                                          addQuestion(round);
+                                                          setTimeout(() => {
+                                                            const containers = document.querySelectorAll(`[data-round="${round}"] textarea[placeholder="Interview Approach / Primary Goal..."]`);
+                                                            (containers[containers.length - 1] as HTMLElement)?.focus();
+                                                          }, 50);
+                                                        }
+                                                      }
+                                                    }}
+                                                  />
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => removeRoundQA(round, i)}
+                                                  className="mt-1 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                                >
+                                                  <Trash2 className="w-4.5 h-4.5" />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          </React.Fragment>
+                                          ))}
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => addQuestion(round)}
+                                          className="w-full py-3 rounded-2xl text-slate-500 dark:text-white/20 text-[10px] font-black uppercase tracking-[0.1em] hover:text-[#1E56FF] transition-all flex items-center justify-center gap-2 group"
+                                        >
+                                          <div className="w-6 h-6 rounded-full bg-slate-400 dark:bg-white/10 text-white flex items-center justify-center group-hover:bg-[#1E56FF] group-hover:scale-110 transition-all">
+                                            <Plus className="w-4 h-4 font-black" />
+                                          </div>
+                                          ADD Q&A MODULE
+                                        </button>
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              </div>
+            )}
+          </FormSection>
+
+          {/* ─── SECTION 3: Overall Summary ─────────────────────── */}
+          <FormSection icon={<FileText className="w-5 h-5" />} title="Overall Summary" subtitle="Your final reflection and key takeaways">
+            <FieldGroup label="Overall Trajectory Summary" required error={errors.overall_experience}>
+              <textarea
+                data-error={!!errors.overall_experience ? 'true' : undefined}
+                rows={5}
+                placeholder="Share your overall experience, how you felt, what you learned, and any advice for future candidates..."
+                value={formData.overall_experience}
+                onChange={e => setFormData(f => ({ ...f, overall_experience: e.target.value }))}
+                className={`w-full px-4 py-3 text-base rounded-xl outline-none transition-all duration-300 ${
+                  errors.overall_experience
+                    ? 'border-red-400 focus:border-red-500 border'
+                    : 'input-premium focus:border-blue-400'
+                }`}
+              />
+            </FieldGroup>
+          </FormSection>
+
+          {/* ─── SUBMIT ──────────────────────────────────────────── */}
+          <div className="pt-2 pb-8">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-300 flex items-center justify-center gap-2 group ring-1 ring-white/10"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <Rocket className="w-4 h-4 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+                  Publish Experience
+                </>
+              )}
+            </button>
+            <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-3">
+              By publishing, you confirm this experience is genuine and intended to help the community.
+            </p>
+          </div>
+        </form>
+      </div>
+
+      {/* ─── SUCCESS OVERLAY ─────────────────────────────────────── */}
       <AnimatePresence>
-        {showSuccessAnimation && (
+        {showSuccess && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-card w-full max-w-sm rounded-[40px] p-12 text-center border border-border shadow-2xl space-y-6"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="glass-card-premium w-full max-w-sm p-10 text-center border-glow-blue space-y-6"
             >
-              <div className="h-20 w-20 bg-primary/10 text-primary rounded-[28px] flex items-center justify-center mx-auto shadow-lg shadow-primary/5">
-                <Sparkles className="w-10 h-10 animate-pulse" />
+              <div className="w-14 h-14 bg-blue-500/10 rounded-xl flex items-center justify-center mx-auto">
+                <CheckCircle className="w-7 h-7 text-blue-500" />
               </div>
-              <div className="space-y-2">
-                <h2 className="text-3xl font-black italic">Publication <span className="text-primary italic">Live</span></h2>
-                <p className="text-sm text-muted-foreground font-medium">Trajectory successfully archived in the repository.</p>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  Published <span className="text-blue-500">Live</span>
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Your experience has been shared with the community.
+                </p>
               </div>
-              <div className="flex items-center justify-center gap-3 py-4">
-                <div className="h-10 w-10 rounded-xl bg-yellow-500/10 text-yellow-500 flex items-center justify-center font-black">🪙</div>
-                <div className="text-left font-black tracking-tight leading-none">
-                  <p className="text-2xl italic text-yellow-500">+50</p>
-                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Reputation Credits</p>
+              <div className="flex items-center justify-center gap-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl py-3 px-5">
+                <span className="text-xl">🪙</span>
+                <div className="text-left">
+                  <p className="text-lg font-bold text-yellow-500 leading-tight">+50</p>
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Reputation Credits</p>
                 </div>
               </div>
               <LoaderDots />
@@ -643,14 +554,103 @@ export default function ShareExperiencePage(): React.ReactNode {
   );
 }
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function FormSection({
+  icon,
+  title,
+  subtitle,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="glass-card-premium overflow-hidden rounded-2xl">
+      {/* Section header */}
+      <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center gap-4">
+        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 shrink-0 border border-blue-500/20 shadow-lg shadow-blue-500/5">
+          {icon}
+        </div>
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{subtitle}</p>
+        </div>
+      </div>
+      <div className="p-5 md:p-6 space-y-5">{children}</div>
+    </div>
+  );
+}
+
+function FieldGroup({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+        {label} {required && <span className="text-blue-500">*</span>}
+      </label>
+      {children}
+      {error && <p className="text-[11px] text-red-500 font-medium pt-0.5">{error}</p>}
+    </div>
+  );
+}
+
+function InputField({
+  icon,
+  placeholder,
+  value,
+  onChange,
+  type = 'text',
+  hasError,
+  className = '',
+}: {
+  icon: React.ReactNode;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  hasError?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={`relative ${className}`}>
+      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none">
+        {icon}
+      </span>
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className={`w-full h-full pl-11 pr-4 text-sm outline-none transition-all duration-300 ${
+          hasError
+            ? 'border-red-400 focus:border-red-500 border rounded-xl'
+            : 'input-premium'
+        }`}
+      />
+    </div>
+  );
+}
+
 const LoaderDots = () => (
-  <div className="flex justify-center gap-1">
+  <div className="flex justify-center gap-1.5">
     {[0, 1, 2].map(i => (
       <motion.div
         key={i}
         animate={{ opacity: [0.2, 1, 0.2] }}
         transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-        className="h-1.5 w-1.5 rounded-full bg-primary"
+        className="h-1.5 w-1.5 rounded-full bg-blue-500"
       />
     ))}
   </div>

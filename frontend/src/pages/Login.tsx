@@ -63,12 +63,15 @@ const Login = () => {
     window.location.href = `${backendUrl}/api/auth/social/${provider}`;
   };
 
+
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 bg-[#f8fafc] dark:bg-[#030014] flex flex-col items-center justify-center">
       <div className="w-full max-w-[440px] bg-white dark:bg-slate-900 rounded-[28px] p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Welcome back</h1>
-          <p className="text-[15px] text-slate-500 dark:text-slate-400">Enter your details to sign in to your account</p>
+        <div className="relative mb-8 pt-2">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Welcome back</h1>
+            <p className="text-[15px] text-slate-500 dark:text-slate-400">Enter your details to sign in to your account</p>
+          </div>
         </div>
 
         {/* Social Connect */}

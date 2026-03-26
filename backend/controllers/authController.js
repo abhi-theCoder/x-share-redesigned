@@ -38,8 +38,8 @@ async function registerUser(req, res) {
       password: hashedPassword,
       role,
       points: 50,
-      // Conditionally add company and location if the role is 'senior'
-      ...(role === 'senior' && { company, location }),
+      // Conditionally add company and location if the role is 'senior' or 'working professional'
+      ...((role === 'senior' || role === 'working professional') && { company, location }),
     };
 
     // Insert the new user into the database
@@ -53,7 +53,14 @@ async function registerUser(req, res) {
       throw insertError;
     }
 
-    res.status(201).json({ message: 'User registered successfully.', userId: insertedData.id });
+    // Generate a JWT token for immediate login after registration
+    const token = jwt.sign({ id: insertedData.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.status(201).json({
+      message: 'User registered successfully.',
+      token,
+      userId: insertedData.id
+    });
   } catch (error) {
     console.error('Error registering user:', error);
     res.status(500).json({ message: 'Internal server error.' });
@@ -142,25 +149,38 @@ async function handleSocialCallback(req, res) {
   // Pure Backend: Server a page to extract the hash/fragment and send it back to the server
   res.send(`
     <html>
-      <body style="background: #030014; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+      <body style="background: #030014; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; flex-direction: column;">
         <div style="text-align: center;">
           <h2>Authenticating...</h2>
           <p>Please wait while we finalize your login.</p>
+          <div id="error-message" style="color: #ef4444; margin-top: 1rem; display: none;"></div>
         </div>
         <script>
-          const hash = window.location.hash;
-          if (hash) {
-            const params = new URLSearchParams(hash.substring(1));
-            const accessToken = params.get('access_token');
-            if (accessToken) {
-              window.location.href = '/api/auth/social/process-token?access_token=' + accessToken;
+          setTimeout(() => {
+            const hash = window.location.hash;
+            if (hash && hash.substring(1)) {
+              // Parse the implicit grant hash parameters
+              const params = new URLSearchParams(hash.substring(1));
+              const accessToken = params.get('access_token');
+              
+              if (accessToken) {
+                // Redirect to the actual process-token backend endpoint
+                window.location.replace('/api/auth/social/process-token?access_token=' + encodeURIComponent(accessToken));
+              } else {
+                document.getElementById('error-message').innerText = 'Authentication failed: No access token found in URL hash.';
+                document.getElementById('error-message').style.display = 'block';
+              }
             } else {
-              document.body.innerHTML = 'Authentication tokens not found in URL.';
+              // Check for code if using PKCE (though standard Supabase uses implicit by default)
+              const searchParams = new URLSearchParams(window.location.search);
+              if (searchParams.has('error_description')) {
+                 document.getElementById('error-message').innerText = 'Authentication error: ' + searchParams.get('error_description');
+              } else {
+                 document.getElementById('error-message').innerText = 'Authentication failed: No response hash found from provider.';
+              }
+              document.getElementById('error-message').style.display = 'block';
             }
-          } else {
-            // Check for code if using PKCE, but construct manual URL above uses implicit
-            document.body.innerHTML = 'Authentication failed. No response found.';
-          }
+          }, 500); // 500ms delay to ensure browser parses hash properly
         </script>
       </body>
     </html>

@@ -1,6 +1,7 @@
+const dotenv = require('dotenv');
+dotenv.config();
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth.js');
 const experienceRoutes = require('./routes/experience.js');
 const profileRoutes = require('./routes/profile.js');
@@ -15,9 +16,6 @@ const adminExperienceRoutes = require('./routes/admin/adminExperienceRoutes.js')
 const adminJobRoutes = require('./routes/admin/adminJobRoutes.js');
 const adminResourceRoutes = require("./routes/admin/adminResourceRoutes.js");
 // const aiRoutes = require("./routes/aiRoutes.js");
-
-// Load environment variables from .env file
-dotenv.config();
 
 const app = express();
 

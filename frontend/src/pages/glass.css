@@ -1,98 +1,115 @@
-body,
-.font-sans {
+/* Premium Glassmorphism & Professional UI Tokens */
+
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: rgba(31, 38, 135, 0.1);
+  --premium-blue: #2D6BFF;
+  --premium-cyan: #00F0FF;
+  --premium-purple: #9D4EDD;
+}
+
+.dark {
+  --glass-bg: rgba(17, 24, 39, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: rgba(0, 0, 0, 0.3);
+}
+
+body, .font-sans {
   font-family: 'Inter', 'Manrope', 'Segoe UI', Arial, sans-serif;
 }
 
-.glass-card-pro {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.1);
-  transition: box-shadow 0.25s ease-in-out;
+/* Premium Card V2 */
+.glass-card-premium {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 var(--glass-shadow);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glass-input-pro {
-  background: #fbfbfd;
-  border: 1.5px solid #dde0ea;
-  color: #1f2937;
-  font-size: 1rem;
-  transition: border-color 0.25s ease;
+.glass-card-premium:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 var(--glass-shadow);
 }
 
-.glass-input-pro:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 6px #3b82f6aa;
+/* Glowing Border System */
+.border-glow-blue {
+  border: 1px solid rgba(45, 107, 255, 0.3);
+  box-shadow: 0 0 15px rgba(45, 107, 255, 0.1);
+}
+
+.border-glow-cyan {
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.05);
+}
+
+/* Professional Input */
+.input-premium {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  color: inherit;
+}
+
+.input-premium:focus {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--premium-blue);
+  box-shadow: 0 0 0 4px rgba(45, 107, 255, 0.15);
   outline: none;
 }
 
-.glass-chip-pro {
+/* Interactive Chip */
+.chip-premium {
+  padding: 6px 16px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.2s ease;
   cursor: pointer;
-  padding: 0.35rem 1rem;
-  border-radius: 9999px;
-  font-weight: 600;
-  background: #f9fafb;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-.glass-chip-pro.selected-pro {
-  background: linear-gradient(
-    90deg,
-    #ff9933 0%,
-    #ffffff 50%,
-    #138808 100%
-  );
+.chip-premium:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.chip-premium.selected {
+  background: var(--premium-blue);
   color: white;
-  border-color: #138808;
-  font-weight: 700;
-  box-shadow: 0 0 8px 1px rgba(19, 136, 8, 0.6);
+  border-color: var(--premium-blue);
+  box-shadow: 0 4px 15px rgba(45, 107, 255, 0.3);
 }
 
-.glass-subinput-pro {
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
+/* Utility Animations */
+@keyframes float-premium {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-.glass-action-pro {
-  background: #f3f4f6;
-  color: #2563eb;
-  border-radius: 0.375rem;
-  border: 1px solid #93c5fd;
-  font-weight: 600;
-  padding: 7px 18px;
-  font-size: 1rem;
-  transition: background-color 0.2s ease;
-  cursor: pointer;
+.animate-float-premium {
+  animation: float-premium 6s ease-in-out infinite;
 }
 
-.glass-action-pro:hover {
-  background: #bfdbfe;
+.text-gradient-premium {
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.glass-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
+@media (min-width: 768px) {
+  .md\:p-6 {
+    padding: 0.5rem !important;
+  }
 }
 
-.glass-desc {
-  color: #4b5563;
-}
-
-.pro-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #172554;
-}
-  
-.tricolor-gradient {
-  background: linear-gradient(
-    90deg,
-    #ff9933 0%,
-    #ffffff 50%,
-    #138808 100%
-  );
-  transition: width 0.3s cubic-bezier(0.65, 0.05, 0.36, 1);
+.pl-6 {
+  padding-left: 1rem !important;
 }

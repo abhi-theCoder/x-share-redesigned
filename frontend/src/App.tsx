@@ -75,7 +75,10 @@ function App() {
     projects: [],
     certifications: [],
     achievements: [],
-    interests: "Coding, Travel"
+    interests: "Coding, Travel",
+    languages: "English, Hindi",
+    references: "Available on request",
+    custom: {}
   };
 
   const sectionOrder = ["summary", "experience", "education", "skills", "interests"];

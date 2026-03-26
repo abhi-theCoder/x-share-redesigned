@@ -81,11 +81,21 @@ const SignUp: React.FC = () => {
       });
 
       console.log('Registration successful:', response.data);
-      toast.success("Account Created!", {
-        description: "Registration successful. Please log in.",
-      });
+      const { token, userId } = response.data;
 
-      navigate('/login');
+      if (token && userId) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('userId', userId);
+        toast.success("Account Created!", {
+          description: "Registration successful. Redirecting to your profile...",
+        });
+        navigate('/profile');
+      } else {
+        toast.success("Account Created!", {
+          description: "Registration successful. Please log in.",
+        });
+        navigate('/login');
+      }
     } catch (error: any) {
       console.error("API Registration failed.", error);
       const msg = error.response?.data?.message || 'Registration failed. Please try again.';
@@ -103,12 +113,15 @@ const SignUp: React.FC = () => {
     window.location.href = `${backendUrl}/api/auth/social/${provider}`;
   };
 
+
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 bg-[#f8fafc] dark:bg-[#030014] flex flex-col items-center justify-center">
       <div className="w-full max-w-[500px] bg-white dark:bg-slate-900 rounded-[28px] p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Create an account</h1>
-          <p className="text-[15px] text-slate-500 dark:text-slate-400">Enter your details to get started with Xshare</p>
+        <div className="relative mb-8 pt-2">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Create an account</h1>
+            <p className="text-[15px] text-slate-500 dark:text-slate-400">Enter your details to get started with Xshare</p>
+          </div>
         </div>
 
         {/* Role Selector */}

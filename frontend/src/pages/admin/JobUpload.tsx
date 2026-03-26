@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+
 import axios from "../../api";
 import {
   Briefcase,
@@ -10,6 +10,8 @@ import {
   User,
   DollarSign,
   FileText,
+  Link,
+  X,
 } from "lucide-react";
 
 export interface JobListing {
@@ -29,7 +31,14 @@ export interface JobListing {
   createdAt?: string;
 }
 
-const JobUpload: React.FC = () => {
+interface JobUploadProps {
+  open?: boolean;
+  onClose?: () => void;
+  onAddJob?: () => void;
+}
+
+const JobUpload: React.FC<JobUploadProps> = ({ open, onClose, onAddJob }) => {
+  if (open === false) return null;
   const [formData, setFormData] = useState({
     title: "",
     company: "",
@@ -112,11 +121,17 @@ const JobUpload: React.FC = () => {
       });
     } finally {
       setLoading(false);
+      if (onAddJob) onAddJob();
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white border border-gray-200 rounded-xl shadow p-6 mt-6">
+    <div className="max-w-3xl mx-auto bg-white border border-gray-200 rounded-xl shadow p-6 mt-6 relative">
+      {onClose && (
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+          <X className="w-5 h-5" />
+        </button>
+      )}
       <div className="flex items-center gap-3 mb-6">
         <Briefcase className="w-8 h-8 text-blue-600" />
         <div>

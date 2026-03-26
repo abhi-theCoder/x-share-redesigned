@@ -3,9 +3,7 @@ import axios from "../../api";
 import {
   FileText,
   Upload,
-  Star,
-  Plus,
-  Trash2,
+  X,
 } from "lucide-react";
 
 export interface Resource {
@@ -43,7 +41,14 @@ const formatOptions: Record<string, string[]> = {
   "Project Ideas": ["PDF", "DOCX", "ZIP", "Image(PNG, JPG, JPEG)"],
 };
 
-const ResourceUpload: React.FC = () => {
+interface ResourceUploadProps {
+  open?: boolean;
+  onClose?: () => void;
+  onAddResource?: () => void;
+}
+
+const ResourceUpload: React.FC<ResourceUploadProps> = ({ open, onClose, onAddResource }) => {
+  if (open === false) return null;
   const [formData, setFormData] = useState<Resource>({
     title: "",
     description: "",
@@ -128,13 +133,19 @@ const ResourceUpload: React.FC = () => {
       alert(err.response?.data?.message || "Upload failed");
     } finally {
       setIsSubmitting(false);
+      if (onAddResource) onAddResource();
     }
   };
 
   const formats = formatOptions[formData.type] || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 p-8">
+    <div className="min-h-screen bg-gray-50 text-gray-900 p-8 relative">
+      {onClose && (
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+          <X className="w-6 h-6" />
+        </button>
+      )}
       <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center">
