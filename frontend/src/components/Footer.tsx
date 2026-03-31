@@ -32,10 +32,10 @@ const Footer: React.FC = () => {
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center gap-3 mb-6 group">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-                <span className="text-xl italic">X</span>
+                <span className="text-xl">X</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-black text-foreground italic">Xshare</span>
+                <span className="text-xl font-black text-foreground">Xshare</span>
                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">Intel Layer</span>
               </div>
             </Link>

@@ -427,7 +427,7 @@ const JobPortal = () => {
                   </SheetTrigger>
                   <SheetContent side="left" className="w-[300px] border-none bg-card/95 backdrop-blur-3xl">
                     <SheetHeader className="mb-8">
-                      <SheetTitle className="text-xl font-black italic">Job Filters</SheetTitle>
+                      <SheetTitle className="text-xl font-black">Job Filters</SheetTitle>
                     </SheetHeader>
                     <FilterSidebar filters={filters} setFilters={setFilters} />
                   </SheetContent>
@@ -454,8 +454,8 @@ const JobPortal = () => {
                 <div className="h-20 w-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Search className="w-10 h-10 text-muted-foreground/50" />
                 </div>
-                <h3 className="text-2xl font-black italic mb-2">No matching intercept</h3>
-                <p className="text-muted-foreground font-medium italic mb-8">Try adjusting your filters or expansion terms.</p>
+                <h3 className="text-2xl font-black mb-2">No matching intercept</h3>
+                <p className="text-muted-foreground font-medium mb-8">Try adjusting your filters or expansion terms.</p>
                 <Button variant="outline" onClick={() => { setSearchTerm(''); setLocationTerm(''); }} className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[10px]">
                   Reset Registry
                 </Button>
@@ -474,7 +474,7 @@ const JobPortal = () => {
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
-                <div className="flex items-center gap-2 bg-card/40 backdrop-blur-md px-6 h-12 rounded-xl border border-border/40 font-black italic text-sm">
+                <div className="flex items-center gap-2 bg-card/40 backdrop-blur-md px-6 h-12 rounded-xl border border-border/40 font-black text-sm">
                   {page} <span className="opacity-30">/</span> {totalPages}
                 </div>
                 <Button

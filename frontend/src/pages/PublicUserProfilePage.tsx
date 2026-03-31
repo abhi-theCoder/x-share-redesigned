@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import {
-  MapPin, Building, Calendar, Trophy, Clock,
+  MapPin, Calendar, Trophy, Clock,
   MessageCircle, Bookmark,
-  Award, TrendingUp, Zap, Share2Info
+  Award, TrendingUp, Zap, Share2, Briefcase, Info, Plus, X
 } from 'lucide-react';
 import PublicActivityHeatmap from '../components/PublicActivityHeatmap';
 import axios from '../api';
@@ -18,12 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   Tabs,
   TabsContent,
@@ -121,6 +115,11 @@ const PublicUserProfilePage = () => {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // For component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     const fetchPublicProfile = async () => {
       try {
@@ -169,18 +168,18 @@ const PublicUserProfilePage = () => {
                 <div className="relative group">
                   <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <Avatar className="h-40 w-40 rounded-[48px] border-4 border-background shadow-2xl relative z-10">
-                    <AvatarFallback className="bg-primary/5 text-primary text-5xl font-black italic">
+                    <AvatarFallback className="bg-primary/5 text-primary text-5xl font-black">
                       {profileData.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-2 -right-2 h-10 w-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center font-black italic shadow-lg shadow-primary/20 border-2 border-background z-20">
+                  <div className="absolute -bottom-2 -right-2 h-10 w-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center font-black shadow-lg shadow-primary/20 border-2 border-background z-20">
                     {Math.floor(profileData.level.percentage / 10)}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-black italic tracking-tight">{profileData.name}</h1>
-                  <p className="text-primary font-bold italic uppercase tracking-widest text-xs">{profileData.role} <span className="text-muted-foreground opacity-40 not-italic">•</span> {profileData.company}</p>
+                  <h1 className="text-3xl font-black tracking-tight">{profileData.name}</h1>
+                  <p className="text-primary font-bold uppercase tracking-widest text-xs">{profileData.role} <span className="text-muted-foreground opacity-40 not-italic">•</span> {profileData.company}</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -201,11 +200,11 @@ const PublicUserProfilePage = () => {
                   <div className="grid gap-3">
                     <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/20 border border-border/10">
                       <div className="h-8 w-8 rounded-lg bg-background flex items-center justify-center text-blue-500"><MapPin className="w-4 h-4" /></div>
-                      <div className="space-y-0.5"><p className="text-[9px] font-black uppercase text-muted-foreground">Location</p><p className="text-xs font-bold italic">{profileData.location || "Undisclosed"}</p></div>
+                      <div className="space-y-0.5"><p className="text-[9px] font-black uppercase text-muted-foreground">Location</p><p className="text-xs font-bold">{profileData.location || "Undisclosed"}</p></div>
                     </div>
                     <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/20 border border-border/10">
                       <div className="h-8 w-8 rounded-lg bg-background flex items-center justify-center text-emerald-500"><Calendar className="w-4 h-4" /></div>
-                      <div className="space-y-0.5"><p className="text-[9px] font-black uppercase text-muted-foreground">Commenced</p><p className="text-xs font-bold italic">{formatDate(profileData.joined_date)}</p></div>
+                      <div className="space-y-0.5"><p className="text-[9px] font-black uppercase text-muted-foreground">Commenced</p><p className="text-xs font-bold">{formatDate(profileData.joined_date)}</p></div>
                     </div>
                   </div>
                 </div>
@@ -213,7 +212,7 @@ const PublicUserProfilePage = () => {
                 <div className="space-y-3">
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Intellectual Core</h3>
                   <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10">
-                    <p className="text-xs font-medium italic text-muted-foreground leading-relaxed">
+                    <p className="text-xs font-medium text-muted-foreground leading-relaxed">
                       "{profileData.bio || "No summary synchronized with this profile core."}"
                     </p>
                   </div>
@@ -228,11 +227,11 @@ const PublicUserProfilePage = () => {
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
-                  <span className="text-2xl font-black italic">{profileData.level.name}</span>
+                  <span className="text-2xl font-black">{profileData.level.name}</span>
                   <span className="text-xs font-bold text-primary">{profileData.level.percentage}%</span>
                 </div>
                 <Progress value={profileData.level.percentage} className="h-2 rounded-full border border-primary/10 bg-background" />
-                <p className="text-[10px] font-medium text-muted-foreground opacity-60 italic">{profileData.level.progressText}</p>
+                <p className="text-[10px] font-medium text-muted-foreground opacity-60">{profileData.level.progressText}</p>
               </div>
             </Card>
           </div>
@@ -246,7 +245,7 @@ const PublicUserProfilePage = () => {
                   <div className={`h-10 w-10 rounded-xl bg-muted/40 flex items-center justify-center mb-1`}>
                     <TrendingUp className="w-4 h-4 text-primary" />
                   </div>
-                  <p className="text-xl font-black italic">{stat.value}</p>
+                  <p className="text-xl font-black">{stat.value}</p>
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{stat.label}</p>
                 </Card>
               ))}
@@ -260,7 +259,7 @@ const PublicUserProfilePage = () => {
 
               <TabsContent value="activity">
                 <Card className="rounded-[40px] border-none bg-card/40 backdrop-blur-xl ring-1 ring-border/20 shadow-2xl shadow-black/5 p-8">
-                  <h3 className="text-xl font-black italic mb-8 px-2 flex items-center justify-between">
+                  <h3 className="text-xl font-black mb-8 px-2 flex items-center justify-between">
                     Recent Interfacing
                     <Clock className="w-4 h-4 opacity-30" />
                   </h3>
@@ -278,14 +277,14 @@ const PublicUserProfilePage = () => {
                             {activity.type === 'experience' ? <Briefcase className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
                           </div>
                           <div className="space-y-1">
-                            <p className="font-bold text-sm italic group-hover:text-primary transition-colors">{activity.title}</p>
-                            <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground italic opacity-60">
+                            <p className="font-bold text-sm group-hover:text-primary transition-colors">{activity.title}</p>
+                            <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground opacity-60">
                               <Clock className="w-3 h-3" /> {activity.timeAgo}
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="text-sm font-black text-primary italic">+{activity.points}</span>
+                          <span className="text-sm font-black text-primary">+{activity.points}</span>
                           <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest mt-1">Gained</p>
                         </div>
                       </motion.div>
@@ -304,7 +303,7 @@ const PublicUserProfilePage = () => {
                 <Card className="rounded-[40px] border-none bg-card/40 backdrop-blur-xl ring-1 ring-border/20 shadow-2xl shadow-black/5 p-8 pt-10">
                   <div className="flex items-center justify-between mb-8 px-2">
                     <div className="space-y-1">
-                      <h3 className="text-xl font-black italic">Contribution Intensity</h3>
+                      <h3 className="text-xl font-black">Contribution Intensity</h3>
                       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Yearly heatmap overlay</p>
                     </div>
                     <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center"><TrendingUp className="w-4 h-4" /></div>
@@ -316,7 +315,7 @@ const PublicUserProfilePage = () => {
                     <Info className="w-5 h-5 text-primary mt-1" />
                     <div>
                       <p className="text-xs font-black uppercase tracking-widest mb-1">Matrix Legend</p>
-                      <p className="text-[11px] text-muted-foreground font-medium italic leading-relaxed">Intensity correlates with number of experiences shared, questions resolved, and community feedback received.</p>
+                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">Intensity correlates with number of experiences shared, questions resolved, and community feedback received.</p>
                     </div>
                   </div>
                 </Card>
@@ -346,8 +345,8 @@ const PublicUserProfilePage = () => {
               <Card className="rounded-[40px] border-none bg-gradient-to-br from-primary/10 to-blue-500/10 backdrop-blur-xl p-8 flex flex-col justify-center items-center text-center space-y-4">
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Verified Community Status</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black italic">TOP 5%</span>
-                  <span className="text-xs font-bold text-primary italic">Global</span>
+                  <span className="text-4xl font-black">TOP 5%</span>
+                  <span className="text-xs font-bold text-primary">Global</span>
                 </div>
                 <Badge className="bg-background/80 text-primary border-none rounded-lg px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em]">Elite Peer Network</Badge>
               </Card>

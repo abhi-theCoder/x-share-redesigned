@@ -191,7 +191,7 @@ const ResumeBuilder = () => {
             <Badge variant="outline" className="px-4 py-1.5 rounded-full bg-primary/5 border-primary/20 text-primary uppercase font-black tracking-widest text-[9px]">
               <Rocket className="w-3.5 h-3.5 mr-2" /> Resume Protocol v2.0
             </Badge>
-            <h1 className="text-3xl font-black italic">Resume <span className="text-primary italic">Engine</span></h1>
+            <h1 className="text-3xl font-black">Resume <span className="text-primary">Engine</span></h1>
           </div>
 
           <div className="flex items-center gap-4">
@@ -240,8 +240,8 @@ const ResumeBuilder = () => {
               </DialogTrigger>
               <DialogContent className="rounded-[32px] border-none bg-card/90 backdrop-blur-xl p-8">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-black italic">Append Section</DialogTitle>
-                  <DialogDescription className="font-medium italic">Introduce new telemetry modules to your resume profile.</DialogDescription>
+                  <DialogTitle className="text-xl font-black">Append Section</DialogTitle>
+                  <DialogDescription className="font-medium">Introduce new telemetry modules to your resume profile.</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <Input
@@ -281,7 +281,7 @@ const ResumeBuilder = () => {
                   <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                     {allSections.find(s => s.id === activeSection)?.icon && React.createElement(allSections.find(s => s.id === activeSection)!.icon, { className: 'w-5 h-5' })}
                   </div>
-                  <h2 className="text-xl font-black italic uppercase tracking-wider">{allSections.find(s => s.id === activeSection)?.name}</h2>
+                  <h2 className="text-xl font-black uppercase tracking-wider">{allSections.find(s => s.id === activeSection)?.name}</h2>
                 </div>
                 <div className="flex lg:hidden items-center gap-2 overflow-x-auto scrollbar-none px-2 py-1 bg-muted/20 rounded-2xl border border-border/10">
                   {allSections.map(s => (
@@ -327,7 +327,7 @@ const ResumeBuilder = () => {
                             rows={10}
                             value={resumeData.summary}
                             onChange={e => setResumeData(p => ({ ...p, summary: e.target.value }))}
-                            className="rounded-[32px] p-6 bg-background/50 border-border/40 focus:ring-primary/20 text-sm italic font-medium leading-relaxed"
+                            className="rounded-[32px] p-6 bg-background/50 border-border/40 focus:ring-primary/20 text-sm font-medium leading-relaxed"
                             placeholder="Architect a compelling narrative of your professional trajectory..."
                           />
                         </div>
@@ -362,7 +362,7 @@ const ResumeBuilder = () => {
                               </div>
                               <div className="space-y-2">
                                 <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Impact Description</Label>
-                                <Textarea value={exp.description} onChange={e => updateItem('experience', exp.id, { description: e.target.value })} rows={4} className="rounded-2xl bg-background/50 border-border/40 text-xs italic font-medium" />
+                                <Textarea value={exp.description} onChange={e => updateItem('experience', exp.id, { description: e.target.value })} rows={4} className="rounded-2xl bg-background/50 border-border/40 text-xs font-medium" />
                               </div>
                             </Card>
                           ))}
@@ -413,7 +413,7 @@ const ResumeBuilder = () => {
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Intelligence Matrix (Separated by Commas)</Label>
                             <Textarea
                               rows={5}
-                              className="rounded-[28px] p-6 bg-background/50 border-border/40 focus:ring-primary/20 text-sm font-bold italic h-40"
+                              className="rounded-[28px] p-6 bg-background/50 border-border/40 focus:ring-primary/20 text-sm font-bold h-40"
                               placeholder="React, TypeScript, Node.js, System Design, Leadership..."
                               value={resumeData.skills.map(s => s.name).join(', ')}
                               onChange={e => {
@@ -424,7 +424,7 @@ const ResumeBuilder = () => {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {resumeData.skills.map((s, idx) => (
-                              <Badge key={idx} variant="secondary" className="px-4 py-1.5 rounded-xl border border-border/40 bg-background text-[10px] font-black uppercase tracking-widest italic text-primary">
+                              <Badge key={idx} variant="secondary" className="px-4 py-1.5 rounded-xl border border-border/40 bg-background text-[10px] font-black uppercase tracking-widest text-primary">
                                 {s.name}
                               </Badge>
                             ))}
@@ -453,7 +453,7 @@ const ResumeBuilder = () => {
                               </div>
                               <div className="space-y-2">
                                 <Label className="text-[9px] font-black uppercase text-muted-foreground ml-1">Intellectual Process</Label>
-                                <Textarea value={proj.description} onChange={e => updateItem('projects', proj.id, { description: e.target.value })} rows={3} className="rounded-xl bg-background/50 border-border/40 text-xs italic font-medium" />
+                                <Textarea value={proj.description} onChange={e => updateItem('projects', proj.id, { description: e.target.value })} rows={3} className="rounded-xl bg-background/50 border-border/40 text-xs font-medium" />
                               </div>
                             </Card>
                           ))}
@@ -470,7 +470,7 @@ const ResumeBuilder = () => {
                             rows={6}
                             value={(resumeData as any)[activeSection]}
                             onChange={e => setResumeData(p => ({ ...p, [activeSection]: e.target.value }))}
-                            className="rounded-[28px] p-6 bg-background/50 border-border/40 focus:ring-primary/20 text-sm font-medium italic"
+                            className="rounded-[28px] p-6 bg-background/50 border-border/40 focus:ring-primary/20 text-sm font-medium"
                             placeholder={`Synchronize your ${activeSection} data matrix...`}
                           />
                         </div>

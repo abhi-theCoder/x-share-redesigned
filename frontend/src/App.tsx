@@ -25,6 +25,7 @@ import AdminLayout from './components/AdminLayout';
 import AdminRoute from './components/adminRoute';
 import Unauthorized from './pages/admin/Unauthorized';
 import PublicUserProfilePage from './pages/PublicUserProfilePage';
+import BottomNav from './components/BottomNav';
 
 import ShootingStars from './components/ShootingStars';
 import { useTheme } from '@/components/theme-provider';
@@ -90,7 +91,7 @@ function App() {
         }`}>
         {theme === 'dark' && <ShootingStars />}
         <Header />
-        <main>
+        <main className="pb-20 lg:pb-0">
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Home />} />
@@ -133,6 +134,7 @@ function App() {
 
         </main>
         <Footer />
+        <BottomNav />
       </div>
     </Router>
   );

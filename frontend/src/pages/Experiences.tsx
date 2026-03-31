@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { Edit3, X, Calendar, PenTool, Bookmark } from 'lucide-react';
+import { Edit3, X, Calendar, PenTool, Bookmark, ThumbsUp, ThumbsDown, MessageCircle, Share2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -133,7 +133,7 @@ const Experiences: React.FC = () => {
 
       if (res.data) {
         setExperiences(prev => prev.map(exp =>
-          exp.id === id ? {
+          exp.id == id ? {
             ...exp,
             upvotes: res.data.upvotes,
             downvotes: res.data.downvotes,
@@ -222,7 +222,7 @@ const Experiences: React.FC = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 grayscale opacity-50">
             <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <p className="font-bold text-slate-400 italic">Synchronizing journeys...</p>
+            <p className="font-bold text-slate-400">Synchronizing journeys...</p>
           </div>
         ) : experiences.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -293,42 +293,36 @@ const Experiences: React.FC = () => {
 
                     {/* Bottom line of footer: Interactions & Tools */}
                     <div className="flex items-center justify-between w-full">
-
-                      {/* Left side: Thumbs Up, Thumbs Down, Comments */}
-                      <div className="flex items-center gap-4 text-slate-500 dark:text-[#64748B]">
-
-                        <div
+                      <div className="flex items-center gap-1 p-1 bg-slate-50/80 dark:bg-slate-950/50 backdrop-blur-sm rounded-[14px] border border-slate-200/50 dark:border-slate-800/50">
+                        <button
                           onClick={(e) => handleVote(e, exp.id, 'upvote')}
-                          className={`flex items-center gap-1.5 transition-colors cursor-pointer group ${exp.user_voted === 'upvote' ? 'text-blue-500 font-bold' : 'hover:text-slate-700 dark:hover:text-white'}`}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] transition-all ${exp.user_voted === 'upvote' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-white dark:hover:bg-slate-800 hover:text-blue-600'}`}
                         >
-                          <svg viewBox="0 0 24 24" fill={exp.user_voted === 'upvote' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" /></svg>
-                          <span className="text-[13px] font-medium">{exp.upvotes}</span>
-                        </div>
-
-                        <div
+                          <ThumbsUp className={`w-3.5 h-3.5 ${exp.user_voted === 'upvote' ? 'fill-current' : ''}`} />
+                          <span className="text-xs font-bold">{exp.upvotes}</span>
+                        </button>
+                        <button
                           onClick={(e) => handleVote(e, exp.id, 'downvote')}
-                          className={`flex items-center gap-1.5 transition-colors cursor-pointer group ${exp.user_voted === 'downvote' ? 'text-red-500 font-bold' : 'hover:text-slate-700 dark:hover:text-white'}`}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] transition-all ${exp.user_voted === 'downvote' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-slate-500 hover:bg-white dark:hover:bg-slate-800 hover:text-rose-500'}`}
                         >
-                          <svg viewBox="0 0 24 24" fill={exp.user_voted === 'downvote' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" className="w-4 h-4 group-hover:translate-y-0.5 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h3a2 2 0 012 2v7a2 2 0 01-2 2h-3" /></svg>
-                          <span className="text-[13px] font-medium">{exp.downvotes}</span>
-                        </div>
-
+                          <ThumbsDown className={`w-3.5 h-3.5 ${exp.user_voted === 'downvote' ? 'fill-current' : ''}`} />
+                          <span className="text-xs font-bold">{exp.downvotes}</span>
+                        </button>
+                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1" />
                         <Link
                           to={`/experiences/${exp.id}`}
                           onClick={(e) => handleCommentClick(e)}
-                          className="flex items-center gap-1.5 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer group"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] transition-all text-slate-500 hover:bg-white dark:hover:bg-slate-800 hover:text-blue-600"
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 group-hover:scale-110 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                          <span className="text-[13px] font-medium">{exp.comments_count || 0}</span>
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span className="text-xs font-bold">{exp.comments_count || 0}</span>
                         </Link>
-
                       </div>
 
-                      {/* Right side: Bookmark & Share */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={(e) => handleBookmark(e, exp.id, !!exp.isBookmarked)}
-                          className={`hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer ${exp.isBookmarked ? 'text-yellow-500' : 'text-slate-400 dark:text-[#64748B]'}`}
+                          className={`p-2 rounded-xl transition-all ${exp.isBookmarked ? 'text-yellow-500 bg-yellow-500/10' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-white'}`}
                         >
                           <Bookmark className={`w-4 h-4 ${exp.isBookmarked ? 'fill-current' : ''}`} />
                         </button>
@@ -339,12 +333,11 @@ const Experiences: React.FC = () => {
                             navigator.clipboard.writeText(`${window.location.origin}/experiences/${exp.id}`);
                             toast.success("Link copied!");
                           }}
-                          className="text-slate-400 dark:text-[#64748B] hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+                          className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-white rounded-xl transition-all"
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                          <Share2 className="w-4 h-4" />
                         </button>
                       </div>
-
                     </div>
 
                   </CardFooter>
@@ -357,8 +350,8 @@ const Experiences: React.FC = () => {
             <div className="h-20 w-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
               <PenTool className="w-10 h-10 text-slate-400" />
             </div>
-            <h3 className="text-2xl font-black italic mb-2">No journeys recorded yet</h3>
-            <p className="text-slate-500 font-medium italic mb-8">Be the first to share your professional story.</p>
+            <h3 className="text-2xl font-black mb-2">No journeys recorded yet</h3>
+            <p className="text-slate-500 font-medium mb-8">Be the first to share your professional story.</p>
             <Button onClick={() => setIsShareModalOpen(true)} className="rounded-xl h-12 px-8 font-black uppercase tracking-widest text-[10px] bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/20">
               Post Experience
             </Button>

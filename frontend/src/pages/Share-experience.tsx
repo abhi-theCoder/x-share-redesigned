@@ -336,7 +336,7 @@ export default function ShareExperiencePage(): React.ReactNode {
                                 className="glass-card-premium overflow-hidden border-glow-blue rounded-2xl shadow-xl relative"
                               >
                                 {/* Round header */}
-                                <div className="p-6 pb-4">
+                                <div className="px-4 py-6 pb-4">
                                   <div className="mb-2">
                                     <span className="bg-[#1E56FF] text-white text-[9px] font-black px-3.5 py-1.5 rounded-md uppercase tracking-tighter shadow-lg shadow-blue-500/20">Step {String(idx + 1).padStart(2, '0')}</span>
                                   </div>
@@ -352,7 +352,7 @@ export default function ShareExperiencePage(): React.ReactNode {
                                   </div>
                                   
                                   <div className="mt-2 flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-2">
-                                     <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Question Bank & Logic</span>
+                                     <span className="text-[11px] font-black text-slate-900 dark:text-slate-200 uppercase tracking-widest">Question Bank & Logic</span>
                                      <button
                                         type="button"
                                         onClick={() => setExpandedRounds(p => p.includes(round) ? p.filter(r => r !== round) : [...p, round])}
@@ -378,23 +378,24 @@ export default function ShareExperiencePage(): React.ReactNode {
                                       className="overflow-hidden"
                                       data-round={round}
                                     >
-                                      <div className="px-4 pb-6 pt-2 space-y-4">
+                                      <div className="px-3 sm:px-4 pb-6 pt-2 space-y-6">
                                         <div className="space-y-0">
                                           {formData.rounds_data[round]?.map((qa, i) => (
                                             <React.Fragment key={i}>
                                               {i > 0 && <div className="border-t border-slate-200 dark:border-white/10 my-6 mx-1" />}
                                               <div className="relative group pl-0 py-2">
                                               <div className="flex items-start gap-4">
-                                                <div className="flex-1 space-y-6">
+                                                <div className="flex-1 space-y-2">
                                                   <div className="space-y-1">
-                                                    <textarea
-                                                      placeholder="Interview Approach / Primary Goal..."
-                                                      rows={1}
-                                                      value={qa.question}
-                                                      onChange={e => updateRoundQA(round, i, 'question', e.target.value)}
-                                                      className={`w-full px-0 py-1 text-[16px] font-black bg-transparent border-none outline-none ring-0 focus:ring-0 resize-none min-h-[32px] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 leading-snug ${
-                                                        errors[`${round}_q_${i}`] ? 'text-red-500' : 'text-[#0F172A] dark:text-slate-100'
-                                                      }`}
+                                                    <label className="text-[10px] font-bold text-slate-900 dark:text-slate-300 uppercase tracking-wider pl-1">Target Question</label>
+                                                      <textarea
+                                                        placeholder="Interview Approach / Primary Goal..."
+                                                        rows={1}
+                                                        value={qa.question}
+                                                        onChange={e => updateRoundQA(round, i, 'question', e.target.value)}
+                                                        className={`w-full px-4 py-3 text-[16px] font-bold bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 resize-none overflow-hidden min-h-[64px] transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 leading-snug ${
+                                                          errors[`${round}_q_${i}`] ? 'border-red-500 text-red-500' : 'text-black dark:text-white'
+                                                        }`}
                                                       onInput={(e) => {
                                                         const target = e.target as HTMLTextAreaElement;
                                                         target.style.height = 'auto';
@@ -402,20 +403,22 @@ export default function ShareExperiencePage(): React.ReactNode {
                                                       }}
                                                     />
                                                     {errors[`${round}_q_${i}`] && (
-                                                      <p className="text-[10px] text-red-500 font-medium">{errors[`${round}_q_${i}`]}</p>
+                                                      <p className="text-[10px] text-red-500 font-medium pl-1">{errors[`${round}_q_${i}`]}</p>
                                                     )}
                                                   </div>
-                                                  <textarea
-                                                    placeholder="Share your thoughts"
-                                                    rows={1}
-                                                    value={qa.answer}
-                                                    onChange={e => updateRoundQA(round, i, 'answer', e.target.value)}
-                                                    className="w-full px-0 py-1 text-[15px] bg-transparent border-none outline-none ring-0 focus:ring-0 resize-none min-h-[24px] transition-all text-slate-500 dark:text-slate-400 placeholder:text-slate-300 dark:placeholder:text-slate-700 leading-relaxed font-semibold animate-none"
-                                                    onInput={(e) => {
-                                                      const target = e.target as HTMLTextAreaElement;
-                                                      target.style.height = 'auto';
-                                                      target.style.height = target.scrollHeight + 'px';
-                                                    }}
+                                                  <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-slate-900 dark:text-slate-400 uppercase tracking-wider pl-1">Insights / Tips</label>
+                                                    <textarea
+                                                      placeholder="Share your thoughts"
+                                                      rows={3}
+                                                      value={qa.answer}
+                                                      onChange={e => updateRoundQA(round, i, 'answer', e.target.value)}
+                                                      className="w-full px-4 py-3 text-[15px] bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 resize-none overflow-hidden min-h-[140px] transition-all text-black dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-700 leading-relaxed font-semibold animate-none"
+                                                      onInput={(e) => {
+                                                        const target = e.target as HTMLTextAreaElement;
+                                                        target.style.height = 'auto';
+                                                        target.style.height = target.scrollHeight + 'px';
+                                                      }}
                                                     onKeyDown={(e) => {
                                                       if (e.key === 'Enter' && !e.shiftKey) {
                                                         e.preventDefault();
@@ -429,6 +432,7 @@ export default function ShareExperiencePage(): React.ReactNode {
                                                       }
                                                     }}
                                                   />
+                                                  </div>
                                                 </div>
                                                 <button
                                                   type="button"
@@ -570,7 +574,7 @@ function FormSection({
   return (
     <div className="glass-card-premium overflow-hidden rounded-2xl">
       {/* Section header */}
-      <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center gap-4">
+      <div className="px-4 sm:px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center gap-4">
         <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 shrink-0 border border-blue-500/20 shadow-lg shadow-blue-500/5">
           {icon}
         </div>
@@ -579,7 +583,7 @@ function FormSection({
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{subtitle}</p>
         </div>
       </div>
-      <div className="p-5 md:p-6 space-y-5">{children}</div>
+      <div className="py-5 px-1 sm:px-4 space-y-5">{children}</div>
     </div>
   );
 }

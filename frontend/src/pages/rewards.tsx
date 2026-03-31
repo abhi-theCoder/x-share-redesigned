@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Star, CheckCircle, Award, Package, History, ArrowRight, Zap, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api';
@@ -12,9 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Images
 import headphone from '../images/headphone.png';
@@ -152,21 +151,21 @@ const Rewards: React.FC = () => {
                                     <Badge className="bg-primary/20 text-primary border-none rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest mb-2">
                                         Asset Registry: Tier 1
                                     </Badge>
-                                    <h1 className="text-4xl md:text-6xl font-black tracking-tight">Redeem <span className="text-primary italic">Excellence</span></h1>
+                                    <h1 className="text-4xl md:text-6xl font-black tracking-tight">Redeem <span className="text-primary">Excellence</span></h1>
                                     <p className="text-muted-foreground font-medium max-w-md">Transform your community contributions into tangible professional assets.</p>
                                 </div>
                                 <div className="flex items-center gap-12">
                                     <div className="text-center md:text-right">
                                         <div className="flex items-center justify-center md:justify-end gap-3 mb-2">
                                             <Star className="w-10 h-10 text-primary fill-primary/10" />
-                                            <span className="text-6xl font-black tracking-tighter italic">{user.points}</span>
+                                            <span className="text-6xl font-black tracking-tighter">{user.points}</span>
                                         </div>
                                         <p className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground">Accumulated Energy</p>
                                     </div>
                                     <Separator orientation="vertical" className="h-20 hidden md:block" />
                                     <div className="text-center md:text-left">
                                         <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                                            <span className="text-4xl font-black tracking-tighter italic text-emerald-500">₹{user.balance.toFixed(2)}</span>
+                                            <span className="text-4xl font-black tracking-tighter text-emerald-500">₹{user.balance.toFixed(2)}</span>
                                         </div>
                                         <p className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground">Account Balance</p>
                                     </div>
@@ -208,8 +207,8 @@ const Rewards: React.FC = () => {
                                             </Badge>
                                         </div>
                                         <CardHeader className="p-8 pb-4">
-                                            <CardTitle className="text-xl font-black italic">{reward.name}</CardTitle>
-                                            <CardDescription className="text-sm font-medium leading-relaxed italic opacity-70">"{reward.description}"</CardDescription>
+                                            <CardTitle className="text-xl font-black">{reward.name}</CardTitle>
+                                            <CardDescription className="text-sm font-medium leading-relaxed opacity-70">"{reward.description}"</CardDescription>
                                         </CardHeader>
                                         <CardFooter className="p-8 pt-0">
                                             <Button
@@ -243,7 +242,7 @@ const Rewards: React.FC = () => {
                                                     <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{entry.action}</p>
                                                     <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter opacity-70">{new Date(entry.date).toLocaleDateString()}</p>
                                                 </div>
-                                                <div className={`text-sm font-black italic ${entry.type === 'earned' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                <div className={`text-sm font-black ${entry.type === 'earned' ? 'text-emerald-500' : 'text-red-500'}`}>
                                                     {entry.type === 'earned' ? '+' : ''}{entry.points}
                                                 </div>
                                             </div>
@@ -280,7 +279,7 @@ const Rewards: React.FC = () => {
                 <DialogContent className="sm:max-w-md rounded-[40px] border-border/60 bg-card/90 backdrop-blur-2xl">
                     <DialogHeader className="p-4">
                         <DialogTitle className="text-2xl font-black text-center mb-2">Redemption Matrix</DialogTitle>
-                        <DialogDescription className="text-center font-medium italic opacity-70">
+                        <DialogDescription className="text-center font-medium opacity-70">
                             Configure your asset acquisition via community energy.
                         </DialogDescription>
                     </DialogHeader>
@@ -306,10 +305,10 @@ const Rewards: React.FC = () => {
                                 <div className="flex items-center justify-center gap-4">
                                     <div className="flex items-center gap-2">
                                         <Star className="w-5 h-5 text-primary" />
-                                        <span className="text-2xl font-black italic">{selectedReward?.points}</span>
+                                        <span className="text-2xl font-black">{selectedReward?.points}</span>
                                     </div>
                                     <Separator orientation="vertical" className="h-6" />
-                                    <span className="text-2xl font-black italic text-emerald-500">₹{inrValue}</span>
+                                    <span className="text-2xl font-black text-emerald-500">₹{inrValue}</span>
                                 </div>
                             </div>
 
@@ -317,7 +316,7 @@ const Rewards: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between text-xs font-black uppercase tracking-widest text-muted-foreground">
                                         <span>Contribution Balance</span>
-                                        <span className="text-primary italic">{pointsContribution} XP</span>
+                                        <span className="text-primary">{pointsContribution} XP</span>
                                     </div>
                                     <Slider
                                         defaultValue={[pointsContribution]}
@@ -326,7 +325,7 @@ const Rewards: React.FC = () => {
                                         onValueChange={(vals: any[]) => setPointsContribution(vals[0])}
                                         className="py-4 cursor-pointer"
                                     />
-                                    <p className="text-[10px] font-medium text-center text-muted-foreground italic">Slide to optimize energy-to-fiat conversion.</p>
+                                    <p className="text-[10px] font-medium text-center text-muted-foreground">Slide to optimize energy-to-fiat conversion.</p>
                                 </div>
 
                                 <Card className="p-6 rounded-[32px] bg-zinc-950 text-white border-zinc-800 shadow-2xl relative overflow-hidden">
@@ -335,12 +334,12 @@ const Rewards: React.FC = () => {
                                         <p className="text-xs font-black uppercase tracking-widest opacity-40">Final Commitment</p>
                                         <div className="flex items-center justify-center gap-4">
                                             <div className="text-center">
-                                                <p className="text-2xl font-black text-primary italic">{pointsContribution}</p>
+                                                <p className="text-2xl font-black text-primary">{pointsContribution}</p>
                                                 <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Energy</p>
                                             </div>
                                             <span className="text-xl font-light opacity-30">+</span>
                                             <div className="text-center">
-                                                <p className="text-2xl font-black text-emerald-400 italic">₹{remainingCostInr}</p>
+                                                <p className="text-2xl font-black text-emerald-400">₹{remainingCostInr}</p>
                                                 <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Fiat</p>
                                             </div>
                                         </div>
